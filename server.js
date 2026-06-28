@@ -12,6 +12,7 @@ const PetManager = require('./server/managers/PetManager');
 const TalentManager = require('./server/managers/TalentManager');
 const ExpeditionManager = require('./server/managers/ExpeditionManager');
 const MetaProgressManager = require('./server/managers/MetaProgressManager');
+const V30ProgressManager = require('./server/managers/V30ProgressManager');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE_MS = 1000;
@@ -100,10 +101,12 @@ function createPlayer(socket) {
     codex: null,
     ascension: null,
     season: null,
-    extraTalentPoints: 0
+    extraTalentPoints: 0,
+    v30: null
   };
   LevelManager.syncProgressFields(player);
   MetaProgressManager.normalize(player);
+  V30ProgressManager.normalize(player);
   player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player);
   return player;
 }
@@ -158,7 +161,8 @@ function publicPlayer(player) {
     pets: PetManager.publicPets(player),
     talents: TalentManager.publicTalents(player),
     expedition: ExpeditionManager.publicExpedition(player),
-    meta: MetaProgressManager.publicMeta(player)
+    meta: MetaProgressManager.publicMeta(player),
+    endgame: V30ProgressManager.publicState(player)
   };
 }
 
@@ -181,7 +185,7 @@ function buildRanking() {
     map.set(key, publicPlayer(fake));
   }
   const base = Array.from(map.values()).map((p) => ({
-    nome: p.nome, classeId: p.classeId, nivel: p.nivel, power: p.power, kills: p.kills || 0, horda: p.horda || 1, bossKills: (p.stats && p.stats.bossKills) || 0, mount: p.mount, ascensionRank: (p.meta && p.meta.ascension && p.meta.ascension.rank) || 0
+    nome: p.nome, classeId: p.classeId, nivel: p.nivel, power: p.power, kills: p.kills || 0, horda: p.horda || 1, bossKills: (p.stats && p.stats.bossKills) || 0, mount: p.mount, ascensionRank: (p.meta && p.meta.ascension && p.meta.ascension.rank) || 0, title: (p.endgame && p.endgame.titles && p.endgame.titles.equipped) || null, tower: (p.endgame && p.endgame.tower && p.endgame.tower.best) || 0
   }));
   return {
     level: base.slice().sort((a,b) => (b.nivel - a.nivel) || (b.power - a.power)).slice(0, 20),
@@ -194,6 +198,7 @@ function syncPlayerPower(player) {
   MetaProgressManager.normalize(player);
   LevelManager.syncProgressFields(player);
   MetaProgressManager.normalize(player);
+  V30ProgressManager.normalize(player);
   player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player);
 }
 
@@ -231,6 +236,7 @@ function rewardIfEnemyDied(player, combatEvent) {
 
   const progress = CombatManager.grantKillRewards(player, combatEvent);
   const loot = LootManager.grantKillLoot(player, dead);
+  const seasonXpGained = V30ProgressManager.onKill(player, dead, loot);
   MetaProgressManager.progressMission(player, loot.item ? 'loot' : 'none', loot.item ? 1 : 0);
   const talentBonus = TalentManager.getBonuses(player);
   const meta = MetaProgressManager.publicMeta(player);
@@ -261,7 +267,9 @@ function rewardIfEnemyDied(player, combatEvent) {
     nextMonster: combatEvent.result.nextMonster,
     horda: combatEvent.result.horda,
     player: publicPlayer(player),
-    meta: MetaProgressManager.publicMeta(player)
+    meta: MetaProgressManager.publicMeta(player),
+    endgame: V30ProgressManager.publicState(player),
+    seasonXpGained
   });
   io.emit('playerUpdated', publicPlayer(player));
 }
@@ -271,10 +279,11 @@ function monsterStrike(player, now) {
   const monster = monsterManager.getPublicMonster();
   const base = 3 + Math.floor(monster.nivel * (monster.isBoss ? 1.25 : monster.templateId === 'skeleton' ? 0.8 : 0.55));
   const talentBonus = TalentManager.getBonuses(player);
+  const v30Bonus = V30ProgressManager.getBonuses(player);
   const metaBonus = MetaProgressManager.getArtifactBonuses(player);
   const codexBonus = MetaProgressManager.getCodexBonuses(player);
-  const defense = (GAME_CLASSES[player.classeId]?.baseStats?.defesa || 0) + LootManager.getEquippedList(player).reduce((s, item) => s + ((item.stats && item.stats.defesa) || 0), 0) + (talentBonus.defesa || 0) + (metaBonus.defesa || 0) + (codexBonus.defesa || 0);
-  const dodgeChance = Math.min(42, (talentBonus.evasion || 0) + ((LootManager.getCharacterAttributes(player).evasion || 0) * 0.12));
+  const defense = (GAME_CLASSES[player.classeId]?.baseStats?.defesa || 0) + LootManager.getEquippedList(player).reduce((s, item) => s + ((item.stats && item.stats.defesa) || 0), 0) + (talentBonus.defesa || 0) + (v30Bonus.defesa || 0) + (metaBonus.defesa || 0) + (codexBonus.defesa || 0);
+  const dodgeChance = Math.min(42, (talentBonus.evasion || 0) + (v30Bonus.evasion || 0) + ((LootManager.getCharacterAttributes(player).evasion || 0) * 0.12));
   if (Math.random() * 100 < dodgeChance) {
     return { playerId: player.id, playerName: player.nome, damage: 0, dodged: true, died: false, hp: player.hp, maxHp: player.maxHp };
   }
@@ -326,6 +335,7 @@ function applyAccountToPlayer(player, accountResult) {
     player.cashGems = player.cashGems != null ? player.cashGems : (player.gemas || 0);
   }
   MetaProgressManager.normalize(player);
+  V30ProgressManager.normalize(player);
   syncPlayerPower(player);
   savePlayer(player, true);
   return player;
@@ -521,6 +531,7 @@ io.on('connection', (socket) => {
     player.hp = player.maxHp;
     player.mana = player.maxMana;
     MetaProgressManager.normalize(player);
+  V30ProgressManager.normalize(player);
   player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player);
     updateAchievements(player);
     savePlayer(player, true);
@@ -845,6 +856,87 @@ io.on('connection', (socket) => {
     io.emit('enemyUpdate', monsterManager.getPublicMonster());
     socket.emit('metaUpdated', { meta: MetaProgressManager.publicMeta(player), player: publicPlayer(player), result });
     io.emit('playerUpdated', publicPlayer(player));
+  });
+
+
+  socket.on('v30UpgradeResearch', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V30ProgressManager.upgradeResearch(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v30Action', { type:'research', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v30EquipTitle', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V30ProgressManager.equipTitle(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v30Action', { type:'title', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v30ClaimSeason', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V30ProgressManager.claimSeasonReward(player, data.tier);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v30Action', { type:'season', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v30ChallengeTower', () => {
+    if (!requireAuth(socket, player)) return;
+    const result = V30ProgressManager.challengeTower(player);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v30Action', { type:'tower', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v30RunRift', () => {
+    if (!requireAuth(socket, player)) return;
+    const result = V30ProgressManager.runRift(player);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v30Action', { type:'rift', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v30ClaimMail', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = data.all ? V30ProgressManager.claimAllMail(player) : V30ProgressManager.claimMail(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v30Action', { type:'mail', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v30RedeemCode', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V30ProgressManager.redeemCode(player, data.code);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v30Action', { type:'code', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v30RerollItem', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V30ProgressManager.rerollItem(player, data.itemId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v30Action', { type:'reroll', result, player:publicPlayer(player) });
   });
 
   socket.on('disconnect', () => {

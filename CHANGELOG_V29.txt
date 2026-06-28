@@ -1,0 +1,4 @@
+Legend Of Indle RPG V1 - V29 Mailbox and Redeem Codes
+- Adicionado correio in-game com recompensas coletáveis.
+- Adicionados códigos de resgate: LAUNCHV30, INDLEVIP e GMEVENT.
+- Mensagens de boss/evento entram na caixa do jogador.

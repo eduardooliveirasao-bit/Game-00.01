@@ -1,0 +1,4 @@
+Legend Of Indle RPG V1 - V25 Season Pass
+- Adicionado Passe de Temporada com XP obtido por combate, boss, torre, fenda e pesquisa.
+- Recompensas por tier com ouro, gemas, itens e poeira de ascensão.
+- Integração com save e Render.

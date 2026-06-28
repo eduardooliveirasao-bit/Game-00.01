@@ -55,7 +55,8 @@
       shakeUntil: 0,
       playerSkillType: null,
       monsterSkillType: null
-    }
+    },
+    v30Tab: 'season'
   };
 
   var canvas = byId('game-canvas');
@@ -122,6 +123,10 @@
   var ascensionClose = byId('ascension-close');
   var ascensionSummary = byId('ascension-summary');
   var artifactList = byId('artifact-list');
+  var menuV30 = byId('menu-v30');
+  var v30Modal = byId('v30-modal');
+  var v30Close = byId('v30-close');
+  var v30Content = byId('v30-content');
 
   var audioCtx = null;
   function ensureAudio() {
@@ -1060,6 +1065,59 @@
   }
 
 
+
+
+  function bonusLine(bonus) {
+    if (!bonus) return '';
+    return Object.keys(bonus).map(function(k){
+      var v = bonus[k];
+      var label = k.replace('Pct','%');
+      return label + ' +' + (String(k).indexOf('Pct') >= 0 ? Math.round(v*1000)/10 + '%' : Math.round(v*10)/10);
+    }).join(' · ');
+  }
+
+  function openV30() { if (!v30Modal) return; v30Modal.classList.remove('hidden'); renderV30(); }
+  function closeV30() { if (v30Modal) v30Modal.classList.add('hidden'); }
+
+  function renderV30() {
+    if (!v30Content || !state.me) return;
+    var e = state.me.endgame || {};
+    var tab = state.v30Tab || 'season';
+    var tabs = v30Modal ? v30Modal.querySelectorAll('[data-v30-tab]') : [];
+    Array.prototype.forEach.call(tabs, function(btn){ btn.classList.toggle('active', btn.getAttribute('data-v30-tab') === tab); });
+    if (!e.version) { v30Content.innerHTML = '<div class="v30-card">Sistemas finais carregando...</div>'; return; }
+    if (tab === 'season') {
+      var rewards = (e.season.rewards || []).map(function(r){
+        var claimed = (e.season.claimed || []).indexOf(r.tier) >= 0;
+        var ready = (e.season.xp || 0) >= r.xp;
+        var rr = r.reward || {};
+        return '<div class="v30-card ' + (claimed ? 'claimed' : ready ? 'ready' : '') + '"><h3>Tier ' + r.tier + ' <span>' + (claimed ? 'Coletado' : ready ? 'Pronto' : r.xp + ' XP') + '</span></h3><p>Ouro ' + formatNumber(rr.ouro||0) + ' · Gemas ' + formatNumber(rr.gemas||0) + (rr.item ? ' · Item ' + rr.item : '') + (rr.dust ? ' · Poeira ' + rr.dust : '') + '</p><button data-season="' + r.tier + '" ' + (!ready || claimed ? 'disabled' : '') + '>Coletar</button></div>';
+      }).join('');
+      v30Content.innerHTML = '<div class="v30-hero"><h3>Temporada V30</h3><p>XP de temporada: <b>' + formatNumber(e.season.xp||0) + '</b>. Ganhe XP matando monstros, bosses, torre, fendas e pesquisa.</p></div><div class="v30-grid">' + rewards + '</div>';
+      Array.prototype.forEach.call(v30Content.querySelectorAll('[data-season]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v30ClaimSeason', { tier:Number(btn.getAttribute('data-season')) }); }; });
+    } else if (tab === 'research') {
+      v30Content.innerHTML = '<div class="v30-hero"><h3>Laboratório Arcano</h3><p>Bônus ativos: ' + bonusLine(e.bonuses) + '</p></div><div class="v30-grid">' + (e.research.defs||[]).map(function(d){ var lv=(e.research.levels&&e.research.levels[d.id])||0; var c=d.nextCost||{}; return '<div class="v30-card"><h3>' + d.icon + ' ' + d.nome + ' <span>' + lv + '/' + d.max + '</span></h3><p>' + d.desc + '</p><small>' + bonusLine(d.bonusPerLevel) + '</small><button data-research="' + d.id + '" ' + (lv>=d.max?'disabled':'') + '>Pesquisar: ' + formatNumber(c.ouro||0) + ' ouro ' + (c.gemas ? '+ ' + c.gemas + ' 💎' : '') + '</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v30Content.querySelectorAll('[data-research]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v30UpgradeResearch', { id:btn.getAttribute('data-research') }); }; });
+    } else if (tab === 'tower') {
+      v30Content.innerHTML = '<div class="v30-grid v30-grid-two"><div class="v30-card ready"><h3>🗼 Torre Celeste</h3><p>Andar atual: <b>' + (e.tower.floor||1) + '</b><br>Melhor andar: <b>' + (e.tower.best||0) + '</b><br>Requer poder: <b>' + formatNumber(e.tower.requiredPower||0) + '</b></p><button id="v30-tower-btn">Desafiar Torre</button></div><div class="v30-card ready"><h3>🌀 Fenda Dimensional</h3><p>Cargas: <b>' + (e.rift.charges||0) + '/5</b><br>Recompensas: ouro, gemas e item aleatório de alto valor.</p><button id="v30-rift-btn" ' + ((e.rift.charges||0)<=0?'disabled':'') + '>Abrir Fenda</button></div></div>';
+      var tb=byId('v30-tower-btn'); if(tb) tb.onclick=function(){ ensureAudio(); socket.emit('v30ChallengeTower'); };
+      var rb=byId('v30-rift-btn'); if(rb) rb.onclick=function(){ ensureAudio(); socket.emit('v30RunRift'); };
+    } else if (tab === 'titles') {
+      var unlocked = e.titles.unlocked || [];
+      v30Content.innerHTML = '<div class="v30-hero"><h3>Títulos de Prestígio</h3><p>Título equipado: <b>' + (e.titles.equipped || '-') + '</b></p></div><div class="v30-grid">' + (e.titles.all||[]).map(function(t){ var has=unlocked.indexOf(t.id)>=0; return '<div class="v30-card ' + (has?'ready':'') + '"><h3>' + t.icon + ' ' + t.nome + '</h3><p>' + t.desc + '<br><small>Req: ' + t.req + '</small></p><small>' + bonusLine(t.bonus) + '</small><button data-title="' + t.id + '" ' + (!has?'disabled':'') + '>' + (e.titles.equipped===t.id?'Equipado':'Equipar') + '</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v30Content.querySelectorAll('[data-title]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v30EquipTitle', { id:btn.getAttribute('data-title') }); }; });
+    } else if (tab === 'mail') {
+      v30Content.innerHTML = '<div class="v30-hero"><h3>Correio e Códigos</h3><p>Use códigos de teste: <b>LAUNCHV30</b>, <b>INDLEVIP</b>, <b>GMEVENT</b>.</p><div class="v30-code-row"><input id="v30-code-input" placeholder="Digite o código"><button id="v30-code-btn">Resgatar</button><button id="v30-mail-all">Coletar correio</button></div></div><div class="v30-list">' + (e.mailbox||[]).map(function(m){ var r=m.reward||{}; return '<div class="v30-card ' + (m.claimed?'claimed':'ready') + '"><h3>📬 ' + escapeHtml(m.title||'Mensagem') + '<span>' + (m.claimed?'Coletado':'Novo') + '</span></h3><p>' + escapeHtml(m.body||'') + '</p><small>Ouro ' + formatNumber(r.ouro||0) + ' · Gemas ' + formatNumber(r.gemas||0) + (r.dust?' · Poeira '+r.dust:'') + '</small><button data-mail="' + m.id + '" ' + (m.claimed?'disabled':'') + '>Coletar</button></div>'; }).join('') + '</div>';
+      var cb=byId('v30-code-btn'); if(cb) cb.onclick=function(){ ensureAudio(); socket.emit('v30RedeemCode', { code:(byId('v30-code-input')||{}).value||'' }); };
+      var all=byId('v30-mail-all'); if(all) all.onclick=function(){ ensureAudio(); socket.emit('v30ClaimMail', { all:true }); };
+      Array.prototype.forEach.call(v30Content.querySelectorAll('[data-mail]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v30ClaimMail', { id:btn.getAttribute('data-mail') }); }; });
+    } else if (tab === 'reroll') {
+      var items = (state.me.inventario || []).slice().sort(function(a,b){ return (b.powerScore||0)-(a.powerScore||0); }).slice(0,16);
+      v30Content.innerHTML = '<div class="v30-hero"><h3>Reforja Premium</h3><p>Rerolla qualidade e atributos variáveis de um item usando ouro e gemas.</p></div><div class="v30-grid">' + items.map(function(it){ return '<div class="v30-card item-card"><img src="' + (it.asset||'') + '"><h3 style="color:' + (it.rarityColor||'#fff') + '">' + escapeHtml(it.nome) + ' +' + (it.upgradeLevel||0) + '</h3><p>Poder ' + (it.powerScore||0) + ' · Q' + (it.rollQuality||0) + '%</p><button data-reroll="' + it.id + '">Reforjar</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v30Content.querySelectorAll('[data-reroll]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v30RerollItem', { itemId:btn.getAttribute('data-reroll') }); }; });
+    }
+  }
+
   if (loginBtn) loginBtn.onclick = function () {
     ensureAudio();
     setAuthError('');
@@ -1104,6 +1162,9 @@
   if (codexModal) codexModal.addEventListener('click', function (e) { if (e.target === codexModal) closeCodex(); });
   if (menuAscension) menuAscension.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuAscension.classList.add('active'); openAscension(); };
   if (ascensionClose) ascensionClose.onclick = closeAscension;
+  if (menuV30) menuV30.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuV30.classList.add('active'); openV30(); };
+  if (v30Close) v30Close.onclick = closeV30;
+  if (v30Modal) Array.prototype.forEach.call(v30Modal.querySelectorAll('[data-v30-tab]'), function(btn){ btn.onclick=function(){ state.v30Tab=btn.getAttribute('data-v30-tab'); renderV30(); }; });
   if (ascensionModal) ascensionModal.addEventListener('click', function (e) { if (e.target === ascensionModal) closeAscension(); });
 
   if (menuShop) menuShop.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuShop.classList.add('active'); openShop(); };
@@ -1158,8 +1219,9 @@
       else if (player.isAuthenticated) { mountClassSelect(); classSelect.classList.remove('hidden'); }
     }
     updateHUD();
+    renderV30();
   });
-  socket.on('gameState', function (list) { (list || []).forEach(function (p) { state.players[p.id] = p; if (p.id === state.meId) state.me = p; }); updateHUD(); });
+  socket.on('gameState', function (list) { (list || []).forEach(function (p) { state.players[p.id] = p; if (p.id === state.meId) state.me = p; }); updateHUD(); renderV30(); });
   socket.on('enemyUpdate', function (monster) { state.monster = monster; updateEnemyHUD(); });
   socket.on('combatTick', function (data) { if (data.monster) { state.monster = data.monster; updateEnemyHUD(); }
     (data.attacks || []).forEach(function (attack) { var color = attack.isCrit ? '#ffe69b' : '#ff9090'; state.anim.playerAttackUntil = performance.now() + (attack.type === 'ability' ? 520 : 280); state.anim.monsterHitUntil = performance.now() + 360; state.anim.shakeUntil = performance.now() + 120; var fxX = canvas.width * 0.72 + (Math.random() - 0.5) * 90; var fxY = canvas.height * 0.38 + (Math.random() - 0.5) * 60; pushFloating((attack.isCrit ? 'CRIT ' : '-') + attack.damage, color, fxX, fxY, attack.isCrit); spawnImpactBurst(fxX, fxY, color, attack.isCrit ? 1.35 : 1); playSound(attack.type === 'ability' ? 'skill' : 'hit'); if (attack.result && attack.result.specialTriggered) { if (attack.result.specialTriggered.type === 'bossShield') { addLog('🛡️ O Dragão Elemental ativou o Escudo Elemental! Use habilidades para quebrar.'); pushFloating('ESCUDO!', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.28, true); playSound('boss'); } else if (attack.result.specialTriggered.type === 'shieldBroken') { addLog('💥 O Escudo Elemental foi quebrado!'); pushFloating('QUEBRADO!', '#ffffff', canvas.width * 0.72, canvas.height * 0.28, true); playSound('loot'); } } if (attack.result && attack.result.resisted) pushFloating('RESIST', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.45, false); });
@@ -1231,6 +1293,25 @@
     playSound(data.type === 'claim' ? 'loot' : 'equip');
     updateHUD();
     renderExpedition(); renderMissions();
+  });
+
+
+
+  socket.on('v30Action', function(data) {
+    if (data.player) state.me = data.player;
+    var type = data.type || 'sistema';
+    var msg = '✨ V30 atualizado.';
+    if (type === 'research') msg = '🔬 Pesquisa concluída.';
+    if (type === 'tower') msg = '🗼 Torre vencida: andar ' + data.result.floor + '.';
+    if (type === 'rift') msg = '🌀 Fenda concluída: +' + formatNumber(data.result.gold||0) + ' ouro, +' + formatNumber(data.result.gems||0) + ' gemas.';
+    if (type === 'season') msg = '🎟️ Recompensa de temporada coletada.';
+    if (type === 'title') msg = '🏷️ Título equipado: ' + data.result.title.nome + '.';
+    if (type === 'mail') msg = '📬 Correio coletado.';
+    if (type === 'code') msg = '🎁 Código resgatado: ' + data.result.code + '.';
+    if (type === 'reroll') msg = '♻️ Item reforjado: ' + data.result.item.nome + '.';
+    addLog(msg);
+    playSound('loot');
+    updateHUD(); renderV30(); renderBag(); renderPaperDoll();
   });
 
   socket.on('shopAction', function (data) {

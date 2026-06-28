@@ -1,6 +1,6 @@
 {
   "name": "legend-of-indle-rpg-v1",
-  "version": "0.16.0",
+  "version": "0.30.0",
   "private": true,
   "description": "Legend Of Indle RPG V1 — preparado para deploy no Render",
   "main": "server.js",

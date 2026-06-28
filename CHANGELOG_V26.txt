@@ -1,0 +1,4 @@
+Legend Of Indle RPG V1 - V26 Titles and Prestige
+- Adicionados títulos equipáveis com bônus permanentes.
+- Títulos desbloqueados por abates, bosses e poder.
+- Título equipado passa a aparecer no meta do personagem e influencia poder.
