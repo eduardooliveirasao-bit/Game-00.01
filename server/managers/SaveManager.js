@@ -65,6 +65,11 @@ function sanitizePlayer(player) {
     v40: player.v40 || null,
     v90: player.v90 || null,
     extraTalentPoints: player.extraTalentPoints || 0,
+    coreStats: player.coreStats || null,
+    bag: player.bag || null,
+    fashion: player.fashion || null,
+    world: player.world || null,
+    attributeBreakdown: player.attributeBreakdown || null,
     updatedAt: Date.now()
   };
 }
@@ -132,7 +137,12 @@ class SaveManager {
       v30: save.v30 || null,
       v40: save.v40 || null,
       v90: save.v90 || null,
-      extraTalentPoints: save.extraTalentPoints || 0
+      extraTalentPoints: save.extraTalentPoints || 0,
+      coreStats: save.coreStats || { strength:10, wisdom:10, agility:10, vitality:10, free:0, spent:0 },
+      bag: save.bag || { capacity:56, slots:[] },
+      fashion: save.fashion || { owned:['armadura_ferro_runa'], equipped:{ outfit:'armadura_ferro_runa' }, fragments:0, bonus:{} },
+      world: save.world || { zoneId:'floresta_cristalina', unlocked:['floresta_cristalina'], routeHistory:[], enteredAt:Date.now(), clientConfig:{} },
+      attributeBreakdown: save.attributeBreakdown || null
     });
     player.id = keepSocketId;
     player.isDead = false;

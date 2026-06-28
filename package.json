@@ -1,13 +1,14 @@
 {
   "name": "legend-of-indle-rpg-v1",
-  "version": "0.91.0",
+  "version": "0.92.0",
   "private": true,
   "description": "Legend Of Indle — V90 Ultimate Polish, combat VFX, skins-ready and endgame expansion",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "render-start": "NODE_ENV=production node server.js"
+    "render-start": "NODE_ENV=production node server.js",
+    "local": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",

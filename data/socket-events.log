@@ -1,0 +1,9 @@
+[2026-06-28T18:11:12.450Z] XZwD08m-DhRYgXWWAAAB Aventureiro-t290 -> loginAccount {"login":"GM","password":"***"}
+[2026-06-28T18:11:15.366Z] XZwD08m-DhRYgXWWAAAB GM-Eduardo -> acceptEquipSuggestion {"itemId":"mago_colar_2_1782670273294_a1a0c8ee9e643"}
+[2026-06-28T18:11:18.203Z] XZwD08m-DhRYgXWWAAAB GM-Eduardo -> acceptEquipSuggestion {"itemId":"mago_colar_2_1782670277333_6279de1498e8f8"}
+[2026-06-28T18:11:30.266Z] XZwD08m-DhRYgXWWAAAB GM-Eduardo -> saveNow <unserializable>
+[2026-06-28T18:11:50.268Z] XZwD08m-DhRYgXWWAAAB GM-Eduardo -> saveNow <unserializable>
+[2026-06-28T18:12:10.267Z] XZwD08m-DhRYgXWWAAAB GM-Eduardo -> saveNow <unserializable>
+[2026-06-28T18:12:26.759Z] XZwD08m-DhRYgXWWAAAB GM-Eduardo -> acceptEquipSuggestion {"itemId":"mago_arma_5_1782670345927_5564d545c95388"}
+[2026-06-28T18:12:30.260Z] XZwD08m-DhRYgXWWAAAB GM-Eduardo -> saveNow <unserializable>
+[2026-06-28T18:12:30.428Z] XZwD08m-DhRYgXWWAAAB GM-Eduardo -> equipBestItems <unserializable>

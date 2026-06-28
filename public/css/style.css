@@ -181,3 +181,27 @@ body{overflow:hidden;background:#02040b}
 #menu-v90{background:linear-gradient(135deg,rgba(63,47,136,.90),rgba(155,111,255,.62),rgba(255,230,155,.50))!important;color:#fff!important;border-color:rgba(255,230,155,.42)!important;text-shadow:0 1px 4px rgba(0,0,0,.65)}
 #menu-v90.active,#menu-v90:hover{transform:translateY(-2px);box-shadow:0 0 28px rgba(166,119,255,.28),0 0 18px rgba(255,230,155,.16)!important}
 @media(max-width:920px){.v90-hero-panel{grid-template-columns:1fr}.v90-big-power{width:100%;height:110px}.v90-tabs{position:relative}}
+
+/* V92 — núcleo local avançado */
+#menu-v92 { background: linear-gradient(180deg, rgba(108,78,255,.26), rgba(10,12,28,.76)); border-color: rgba(169,139,255,.38); box-shadow: inset 0 0 18px rgba(121,84,255,.12), 0 0 18px rgba(121,84,255,.08); }
+.v92-modal-card { width: min(1120px, 96vw); }
+.v92-content .v92-hero { display:flex; justify-content:space-between; gap:18px; align-items:stretch; padding:16px; border:1px solid rgba(202,175,104,.24); border-radius:18px; background: radial-gradient(circle at 20% 20%, rgba(171,130,255,.18), transparent 38%), linear-gradient(180deg, rgba(23,26,48,.92), rgba(8,10,24,.94)); box-shadow: inset 0 0 30px rgba(255,214,123,.05); }
+.v92-power { min-width:160px; display:grid; place-items:center; text-align:center; font-size:28px; color:#ffe69b; border-radius:16px; border:1px solid rgba(255,226,155,.22); background:rgba(0,0,0,.22); }
+.v92-power small { display:block; font-size:11px; color:#bfc8ff; letter-spacing:.12em; text-transform:uppercase; }
+.v92-attr-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:10px; margin-top:12px; }
+.v92-attr-card, .v92-slot, .v92-fashion-card, .v92-zone-card { border:1px solid rgba(132,155,255,.18); border-radius:15px; padding:12px; background:linear-gradient(180deg, rgba(18,22,45,.92), rgba(8,10,22,.88)); box-shadow: inset 0 0 20px rgba(255,255,255,.025); }
+.v92-attr-card strong { display:block; font-size:22px; color:#fff2bf; }
+.v92-attr-card span { display:block; color:#aeb8d8; font-size:12px; }
+.v92-attr-card button, .v92-content button { margin-top:8px; border:1px solid rgba(255,220,150,.32); color:#ffe7a3; background:linear-gradient(180deg, rgba(90,62,24,.8), rgba(40,25,13,.86)); border-radius:11px; padding:9px 11px; cursor:pointer; font-weight:800; }
+.v92-attr-card button:disabled, .v92-content button:disabled { opacity:.45; cursor:not-allowed; }
+.v92-slot-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(74px,1fr)); gap:8px; margin-top:12px; }
+.v92-slot { min-height:86px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:8px; }
+.v92-slot.empty { opacity:.45; border-style:dashed; }
+.v92-slot .ico { font-size:24px; }
+.v92-slot b { font-size:11px; line-height:1.15; max-width:100%; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.v92-slot small { color:#9fb0d6; font-size:10px; }
+.v92-fashion-grid, .v92-zone-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-top:12px; }
+.v92-fashion-card.ready, .v92-zone-card.ready { border-color:rgba(124,255,190,.35); box-shadow:0 0 18px rgba(45,255,162,.07); }
+.v92-fashion-card.equipped, .v92-zone-card.active { border-color:rgba(255,226,144,.5); box-shadow:0 0 22px rgba(255,213,87,.09); }
+.v92-zone-card.locked { opacity:.55; filter:saturate(.75); }
+.v92-debug-box { white-space:pre-wrap; background:#050714; border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:14px; color:#b9d0ff; max-height:420px; overflow:auto; }

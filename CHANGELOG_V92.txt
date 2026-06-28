@@ -1,0 +1,24 @@
+Legend Of Indle RPG V1 - V92 Local Core Ultimate
+
+Foco da versão:
+- parar de limitar a arquitetura ao Render e priorizar execução local/desktop
+- adaptar ideias dos arquivos enviados como referência técnica para sistemas próprios do Legend Of Indle
+- preparar o projeto para virar executável futuramente
+
+Implementado:
+- AdvancedAttributeManager: força, sabedoria, agilidade, vitalidade, ataque físico/mágico, defesa, HP, mana, acerto, esquiva, crítico, perfuração, tenacidade e velocidade
+- fórmula de atributo em camadas: base + crescimento + equipamento + fortalecimento + montaria + pet + talento + meta + fashion
+- fortalecimento +20 com bônus percentual inspirado no EnhanceLevel
+- SlotInventoryManager: mochila por slots fixos, organização, expansão e fortalecimento por item
+- FashionLayerManager: base de cabelo, roupa, arma, asas, aura, bônus acumulado e visualLayers para futuros PNGs
+- WorldFlowManager: entrada em mundo local, zonas, capítulos, rotas e bônus por região
+- SocketEventLogger: log local dos eventos Socket.IO em data/socket-events.log
+- novo menu V92 no cliente com abas: Atributos, Slots, Fashion, Mundo e Debug
+- START_LOCAL_WINDOWS.bat para rodar local com um clique no Windows
+- SaveManager atualizado para salvar coreStats, bag, fashion, world e attributeBreakdown
+- CombatManager agora considera o núcleo avançado de atributos no dano e no crítico
+- monsterStrike usa defesa/esquiva do AdvancedAttributeManager
+
+Observação:
+- Os arquivos de outro jogo foram usados como referência arquitetural e mecânica.
+- Não foram adicionados assets proprietários externos.

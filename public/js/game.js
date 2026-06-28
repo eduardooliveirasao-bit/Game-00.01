@@ -153,6 +153,10 @@
   var v90Modal = byId('v90-modal');
   var v90Close = byId('v90-close');
   var v90Content = byId('v90-content');
+  var menuV92 = byId('menu-v92');
+  var v92Modal = byId('v92-modal');
+  var v92Close = byId('v92-close');
+  var v92Content = byId('v92-content');
 
   var audioCtx = null;
   function ensureAudio() {
@@ -1285,6 +1289,43 @@
     }
   }
 
+  function openV92() { if (!v92Modal) return; v92Modal.classList.remove('hidden'); renderV92(); }
+  function closeV92() { if (v92Modal) v92Modal.classList.add('hidden'); }
+
+  function renderV92() {
+    if (!v92Content || !state.me) return;
+    var v = state.me.v92 || {};
+    var tab = state.v92Tab || 'attributes';
+    var tabs = v92Modal ? v92Modal.querySelectorAll('[data-v92-tab]') : [];
+    Array.prototype.forEach.call(tabs, function(btn){ btn.classList.toggle('active', btn.getAttribute('data-v92-tab') === tab); });
+    var adv = v.advanced || {}; var calc = adv.calculated || {}; var core = adv.coreStats || {};
+    if (tab === 'attributes') {
+      var attrs = [
+        ['strength','Força','Dano físico e penetração'], ['wisdom','Sabedoria','Magia, mana e resistência'], ['agility','Agilidade','Crítico, esquiva e velocidade'], ['vitality','Vitalidade','HP, defesa e tenacidade']
+      ];
+      v92Content.innerHTML = '<div class="v92-hero"><div><h3>🧬 Núcleo de Atributos Avançado</h3><p>Pontos livres: <b>' + (core.free||0) + '</b> · Gastos: <b>' + (core.spent||0) + '</b></p><p>Fórmula moderna: atributo base + crescimento por classe + equipamento + fortalecimento + fashion + meta.</p></div><div class="v92-power">' + formatNumber(calc.power||state.me.power||0) + '<small>Poder calculado</small></div></div><div class="v92-attr-grid">' + attrs.map(function(a){ return '<div class="v92-attr-card"><span>' + a[1] + '</span><strong>' + Math.floor(calc[a[0]]||core[a[0]]||0) + '</strong><small>' + a[2] + '</small><button data-v92-attr="' + a[0] + '" ' + ((core.free||0)<=0?'disabled':'') + '>+1 ponto</button></div>'; }).join('') + '</div><div class="v92-attr-grid"><div class="v92-attr-card"><span>Ataque</span><strong>' + formatNumber(calc.attack||0) + '</strong></div><div class="v92-attr-card"><span>Defesa</span><strong>' + formatNumber(calc.defense||0) + '</strong></div><div class="v92-attr-card"><span>HP / Mana</span><strong>' + formatNumber(calc.maxHp||0) + ' / ' + formatNumber(calc.maxMana||0) + '</strong></div><div class="v92-attr-card"><span>Crítico / Esquiva</span><strong>' + Math.floor(calc.critRate||0) + '% / ' + Math.floor(calc.dodgeRate||0) + '%</strong></div><div class="v92-attr-card"><span>Perfuração / Tenacidade</span><strong>' + formatNumber(calc.pierce||0) + ' / ' + formatNumber(calc.tough||0) + '</strong></div><div class="v92-attr-card"><span>Velocidade</span><strong>' + formatNumber(calc.haste||0) + '</strong></div></div><button id="v92-reset-attrs">Resetar atributos — 2.500 ouro</button>';
+      Array.prototype.forEach.call(v92Content.querySelectorAll('[data-v92-attr]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v92AddAttribute', { stat:btn.getAttribute('data-v92-attr') }); }; });
+      var reset=byId('v92-reset-attrs'); if(reset) reset.onclick=function(){ ensureAudio(); socket.emit('v92ResetAttributes'); };
+    } else if (tab === 'bag') {
+      var bag = v.bag || {}; var slots = bag.slots || [];
+      v92Content.innerHTML = '<div class="v92-hero"><div><h3>🎒 Mochila por Slots</h3><p>Slots usados: <b>' + (bag.used||0) + '/' + (bag.capacity||0) + '</b>. Agora cada item tem posição fixa, preparação para mover, organizar e fortalecer +20.</p></div><div><button id="v92-sort-bag">Organizar</button><button id="v92-expand-bag">Expandir +8</button></div></div><div class="v92-slot-grid">' + slots.map(function(item,idx){ if(!item) return '<div class="v92-slot empty"><small>#' + idx + '</small></div>'; return '<div class="v92-slot" data-v92-item="' + item.id + '"><small>#' + idx + ' · ' + escapeHtml(item.raridade||'') + '</small><span class="ico">' + (item.icon||'◈') + '</span><b>' + escapeHtml(item.nome||'Item') + '</b><small>+' + (item.upgradeLevel||0) + ' · Pwr ' + formatNumber(item.powerScore||0) + '</small><button data-v92-enhance="' + item.id + '">Fortalecer</button></div>'; }).join('') + '</div>';
+      var sort=byId('v92-sort-bag'); if(sort) sort.onclick=function(){ ensureAudio(); socket.emit('v92SortBag'); };
+      var exp=byId('v92-expand-bag'); if(exp) exp.onclick=function(){ ensureAudio(); socket.emit('v92ExpandBag'); };
+      Array.prototype.forEach.call(v92Content.querySelectorAll('[data-v92-enhance]'), function(btn){ btn.onclick=function(e){ e.stopPropagation(); ensureAudio(); socket.emit('v92EnhanceItem', { itemId:btn.getAttribute('data-v92-enhance') }); }; });
+    } else if (tab === 'fashion') {
+      var f = v.fashion || {}; var owned = (f.owned || []).map(function(x){ return x.id; }); var eq = f.equipped || {};
+      v92Content.innerHTML = '<div class="v92-hero"><div><h3>🎭 Fashion por Camadas</h3><p>Fragmentos: <b>' + formatNumber(f.fragments||0) + '</b>. Pronto para cabelo, roupa, arma, asas e aura com PNGs próprios depois.</p><p>Bônus acumulado: ' + bonusLine(f.bonus||{}) + '</p></div><div class="v92-power">' + Object.keys(eq).length + '<small>camadas equipadas</small></div></div><div class="v92-fashion-grid">' + (f.catalog||[]).map(function(it){ var has=owned.indexOf(it.id)>=0; var equipped=eq[it.layer]===it.id; return '<div class="v92-fashion-card ' + (equipped?'equipped':has?'ready':'') + '"><h3>' + it.icon + ' ' + escapeHtml(it.nome) + '</h3><p>Camada: <b>' + it.layer + '</b></p><small>' + bonusLine(it.bonus||{}) + '</small><button data-v92-unlock-fashion="' + it.id + '" ' + (has?'disabled':'') + '>Desbloquear</button><button data-v92-equip-fashion="' + it.id + '" ' + (!has?'disabled':'') + '>' + (equipped?'Equipado':'Equipar') + '</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v92Content.querySelectorAll('[data-v92-equip-fashion]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v92EquipFashion', { id:btn.getAttribute('data-v92-equip-fashion') }); }; });
+      Array.prototype.forEach.call(v92Content.querySelectorAll('[data-v92-unlock-fashion]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v92UnlockFashion', { id:btn.getAttribute('data-v92-unlock-fashion') }); }; });
+    } else if (tab === 'world') {
+      var w = v.world || {}; var zones = w.zones || [];
+      v92Content.innerHTML = '<div class="v92-hero"><div><h3>🗺️ Fluxo de Mundo Local</h3><p>Zona ativa: <b>' + escapeHtml((w.active&&w.active.nome)||'-') + '</b>. Rotas, capítulos e bônus foram inspirados no fluxo login→mundo→mapa→bag.</p></div><div class="v92-power">Cap. ' + ((w.active&&w.active.chapter)||1) + '<small>campanha</small></div></div><div class="v92-zone-grid">' + zones.map(function(z){ return '<div class="v92-zone-card ' + (z.id===(w.active&&w.active.id)?'active':z.unlocked?'ready':'locked') + '"><h3>' + escapeHtml(z.nome) + '</h3><p>' + escapeHtml(z.desc||'') + '</p><small>Requer Nv.' + z.minLevel + ' · ' + formatNumber(z.minPower) + ' poder<br>XP +' + Math.floor((z.bonus&&z.bonus.xpPct||0)*100) + '% · Ouro +' + Math.floor((z.bonus&&z.bonus.goldPct||0)*100) + '%</small><button data-v92-zone="' + z.id + '" ' + (!z.unlocked?'disabled':'') + '>' + (z.id===(w.active&&w.active.id)?'Atual':'Entrar') + '</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v92Content.querySelectorAll('[data-v92-zone]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v92EnterZone', { zoneId:btn.getAttribute('data-v92-zone') }); }; });
+    } else if (tab === 'debug') {
+      v92Content.innerHTML = '<div class="v92-hero"><div><h3>🧪 Debug Local</h3><p>Como deixamos Render de lado, o jogo agora pode gravar logs locais, usar mais arquivos e futuramente virar executável.</p></div></div><div class="v92-debug-box">Eventos Socket são salvos em: data/socket-events.log\n\nFluxo local recomendado:\n1. npm install\n2. npm start\n3. abrir http://localhost:3000\n\nPróximo empacotamento possível:\n- launcher Node local\n- Electron/Tauri depois\n- banco SQLite/arquivo local</div>';
+    }
+  }
+
   function openV90() { if (!v90Modal) return; v90Modal.classList.remove('hidden'); renderV90(); }
   function closeV90() { if (v90Modal) v90Modal.classList.add('hidden'); }
 
@@ -1394,11 +1435,14 @@
   if (menuV30) menuV30.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuV30.classList.add('active'); openV30(); };
   if (menuV40) menuV40.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuV40.classList.add('active'); openV40(); };
   if (menuV90) menuV90.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuV90.classList.add('active'); openV90(); };
+  if (menuV92) menuV92.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuV92.classList.add('active'); openV92(); };
+  if (v92Close) v92Close.onclick = closeV92;
   if (v30Close) v30Close.onclick = closeV30;
   if (v40Close) v40Close.onclick = closeV40;
   if (v90Close) v90Close.onclick = closeV90;
   if (v40Modal) Array.prototype.forEach.call(v40Modal.querySelectorAll('[data-v40-tab]'), function(btn){ btn.onclick=function(){ state.v40Tab=btn.getAttribute('data-v40-tab'); renderV40(); }; });
   if (v90Modal) Array.prototype.forEach.call(v90Modal.querySelectorAll('[data-v90-tab]'), function(btn){ btn.onclick=function(){ state.v90Tab=btn.getAttribute('data-v90-tab'); renderV90(); }; });
+  if (v92Modal) Array.prototype.forEach.call(v92Modal.querySelectorAll('[data-v92-tab]'), function(btn){ btn.onclick=function(){ state.v92Tab=btn.getAttribute('data-v92-tab'); renderV92(); }; });
   if (v30Modal) Array.prototype.forEach.call(v30Modal.querySelectorAll('[data-v30-tab]'), function(btn){ btn.onclick=function(){ state.v30Tab=btn.getAttribute('data-v30-tab'); renderV30(); }; });
   if (ascensionModal) ascensionModal.addEventListener('click', function (e) { if (e.target === ascensionModal) closeAscension(); });
   if (v90Modal) v90Modal.addEventListener('click', function (e) { if (e.target === v90Modal) closeV90(); });
@@ -1455,9 +1499,9 @@
       else if (player.isAuthenticated) { mountClassSelect(); classSelect.classList.remove('hidden'); }
     }
     updateHUD();
-    renderV30(); renderV90();
+    renderV30(); renderV90(); renderV92(); renderV92();
   });
-  socket.on('gameState', function (list) { (list || []).forEach(function (p) { state.players[p.id] = p; if (p.id === state.meId) state.me = p; }); updateHUD(); renderV30(); renderV90(); });
+  socket.on('gameState', function (list) { (list || []).forEach(function (p) { state.players[p.id] = p; if (p.id === state.meId) state.me = p; }); updateHUD(); renderV30(); renderV90(); renderV92(); renderV92(); });
   socket.on('enemyUpdate', function (monster) { state.monster = monster; updateEnemyHUD(); });
   socket.on('combatTick', function (data) {
     if (data.monster) { state.monster = data.monster; updateEnemyHUD(); }
@@ -1579,6 +1623,9 @@
   socket.on('petUpdated', function (data) { if (data.pets && state.me) state.me.pets = data.pets; addLog('🐾 Pet atualizado.'); playSound('equip'); updateHUD(); });
 
 
+  socket.on('v92Update', function (data) { if (data.player) state.me = data.player; addLog('🧬 V92 atualizado: ' + (data.type || 'sistema') + '.'); playSound('equip'); updateHUD(); renderV92(); renderPaperDoll(); });
+  socket.on('worldEntered', function (data) { if (data.player) state.me = data.player; if (data.world && data.world.active) { var title = byId('stage-title'); if (title) title.textContent = data.world.active.nome; addLog('🗺️ Entrou em ' + data.world.active.nome + '.'); } renderV92(); updateHUD(); });
+
   socket.on('authSuccess', function (data) {
     state.me = data.player;
     localStorage.setItem('legend_of_indle_account_login', data.account.login);
@@ -1632,7 +1679,7 @@
     if (type === 'reroll') msg = '♻️ Item reforjado: ' + data.result.item.nome + '.';
     addLog(msg);
     playSound('loot');
-    updateHUD(); renderV30(); renderV90(); renderBag(); renderPaperDoll();
+    updateHUD(); renderV30(); renderV90(); renderV92(); renderV92(); renderBag(); renderPaperDoll();
   });
 
   socket.on('v90Action', function(data) {

@@ -15,6 +15,11 @@ const MetaProgressManager = require('./server/managers/MetaProgressManager');
 const V30ProgressManager = require('./server/managers/V30ProgressManager');
 const V40ProgressManager = require('./server/managers/V40ProgressManager');
 const V90ProgressManager = require('./server/managers/V90ProgressManager');
+const AdvancedAttributeManager = require('./server/managers/AdvancedAttributeManager');
+const SlotInventoryManager = require('./server/managers/SlotInventoryManager');
+const FashionLayerManager = require('./server/managers/FashionLayerManager');
+const WorldFlowManager = require('./server/managers/WorldFlowManager');
+const SocketEventLogger = require('./server/debug/SocketEventLogger');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE_MS = 1000;
@@ -106,14 +111,24 @@ function createPlayer(socket) {
     extraTalentPoints: 0,
     v30: null,
     v40: null,
-    v90: null
+    v90: null,
+    coreStats: { strength: 10, wisdom: 10, agility: 10, vitality: 10, free: 0, spent: 0 },
+    bag: { capacity: 56, slots: [] },
+    fashion: { owned: ['armadura_ferro_runa'], equipped: { outfit: 'armadura_ferro_runa' }, fragments: 0, bonus: {} },
+    world: { zoneId: 'floresta_cristalina', unlocked: ['floresta_cristalina'], routeHistory: [], enteredAt: Date.now(), clientConfig: {} },
+    attributeBreakdown: null
   };
   LevelManager.syncProgressFields(player);
   MetaProgressManager.normalize(player);
   V30ProgressManager.normalize(player);
   V40ProgressManager.normalize(player);
   V90ProgressManager.normalize(player);
-  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player);
+  SlotInventoryManager.normalize(player);
+  FashionLayerManager.normalize(player);
+  WorldFlowManager.normalize(player);
+  AdvancedAttributeManager.normalize(player);
+  AdvancedAttributeManager.calculate(player);
+  player.power = Math.max(LootManager.calculatePower(player), (player.attributeBreakdown && player.attributeBreakdown.power) || 0) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player);
   return player;
 }
 
@@ -171,7 +186,14 @@ function publicPlayer(player) {
     endgame: V30ProgressManager.publicState(player),
     v40: V40ProgressManager.publicState(player),
     v90: V90ProgressManager.publicState(player),
-    visualLayers: V90ProgressManager.visualLayers(player),
+    v92: {
+      advanced: AdvancedAttributeManager.publicState(player),
+      bag: SlotInventoryManager.publicBag(player),
+      fashion: FashionLayerManager.publicState(player),
+      world: WorldFlowManager.publicState(player),
+      socketLog: process.env.DEBUG_SOCKET === '1' ? SocketEventLogger.path() : null
+    },
+    visualLayers: Object.assign({}, V90ProgressManager.visualLayers(player), FashionLayerManager.layers(player)),
     v90AuraColor: V90ProgressManager.auraColor(player)
   };
 }
@@ -211,7 +233,12 @@ function syncPlayerPower(player) {
   V30ProgressManager.normalize(player);
   V40ProgressManager.normalize(player);
   V90ProgressManager.normalize(player);
-  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player);
+  SlotInventoryManager.normalize(player);
+  FashionLayerManager.normalize(player);
+  WorldFlowManager.normalize(player);
+  AdvancedAttributeManager.normalize(player);
+  AdvancedAttributeManager.calculate(player);
+  player.power = Math.max(LootManager.calculatePower(player), (player.attributeBreakdown && player.attributeBreakdown.power) || 0) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player);
 }
 
 function savePlayer(player, force = false) {
@@ -251,10 +278,13 @@ function rewardIfEnemyDied(player, combatEvent) {
   const seasonXpGained = V30ProgressManager.onKill(player, dead, loot);
   const v40Kill = V40ProgressManager.onKill(player, dead, loot);
   const v90Kill = V90ProgressManager.onKill(player, dead, loot);
+  if (dead.isBoss || Math.random() < 0.06) FashionLayerManager.grantFragments(player, dead.isBoss ? 3 : 1);
   MetaProgressManager.progressMission(player, loot.item ? 'loot' : 'none', loot.item ? 1 : 0);
   const talentBonus = TalentManager.getBonuses(player);
+  const worldBonus = WorldFlowManager.activeBonus(player);
+  if (worldBonus.xpPct) combatEvent.result.xpReward = Math.floor((combatEvent.result.xpReward || 0) * (1 + worldBonus.xpPct));
   const meta = MetaProgressManager.publicMeta(player);
-  const goldPctMeta = (meta.zone && meta.zone.bonus && meta.zone.bonus.goldPct || 0) + ((meta.ascension && meta.ascension.bonuses && meta.ascension.bonuses.goldPct) || 0) + ((meta.ascension && meta.ascension.artifactBonuses && meta.ascension.artifactBonuses.goldPct) || 0) + ((meta.codex && meta.codex.bonuses && meta.codex.bonuses.goldPct) || 0);
+  const goldPctMeta = (worldBonus.goldPct || 0) + (meta.zone && meta.zone.bonus && meta.zone.bonus.goldPct || 0) + ((meta.ascension && meta.ascension.bonuses && meta.ascension.bonuses.goldPct) || 0) + ((meta.ascension && meta.ascension.artifactBonuses && meta.ascension.artifactBonuses.goldPct) || 0) + ((meta.codex && meta.codex.bonuses && meta.codex.bonuses.goldPct) || 0);
   if (goldPctMeta) { const zGold = Math.floor((loot.gold || 0) * goldPctMeta); if (zGold > 0) { player.ouro = (player.ouro || 0) + zGold; loot.gold += zGold; } }
   if (talentBonus.goldPct) {
     const extraGold = Math.floor((loot.gold || 0) * talentBonus.goldPct);
@@ -301,8 +331,9 @@ function monsterStrike(player, now) {
   const v90Bonus = V90ProgressManager.getBonuses(player);
   const metaBonus = MetaProgressManager.getArtifactBonuses(player);
   const codexBonus = MetaProgressManager.getCodexBonuses(player);
-  const defense = (GAME_CLASSES[player.classeId]?.baseStats?.defesa || 0) + LootManager.getEquippedList(player).reduce((s, item) => s + ((item.stats && item.stats.defesa) || 0), 0) + (talentBonus.defesa || 0) + (v30Bonus.defesa || 0) + (v40Bonus.defesa || 0) + (v90Bonus.defesa || 0) + (metaBonus.defesa || 0) + (codexBonus.defesa || 0);
-  const dodgeChance = Math.min(55, (talentBonus.evasion || 0) + (v30Bonus.evasion || 0) + (v40Bonus.evasion || 0) + (v90Bonus.evasion || 0) + ((LootManager.getCharacterAttributes(player).evasion || 0) * 0.12));
+  const advancedStats = AdvancedAttributeManager.getCombatStats(player);
+  const defense = Math.max(0, (advancedStats.defense || 0) + (metaBonus.defesa || 0) + (codexBonus.defesa || 0));
+  const dodgeChance = Math.min(65, (advancedStats.dodgeRate || 0) + (talentBonus.evasion || 0) * 0.25 + (v30Bonus.evasion || 0) * 0.25 + (v40Bonus.evasion || 0) * 0.25 + (v90Bonus.evasion || 0) * 0.25);
   if (Math.random() * 100 < dodgeChance) {
     V90ProgressManager.onDodge(player);
     return { playerId: player.id, playerName: player.nome, damage: 0, dodged: true, died: false, hp: player.hp, maxHp: player.maxHp };
@@ -359,6 +390,10 @@ function applyAccountToPlayer(player, accountResult) {
   V30ProgressManager.normalize(player);
   V40ProgressManager.normalize(player);
   V90ProgressManager.normalize(player);
+  SlotInventoryManager.normalize(player);
+  FashionLayerManager.normalize(player);
+  WorldFlowManager.normalize(player);
+  AdvancedAttributeManager.normalize(player);
   syncPlayerPower(player);
   savePlayer(player, true);
   return player;
@@ -457,6 +492,7 @@ function claimDailyReward(player) {
 io.on('connection', (socket) => {
   const player = createPlayer(socket);
   players[socket.id] = player;
+  SocketEventLogger.attach(socket, () => player);
 
   socket.emit('init', { you: publicPlayer(player), players: publicPlayersList(), monster: monsterManager.getPublicMonster(), levelCap: LEVEL_CAP, shopItems: SHOP_ITEMS, authRequired: true });
   socket.broadcast.emit('playerJoined', publicPlayer(player));
@@ -496,6 +532,91 @@ io.on('connection', (socket) => {
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
     socket.emit('inventoryAction', { type: 'nick', nick: player.nome });
+  });
+
+
+  socket.on('enterWorld', () => {
+    if (!requireAuth(socket, player)) return;
+    WorldFlowManager.normalize(player); AdvancedAttributeManager.calculate(player); syncPlayerPower(player);
+    socket.emit('worldEntered', { ok:true, player: publicPlayer(player), world: WorldFlowManager.publicState(player) });
+  });
+
+  socket.on('v92AddAttribute', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = AdvancedAttributeManager.addPoint(player, data.stat);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player); savePlayer(player, true);
+    socket.emit('v92Update', { type:'attribute', player: publicPlayer(player), result });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
+  socket.on('v92ResetAttributes', () => {
+    if (!requireAuth(socket, player)) return;
+    const cost = 2500;
+    if ((player.ouro || 0) < cost) return socket.emit('errorMsg', 'Ouro insuficiente para resetar atributos.');
+    player.ouro -= cost;
+    const result = AdvancedAttributeManager.reset(player);
+    syncPlayerPower(player); savePlayer(player, true);
+    socket.emit('v92Update', { type:'attributeReset', player: publicPlayer(player), result, cost });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
+  socket.on('v92SortBag', () => {
+    if (!requireAuth(socket, player)) return;
+    const result = SlotInventoryManager.sort(player);
+    savePlayer(player, true);
+    socket.emit('v92Update', { type:'bagSort', player: publicPlayer(player), result });
+  });
+
+  socket.on('v92MoveSlot', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = SlotInventoryManager.move(player, data.fromSlot, data.toSlot);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    savePlayer(player, true);
+    socket.emit('v92Update', { type:'bagMove', player: publicPlayer(player), result });
+  });
+
+  socket.on('v92EnhanceItem', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = SlotInventoryManager.enhance(player, data.itemId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player); savePlayer(player, true);
+    socket.emit('v92Update', { type:'enhance', player: publicPlayer(player), result });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
+  socket.on('v92ExpandBag', () => {
+    if (!requireAuth(socket, player)) return;
+    const result = SlotInventoryManager.expand(player, 8);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    savePlayer(player, true);
+    socket.emit('v92Update', { type:'bagExpand', player: publicPlayer(player), result });
+  });
+
+  socket.on('v92EquipFashion', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = FashionLayerManager.equip(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player); savePlayer(player, true);
+    socket.emit('v92Update', { type:'fashion', player: publicPlayer(player), result });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
+  socket.on('v92UnlockFashion', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = FashionLayerManager.unlock(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason + (result.cost ? ' Custo: ' + result.cost : ''));
+    syncPlayerPower(player); savePlayer(player, true);
+    socket.emit('v92Update', { type:'fashionUnlock', player: publicPlayer(player), result });
+  });
+
+  socket.on('v92EnterZone', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = WorldFlowManager.enter(player, data.zoneId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    savePlayer(player, true);
+    socket.emit('v92Update', { type:'zone', player: publicPlayer(player), result });
+    socket.emit('worldEntered', { ok:true, player: publicPlayer(player), world: result.world });
   });
 
   socket.on('loadSave', (data = {}) => {
@@ -557,7 +678,12 @@ io.on('connection', (socket) => {
   V30ProgressManager.normalize(player);
   V40ProgressManager.normalize(player);
   V90ProgressManager.normalize(player);
-  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player);
+  SlotInventoryManager.normalize(player);
+  FashionLayerManager.normalize(player);
+  WorldFlowManager.normalize(player);
+  AdvancedAttributeManager.normalize(player);
+  AdvancedAttributeManager.calculate(player);
+  player.power = Math.max(LootManager.calculatePower(player), (player.attributeBreakdown && player.attributeBreakdown.power) || 0) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player);
     updateAchievements(player);
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
