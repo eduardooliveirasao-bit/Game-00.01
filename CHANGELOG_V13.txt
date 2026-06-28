@@ -1,0 +1,19 @@
+Legend Of Indle RPG V1 - V13 Polished Systems
+
+Implementações principais:
+- Sistema de forja: melhorar itens até +15 usando ouro e, em níveis altos, gemas.
+- Atributos dos itens agora escalam com melhoria (+N).
+- Item equipado continua na mochila e pode ser melhorado sem sair do slot.
+- Sistema de bloquear/proteger item.
+- Vender tudo agora preserva itens equipados e itens bloqueados.
+- Recompensa diária com sequência: ouro, gemas e poções.
+- Loja atualizada para exibir status da diária.
+- Mochila refinada com selos: Equipado, Protegido e +N.
+- Paper doll e detalhes dos itens receberam melhorias visuais.
+- Fundo do palco mais dinâmico conforme o inimigo.
+- Efeitos extras de impacto e bursts durante skills e ataques.
+- Correções internas de persistência para os novos campos.
+
+Conta GM padrão:
+Login: GM
+Senha: GM123

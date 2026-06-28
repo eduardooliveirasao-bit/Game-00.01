@@ -88,6 +88,8 @@
   var shopClose = byId('shop-close');
   var shopList = byId('shop-list');
   var shopInfo = byId('shop-info');
+  var claimDailyBtn = byId('claim-daily-btn');
+  var dailyInfo = byId('daily-info');
   var gmMenu = byId('menu-gm');
   var gmModal = byId('gm-modal');
   var gmClose = byId('gm-close');
@@ -344,12 +346,16 @@
       return;
     }
     items.forEach(function (item) {
-      var equippedBadge = item.equipped ? '<span class="bag-item-badge">Equipado</span>' : '';
+      var badges = [];
+      if (item.equipped) badges.push('<span class="bag-item-badge">Equipado</span>');
+      if (item.locked) badges.push('<span class="bag-item-badge lock">🔒</span>');
+      if ((item.upgradeLevel || 0) > 0) badges.push('<span class="bag-item-badge plus">+' + item.upgradeLevel + '</span>');
+      var equippedBadge = badges.join('');
       var el = document.createElement('div');
       el.className = 'bag-item' + (state.selectedItemId === item.id ? ' active' : '') + (item.equipped ? ' is-equipped' : '');
       el.style.borderColor = item.rarityColor || item.cor || 'rgba(255,255,255,.08)';
       el.innerHTML = '<div class="bag-item-top"><div class="bag-item-image-wrap"><img class="bag-item-img" src="' + (item.asset || '') + '" alt="">' + equippedBadge + '</div><div class="bag-item-text"><strong style="color:' + (item.rarityColor || '#fff') + '">' + item.icon + ' ' + escapeHtml(item.nome) + '</strong>' +
-        '<small>' + escapeHtml(item.slot) + ' · ' + escapeHtml(item.raridade) + ' · Nv.' + (item.requiredLevel || 1) + '</small></div></div>' +
+        '<small>' + escapeHtml(item.slot) + ' · ' + escapeHtml(item.raridade) + ' · Nv.' + (item.requiredLevel || 1) + ((item.upgradeLevel||0)>0 ? ' · +' + item.upgradeLevel : '') + (item.locked ? ' · Protegido' : '') + '</small></div></div>' +
         '<div class="bag-item-bottom"><span>Poder ' + (item.powerScore || 0) + '</span><span>Venda ' + (item.sellValue || 0) + ' ouro</span></div>';
       el.onclick = function () { state.selectedItemId = item.id; renderBag(); renderBagDetail(item); };
       bagList.appendChild(el);
@@ -380,10 +386,14 @@
     var equippedHtml = equipped ? '<div class="compare-item"><img class="compare-item-img" src="' + (equipped.asset || '') + '" alt=""><div><span style="color:' + (equipped.rarityColor || '#fff') + '">' + equipped.icon + ' ' + escapeHtml(equipped.nome) + '</span><small>' + escapeHtml(equipped.raridade) + ' · Poder ' + (equipped.powerScore || 0) + '</small></div></div>' : 'Nada equipado';
     var equippedState = isEquipped ? '<div class="bag-detail-equipped">✅ Este item está equipado neste momento.</div>' : '';
     var actionLabel = isEquipped ? 'Desequipar item' : 'Equipar item';
+    var lockLabel = item.locked ? 'Desbloquear item' : 'Bloquear item';
+    var upgradeLevel = item.upgradeLevel || 0;
+    var upgradeCostGold = Math.floor(220 + Math.pow(upgradeLevel + 1, 1.65) * 145 + (['comum','raro','épico','lendário','mítico','boss'].indexOf(item.raridade) || 0) * 180);
+    var upgradeCostGems = upgradeLevel >= 5 ? Math.ceil((upgradeLevel - 4) / 3) : 0;
     var compareLabel = isEquipped ? 'Item atualmente equipado no slot:' : 'Equipado no slot:';
 
     bagDetail.innerHTML = '<h3 style="color:' + (item.rarityColor || '#fff') + '"><img class="detail-item-img" src="' + (item.asset || '') + '" alt=""> ' + item.icon + ' ' + escapeHtml(item.nome) + '</h3>' +
-      '<div class="rarity ' + rarityClass(item.raridade) + '">' + escapeHtml(String(item.raridade).toUpperCase()) + ' · Slot ' + escapeHtml(item.slot) + ' · Requer Nv. ' + (item.requiredLevel || 1) + '</div>' +
+      '<div class="rarity ' + rarityClass(item.raridade) + '">' + escapeHtml(String(item.raridade).toUpperCase()) + ' · Slot ' + escapeHtml(item.slot) + ' · Requer Nv. ' + (item.requiredLevel || 1) + ' · Melhoria +' + (item.upgradeLevel || 0) + (item.locked ? ' · 🔒 Protegido' : '') + '</div>' +
       equippedState +
       '<p>Venda por <strong>' + (item.sellValue || 0) + ' ouro</strong> ou equipe para alterar os atributos e o visual do herói.</p>' +
       '<div class="detail-stats">' +
@@ -391,10 +401,15 @@
       '</div>' +
       '<div class="compare-box"><strong>' + compareLabel + '</strong><br>' + equippedHtml + '</div>' +
       socketHtml +
-      '<button id="equip-selected-btn">' + actionLabel + '</button><button id="sell-selected-btn">Vender item</button>';
+      '<div class="upgrade-box"><strong>Forja</strong><br>Melhorar para +' + (upgradeLevel + 1) + ': ' + upgradeCostGold + ' ouro' + (upgradeCostGems ? ' + ' + upgradeCostGems + ' 💎' : '') + '</div>' +
+      '<button id="equip-selected-btn">' + actionLabel + '</button><button id="upgrade-selected-btn">Melhorar item</button><button id="lock-selected-btn">' + lockLabel + '</button><button id="sell-selected-btn">Vender item</button>';
     var equipBtn = byId('equip-selected-btn');
     var sellBtn = byId('sell-selected-btn');
+    var upgradeBtn = byId('upgrade-selected-btn');
+    var lockBtn = byId('lock-selected-btn');
     if (equipBtn) equipBtn.onclick = function () { ensureAudio(); if (isEquipped) socket.emit('unequipItem', { slot: item.slot }); else socket.emit('equipItem', { itemId: item.id }); };
+    if (upgradeBtn) upgradeBtn.onclick = function () { ensureAudio(); socket.emit('upgradeItem', { itemId: item.id }); };
+    if (lockBtn) lockBtn.onclick = function () { ensureAudio(); socket.emit('toggleLockItem', { itemId: item.id }); };
     if (sellBtn) sellBtn.onclick = function () { ensureAudio(); socket.emit('sellItem', { itemId: item.id }); };
     Array.prototype.forEach.call(bagDetail.querySelectorAll('[data-gem]'), function (btn) {
       btn.onclick = function () { ensureAudio(); socket.emit('insertGem', { itemId: item.id, gemId: btn.getAttribute('data-gem') }); };
@@ -721,6 +736,13 @@
       };
     });
     if (shopInfo && state.me) shopInfo.innerHTML = 'Saldo atual: <strong>💎 ' + formatNumber(state.me.gemas || 0) + '</strong><br>Poções: Vida ' + ((state.me.pocoes && state.me.pocoes.vida) || 0) + ' · Mana ' + ((state.me.pocoes && state.me.pocoes.mana) || 0);
+    if (dailyInfo && state.me) {
+      var daily = state.me.daily || {};
+      var today = new Date().toISOString().slice(0,10);
+      var claimed = daily.lastClaimDay === today;
+      dailyInfo.innerHTML = claimed ? '✅ Diária coletada hoje · Sequência: ' + (daily.streak || 0) + ' dia(s)' : '🎁 Disponível hoje · Sequência atual: ' + (daily.streak || 0) + ' dia(s)';
+      if (claimDailyBtn) claimDailyBtn.disabled = claimed;
+    }
   }
 
   function openShop() {
@@ -798,6 +820,8 @@
   if (equipBestBtn) equipBestBtn.onclick = function () { ensureAudio(); socket.emit('equipBestItems'); };
   equipmentGrid.addEventListener('click', function (e) { var slot = e.target && e.target.getAttribute('data-unequip'); if (slot) { ensureAudio(); socket.emit('unequipItem', { slot: slot }); } });
 
+  if (claimDailyBtn) claimDailyBtn.onclick = function () { ensureAudio(); socket.emit('claimDailyReward'); };
+
   socket.on('connect_error', function (err) { fatal('Falha ao conectar: ' + err.message); });
   socket.on('init', function (data) {
     state.meId = data.you.id;
@@ -849,7 +873,7 @@
     }
     spawnImpactBurst(canvas.width * 0.72, canvas.height * 0.40, color, 1.1); playSound('skill');
   });
-  socket.on('inventoryAction', function (info) { if (info.type === 'equip') { addLog('🧰 Item equipado: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'unequip') { addLog('🎒 Item retornou para a bolsa: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'sell') { addLog('🪙 Item vendido por +' + info.gold + ' ouro: ' + info.item.nome + '.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'sellAll') { addLog('🪙 ' + info.sold + ' itens vendidos por +' + info.gold + ' ouro.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'equipBest') { addLog('⚡ Melhor equipamento aplicado: ' + ((info.equippedItems || []).length) + ' item(ns).'); playSound('equip'); } if (info.type === 'gem') { addLog('💎 Gema inserida: ' + info.gem.nome + ' em ' + info.item.nome + '.'); playSound('equip'); } });
+  socket.on('inventoryAction', function (info) { if (info.type === 'equip') { addLog('🧰 Item equipado: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'unequip') { addLog('🎒 Item retornou para a bolsa: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'sell') { addLog('🪙 Item vendido por +' + info.gold + ' ouro: ' + info.item.nome + '.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'sellAll') { addLog('🪙 ' + info.sold + ' itens vendidos por +' + info.gold + ' ouro.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'equipBest') { addLog('⚡ Melhor equipamento aplicado: ' + ((info.equippedItems || []).length) + ' item(ns).'); playSound('equip'); } if (info.type === 'gem') { addLog('💎 Gema inserida: ' + info.gem.nome + ' em ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'upgradeItem') { addLog('🔥 Forja: ' + info.item.nome + ' melhorado para +' + (info.item.upgradeLevel || 0) + '.'); playSound('equip'); } if (info.type === 'lockItem') { addLog((info.item.locked ? '🔒 Item protegido: ' : '🔓 Item desbloqueado: ') + info.item.nome + '.'); playSound('equip'); } });
   socket.on('playerDied', function (data) { if (data.playerId === state.meId) { addLog('💀 Você foi derrotado por ' + data.monsterName + '. Ressurreição automática em 5s.'); state.anim.playerHitUntil = performance.now() + 900; playSound('death'); } });
   socket.on('playerRevived', function (data) { if (data.player && data.player.id === state.meId) { state.me = data.player; addLog('✨ Você ressuscitou e voltou ao combate.'); playSound('loot'); updateHUD(); } });
   socket.on('saveLoaded', function (info) { if (info.ok && info.player) { state.me = info.player; localStorage.setItem('legend_of_indle_save_id', info.saveId); if (byId('hud-save-status')) byId('hud-save-status').textContent = 'Save carregado'; addLog('💾 Progresso carregado.'); if (info.offlineRewards) addLog('🌙 Recompensa offline: +' + info.offlineRewards.xp + ' XP, +' + info.offlineRewards.gold + ' ouro e ' + info.offlineRewards.kills + ' abates.'); updateHUD(); } else { if (info.saveId) localStorage.setItem('legend_of_indle_save_id', info.saveId); if (byId('hud-save-status')) byId('hud-save-status').textContent = 'Novo save'; } });
@@ -886,6 +910,14 @@
       addLog('🧪 Poção usada: ' + data.potionType + '.');
       playSound('equip');
     }
+    updateHUD();
+    renderShop();
+  });
+
+  socket.on('dailyReward', function (data) {
+    if (data.player) state.me = data.player;
+    addLog('🎁 Diária coletada: +' + data.reward.gold + ' ouro, +' + data.reward.gems + ' gemas e poções.');
+    playSound('loot');
     updateHUD();
     renderShop();
   });

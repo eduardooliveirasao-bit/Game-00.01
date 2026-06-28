@@ -76,7 +76,8 @@ function createPlayer(socket) {
     mount: { id: 'lobo_cristalino', level: 1 },
     achievements: [],
     bestiary: {},
-    stats: { damageDealt: 0, damageTaken: 0, goldEarned: 0, bossKills: 0, deaths: 0, itemsSold: 0 }
+    stats: { damageDealt: 0, damageTaken: 0, goldEarned: 0, bossKills: 0, deaths: 0, itemsSold: 0 },
+    daily: { lastClaimDay: null, streak: 0 }
   };
   LevelManager.syncProgressFields(player);
   player.power = LootManager.calculatePower(player);
@@ -125,7 +126,8 @@ function publicPlayer(player) {
     mount: LootManager.getMount(player),
     achievements: player.achievements || [],
     bestiary: player.bestiary || {},
-    stats: player.stats || {}
+    stats: player.stats || {},
+    daily: player.daily || { lastClaimDay: null, streak: 0 }
   };
 }
 
@@ -339,6 +341,29 @@ function usePotion(player, type) {
   return { ok: false, reason: 'Poção inválida.' };
 }
 
+function dayKey(ts = Date.now()) {
+  return new Date(ts).toISOString().slice(0, 10);
+}
+
+function claimDailyReward(player) {
+  player.daily = player.daily || { lastClaimDay: null, streak: 0 };
+  const today = dayKey();
+  if (player.daily.lastClaimDay === today) return { ok: false, reason: 'Recompensa diária já coletada hoje.' };
+  const yesterday = dayKey(Date.now() - 86400000);
+  const streak = player.daily.lastClaimDay === yesterday ? (player.daily.streak || 0) + 1 : 1;
+  player.daily.lastClaimDay = today;
+  player.daily.streak = Math.min(30, streak);
+  const gold = 700 + player.daily.streak * 220 + (player.nivel || 1) * 35;
+  const gems = 5 + Math.floor(player.daily.streak / 3);
+  player.ouro = (player.ouro || 0) + gold;
+  player.gemas = (player.gemas || 0) + gems;
+  player.cashGems = player.gemas;
+  player.pocoes = player.pocoes || { vida: 0, mana: 0 };
+  player.pocoes.vida = (player.pocoes.vida || 0) + 1;
+  player.pocoes.mana = (player.pocoes.mana || 0) + 1;
+  return { ok: true, gold, gems, streak: player.daily.streak, potions: { vida: 1, mana: 1 } };
+}
+
 io.on('connection', (socket) => {
   const player = createPlayer(socket);
   players[socket.id] = player;
@@ -524,6 +549,34 @@ io.on('connection', (socket) => {
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
     socket.emit('inventoryAction', { type: 'gem', item: LootManager.enrichItem(result.item), gem: result.gem });
+  });
+
+  socket.on('upgradeItem', (data = {}) => {
+    const result = LootManager.upgradeItem(player, data.itemId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('inventoryAction', { type: 'upgradeItem', item: LootManager.enrichItem(result.item), costGold: result.costGold, costGems: result.costGems });
+  });
+
+  socket.on('toggleLockItem', (data = {}) => {
+    const result = LootManager.toggleLockItem(player, data.itemId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('inventoryAction', { type: 'lockItem', item: LootManager.enrichItem(result.item) });
+  });
+
+  socket.on('claimDailyReward', () => {
+    if (!requireAuth(socket, player)) return;
+    const result = claimDailyReward(player);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    const unlocked = updateAchievements(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('dailyReward', { reward: result, player: publicPlayer(player), achievements: unlocked });
   });
 
   socket.on('upgradeMount', () => {

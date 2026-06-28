@@ -61,3 +61,13 @@
 
 .bag-item-image-wrap{position:relative;display:inline-flex}.bag-item-badge{position:absolute;right:-4px;top:-6px;padding:2px 7px;border-radius:999px;background:linear-gradient(135deg,#52d8ff,#7a88ff);color:#fff;font-size:10px;font-weight:800;box-shadow:0 4px 14px rgba(78,145,255,.35)}.bag-item.is-equipped{box-shadow:0 0 0 1px rgba(94,219,255,.35),0 12px 24px rgba(0,0,0,.22)}
 .bag-detail-equipped{margin:8px 0 10px;color:#7de3ff;font-weight:700}
+
+
+.bag-item-badge.lock{left:-4px;right:auto;background:linear-gradient(135deg,#3b435f,#7782aa)}
+.bag-item-badge.plus{left:50%;right:auto;top:auto;bottom:-7px;transform:translateX(-50%);background:linear-gradient(135deg,#ff9d4d,#ffd96b);color:#28160b}
+.upgrade-box{margin:12px 0;padding:10px;border-radius:14px;background:rgba(255,170,75,.08);border:1px solid rgba(255,196,95,.18);color:#ffd996}
+.upgrade-box strong{color:#ffcf5b}
+.small-info{font-size:12px;line-height:1.35;margin-bottom:12px}
+#claim-daily-btn:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.7)}
+.paper-slot.filled{box-shadow:0 0 20px rgba(120,207,255,.14), inset 0 0 18px rgba(255,255,255,.04)}
+.paper-slot em{display:block;font-style:normal;font-size:10px;margin-top:2px}

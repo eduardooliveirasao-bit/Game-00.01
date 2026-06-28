@@ -25,9 +25,21 @@ const BOSS_EXCLUSIVE = {
 };
 function rarityRank(r){ const n=RARITY_RANK.indexOf(r); return n < 0 ? 0 : n; }
 function gemStats(item){ const total={ataque:0,defesa:0,critico:0,hp:0,mana:0}; for(const gemId of (item.gems||[])){ const g=GEM_TYPES[gemId]; if(!g) continue; for(const k of Object.keys(total)) total[k]+=g.stats[k]||0; } return total; }
-function totalStats(item){ const base=item.stats||{}; const g=gemStats(item); return { ataque:(base.ataque||0)+g.ataque, defesa:(base.defesa||0)+g.defesa, critico:(base.critico||0)+g.critico, hp:(base.hp||0)+g.hp, mana:(base.mana||0)+g.mana }; }
-function cloneItem(base, monsterLevel){ const rarity=base.raridade||'comum'; const sockets=base.sockets || Math.max(1, Math.min(3, 1 + Math.floor(rarityRank(rarity)/2))); return { id:base.id+'_'+Date.now()+'_'+Math.random().toString(16).slice(2), baseId:base.id, classeId:base.classeId, nome:base.nome, slot:base.slot, raridade:rarity, cor:base.cor, icon:base.icon, asset:base.asset || `assets/items/${base.slot}_${rarity}.png`, requiredLevel:base.requiredLevel, exclusivoBoss:false, sockets, gems:[], visual:base.visual||{}, equipped:false, equippedSlot:null, stats:{ ataque:(base.stats.ataque||0)+Math.floor(monsterLevel*.6), defesa:(base.stats.defesa||0)+Math.floor(monsterLevel*.4), critico:(base.stats.critico||0)+Math.floor(monsterLevel*.15), hp:(base.stats.hp||0)+Math.floor(monsterLevel*1.8), mana:(base.stats.mana||0)+Math.floor(monsterLevel*1.2) } }; }
-function cloneBossItem(player, monster){ const list=BOSS_EXCLUSIVE[player.classeId]||BOSS_EXCLUSIVE.mago; const base=list[Math.floor(Math.random()*list.length)]; const level=Math.max(1, monster.nivel||player.nivel||1); return { id:'boss_'+player.classeId+'_'+base.slot+'_'+Date.now()+'_'+Math.random().toString(16).slice(2), baseId:'boss_'+base.slot, classeId:player.classeId, nome:base.nome, slot:base.slot, raridade:'boss', cor:'#ff8f3d', icon:base.icon, asset:`assets/items/${base.slot}_boss.png`, requiredLevel:Math.max(1,Math.floor(level*.65)), exclusivoBoss:true, sockets:3, gems:[], equipped:false, equippedSlot:null, wingVisual:base.wingVisual||null, visual:{glow:'#ff8f3d', wing:!!base.wingVisual, tier:6}, stats:{ ataque:base.stats.ataque+Math.floor(level*1.25), defesa:base.stats.defesa+Math.floor(level*.7), critico:base.stats.critico+Math.floor(level*.16), hp:base.stats.hp+Math.floor(level*3.5), mana:base.stats.mana+Math.floor(level*2.6) } }; }
+function totalStats(item){
+  const base=item.stats||{};
+  const g=gemStats(item);
+  const up=Math.max(0, Math.floor(item.upgradeLevel||0));
+  const mul=1 + up * 0.08;
+  return {
+    ataque:Math.floor(((base.ataque||0)+g.ataque)*mul + up*2),
+    defesa:Math.floor(((base.defesa||0)+g.defesa)*mul + up),
+    critico:Math.floor(((base.critico||0)+g.critico)*mul + Math.floor(up/2)),
+    hp:Math.floor(((base.hp||0)+g.hp)*mul + up*18),
+    mana:Math.floor(((base.mana||0)+g.mana)*mul + up*10)
+  };
+}
+function cloneItem(base, monsterLevel){ const rarity=base.raridade||'comum'; const sockets=base.sockets || Math.max(1, Math.min(3, 1 + Math.floor(rarityRank(rarity)/2))); return { id:base.id+'_'+Date.now()+'_'+Math.random().toString(16).slice(2), baseId:base.id, classeId:base.classeId, nome:base.nome, slot:base.slot, raridade:rarity, cor:base.cor, icon:base.icon, asset:base.asset || `assets/items/${base.slot}_${rarity}.png`, requiredLevel:base.requiredLevel, exclusivoBoss:false, sockets, gems:[], upgradeLevel:0, locked:false, visual:base.visual||{}, equipped:false, equippedSlot:null, stats:{ ataque:(base.stats.ataque||0)+Math.floor(monsterLevel*.6), defesa:(base.stats.defesa||0)+Math.floor(monsterLevel*.4), critico:(base.stats.critico||0)+Math.floor(monsterLevel*.15), hp:(base.stats.hp||0)+Math.floor(monsterLevel*1.8), mana:(base.stats.mana||0)+Math.floor(monsterLevel*1.2) } }; }
+function cloneBossItem(player, monster){ const list=BOSS_EXCLUSIVE[player.classeId]||BOSS_EXCLUSIVE.mago; const base=list[Math.floor(Math.random()*list.length)]; const level=Math.max(1, monster.nivel||player.nivel||1); return { id:'boss_'+player.classeId+'_'+base.slot+'_'+Date.now()+'_'+Math.random().toString(16).slice(2), baseId:'boss_'+base.slot, classeId:player.classeId, nome:base.nome, slot:base.slot, raridade:'boss', cor:'#ff8f3d', icon:base.icon, asset:`assets/items/${base.slot}_boss.png`, requiredLevel:Math.max(1,Math.floor(level*.65)), exclusivoBoss:true, sockets:3, gems:[], upgradeLevel:0, locked:false, equipped:false, equippedSlot:null, wingVisual:base.wingVisual||null, visual:{glow:'#ff8f3d', wing:!!base.wingVisual, tier:6}, stats:{ ataque:base.stats.ataque+Math.floor(level*1.25), defesa:base.stats.defesa+Math.floor(level*.7), critico:base.stats.critico+Math.floor(level*.16), hp:base.stats.hp+Math.floor(level*3.5), mana:base.stats.mana+Math.floor(level*2.6) } }; }
 
 class LootManager {
   static enrichItem(item){
@@ -35,6 +47,8 @@ class LootManager {
     item.rarityColor=RARITY_COLORS[item.raridade]||'#fff';
     if(!item.asset) item.asset=`assets/items/${item.slot}_${item.raridade}.png`;
     item.gems=item.gems||[];
+    item.upgradeLevel=Math.max(0, Math.floor(item.upgradeLevel||0));
+    item.locked=!!item.locked;
     item.sockets=item.sockets||Math.max(1,Math.min(3,1+Math.floor(rarityRank(item.raridade)/2)));
     item.equipped=!!item.equipped;
     item.equippedSlot=item.equippedSlot||null;
@@ -45,7 +59,7 @@ class LootManager {
   }
   static getEquippedList(player){ const e=player.equipados||{}; return SLOT_ORDER.map(s=>e[s]).filter(Boolean).map(i=>this.enrichItem({...i})); }
   static scoreItem(item){ const s=totalStats(item); return Math.floor((s.ataque||0)*6+(s.defesa||0)*4+(s.critico||0)*7+(s.hp||0)*.55+(s.mana||0)*.3+rarityRank(item.raridade)*20+(item.exclusivoBoss?85:0)); }
-  static sellValue(item){ if(!item) return 0; const score = item.powerScore != null ? item.powerScore : this.scoreItem(item); return Math.max(10, Math.floor(score*.85 + rarityRank(item.raridade)*35)); }
+  static sellValue(item){ if(!item) return 0; const score = item.powerScore != null ? item.powerScore : this.scoreItem(item); return Math.max(10, Math.floor(score*.85 + rarityRank(item.raridade)*35 + (item.upgradeLevel||0)*45)); }
   static getVisualMods(player){ const eq=player.equipados||{}; const mods={ weaponGlow:null, aura:null, ringGlow:null, wing:null, itemTier:0, mount:this.getMount(player) }; for(const slot of SLOT_ORDER){ const it=eq[slot]?this.enrichItem({...eq[slot]}):null; if(!it) continue; mods.itemTier=Math.max(mods.itemTier, rarityRank(it.raridade)); if(slot==='arma') mods.weaponGlow=it.rarityColor; if(slot==='anel') mods.ringGlow=it.rarityColor; if(slot==='colar') mods.aura=it.rarityColor; if(slot==='ornamento' && (it.wingVisual || (it.visual&&it.visual.wing))) mods.wing=it.wingVisual || {name:it.nome,color:it.rarityColor,size:1+rarityRank(it.raridade)*.08}; } return mods; }
   static getMount(player){ const id=(player.mount&&player.mount.id)||'lobo_cristalino'; const base=MOUNTS[id]||MOUNTS.lobo_cristalino; return {...base, level:(player.mount&&player.mount.level)||1}; }
   static getMountBonus(player){ const mount=this.getMount(player); const level=mount.level||1; return { ataque:Math.floor((mount.bonus.ataque||0)*(1+level*.12)), hp:Math.floor((mount.bonus.hp||0)*(1+level*.15)), power:(mount.bonus.power||0)+level*35 }; }
@@ -140,7 +154,7 @@ class LootManager {
     this.syncInventoryFlags(player);
     const keep=[]; let gold=0; let sold=0;
     for(const item of (player.inventario||[])){
-      if(item.equipped) { keep.push(item); continue; }
+      if(item.equipped || item.locked) { keep.push(item); continue; }
       gold+=this.sellValue(item); sold+=1;
     }
     player.inventario=keep;
@@ -166,6 +180,37 @@ class LootManager {
       item.sockets = item.raridade === 'mítico' ? 3 : 2;
     }
     return this.enrichItem(item);
+  }
+  static upgradeItem(player,itemId){
+    this.syncInventoryFlags(player);
+    const loc=this.findItem(player,itemId);
+    if(!loc.item) return {ok:false,reason:'Item não encontrado.'};
+    const item=this.enrichItem(loc.item);
+    const currentLevel=Math.max(0, Math.floor(item.upgradeLevel||0));
+    if(currentLevel>=15) return {ok:false,reason:'Este item já está no nível máximo de melhoria.'};
+    const costGold=Math.floor(220 + Math.pow(currentLevel+1, 1.65)*145 + rarityRank(item.raridade)*180);
+    const costGems=currentLevel>=5 ? Math.ceil((currentLevel-4)/3) : 0;
+    if((player.ouro||0)<costGold) return {ok:false,reason:'Ouro insuficiente para melhorar o item.'};
+    if((player.gemas||0)<costGems) return {ok:false,reason:'Gemas insuficientes para esta melhoria.'};
+    player.ouro-=costGold;
+    player.gemas=(player.gemas||0)-costGems;
+    item.upgradeLevel=currentLevel+1;
+    loc.set(item);
+    if(item.equipped && item.slot && player.equipados && player.equipados[item.slot] && player.equipados[item.slot].id===item.id) player.equipados[item.slot]=this.enrichItem({...item});
+    this.syncInventoryFlags(player);
+    player.power=this.calculatePower(player);
+    return {ok:true,item:this.enrichItem(item),costGold,costGems};
+  }
+  static toggleLockItem(player,itemId){
+    this.syncInventoryFlags(player);
+    const loc=this.findItem(player,itemId);
+    if(!loc.item) return {ok:false,reason:'Item não encontrado.'};
+    const item=this.enrichItem(loc.item);
+    item.locked=!item.locked;
+    loc.set(item);
+    if(item.equipped && item.slot && player.equipados && player.equipados[item.slot] && player.equipados[item.slot].id===item.id) player.equipados[item.slot]=this.enrichItem({...item});
+    this.syncInventoryFlags(player);
+    return {ok:true,item:this.enrichItem(item)};
   }
   static upgradeMount(player){ player.mount=player.mount||{id:'lobo_cristalino',level:1}; const cost=150*player.mount.level; if((player.ouro||0)<cost) return {ok:false,reason:'Ouro insuficiente para treinar a montaria.'}; player.ouro-=cost; player.mount.level+=1; if(player.mount.level>=8 && player.nivel>=10) player.mount.id='grifo_dourado'; if(player.mount.level>=16 && player.nivel>=25) player.mount.id='dragao_mirim'; return {ok:true,mount:this.getMount(player),cost}; }
 }
