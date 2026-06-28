@@ -1,331 +1,73 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;600;700;800&display=swap');
 
 :root {
-  --void: #070917;
-  --void2: #0d1228;
-  --panel: rgba(18, 23, 49, 0.88);
-  --panel2: rgba(26, 33, 70, 0.82);
-  --edge: rgba(121, 139, 219, 0.28);
-  --gold: #d4af37;
-  --gold2: #ffe69b;
-  --text: #f2efff;
-  --muted: #a7a1c8;
-  --red: #ff5d5d;
-  --green: #69e59d;
-  --blue: #66c9ff;
-  --purple: #b985ff;
+  --bg:#060913;
+  --panel:#0d1532cc;
+  --panel-2:#121c44cc;
+  --edge:rgba(160,190,255,.18);
+  --gold:#ffe69b;
+  --text:#f4f6ff;
+  --muted:#b5c0ea;
+  --accent:#6ec5ff;
+  --danger:#ff7b7b;
+  --green:#88f0b2;
 }
-
-* { box-sizing: border-box; }
-
-html, body {
-  margin: 0;
-  height: 100%;
-  color: var(--text);
-  font-family: Inter, Arial, sans-serif;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 50% 4%, rgba(98, 135, 255, 0.24), transparent 32%),
-    radial-gradient(circle at 20% 80%, rgba(154, 92, 255, 0.16), transparent 28%),
-    linear-gradient(180deg, #0c1233 0%, var(--void) 58%, #050711 100%);
-}
-
-#app {
-  height: 100vh;
-  display: grid;
-  grid-template-rows: 64px 1fr 82px 54px;
-  position: relative;
-}
-
-#hud {
-  grid-row: 1;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 10px 24px;
-  background: linear-gradient(180deg, rgba(20, 26, 59, 0.98), rgba(12, 16, 37, 0.98));
-  border-bottom: 1px solid var(--edge);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
-  z-index: 20;
-}
-
-#game-brand {
-  min-width: 260px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-right: 12px;
-  border-right: 1px solid rgba(255,255,255,.08);
-}
-.brand-gem {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #7fdcff;
-  font-size: 24px;
-  text-shadow: 0 0 16px rgba(102,201,255,.7);
-  filter: drop-shadow(0 0 10px rgba(255,230,155,.32));
-}
-#game-brand strong {
-  display: block;
-  font-family: Cinzel, serif;
-  color: var(--gold2);
-  font-weight: 800;
-  font-size: 17px;
-  letter-spacing: .02em;
-  white-space: nowrap;
-}
-#game-brand small {
-  display: block;
-  color: #b7c0ff;
-  font-size: 11px;
-  margin-top: 1px;
-}
-#hud-player { min-width: 195px; display: flex; flex-direction: column; gap: 2px; }
-#hud-nome { font-family: Cinzel, serif; font-weight: 800; color: var(--gold2); letter-spacing: .02em; }
-#hud-classe { color: #b7c0ff; font-size: 13px; }
-#hud-asa, #hud-online { color: var(--muted); white-space: nowrap; }
-#hud-asa span { color: var(--gold2); font-weight: 800; }
-
-#hud-xp-wrap { flex: 1; display: flex; align-items: center; gap: 12px; min-width: 280px; }
-#hud-xp-bar {
-  height: 12px;
-  flex: 1;
-  border-radius: 999px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 230, 155, .18);
-  background: rgba(5, 8, 22, .9);
-  box-shadow: inset 0 0 16px rgba(0,0,0,.5);
-}
-#hud-xp-fill {
-  height: 100%;
-  width: 0%;
-  transition: width .35s ease;
-  background: linear-gradient(90deg, #b98b16, #ffd96b, #fff0b4);
-  box-shadow: 0 0 16px rgba(255, 217, 107, .42);
-}
-#hud-xp-text { min-width: 126px; color: var(--gold2); font-size: 12px; font-weight: 800; text-align: right; }
-.hud-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--edge);
-  background: rgba(5, 8, 22, .5);
-  font-size: 13px;
-  color: var(--gold2);
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-#class-select {
-  position: fixed;
-  inset: 64px 0 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(circle at center, rgba(27, 38, 92, .96), rgba(5, 7, 17, .97));
-}
-.select-card {
-  width: min(980px, calc(100vw - 32px));
-  padding: 30px;
-  border: 1px solid var(--edge);
-  background: linear-gradient(180deg, rgba(24, 30, 69, .95), rgba(8, 11, 28, .92));
-  box-shadow: 0 24px 80px rgba(0,0,0,.52), inset 0 0 60px rgba(102, 201, 255, .05);
-  clip-path: polygon(22px 0,100% 0,100% calc(100% - 22px),calc(100% - 22px) 100%,0 100%,0 22px);
-  text-align: center;
-}
-.eyebrow { color: var(--blue); text-transform: uppercase; letter-spacing: .28em; font-size: 12px; font-weight: 800; margin: 0; }
-#class-select h1 { margin: 8px 0 4px; font-family: Cinzel, serif; font-size: clamp(32px, 4vw, 56px); color: var(--gold2); text-shadow: 0 0 28px rgba(255, 230, 155, .26); }
-.select-desc { margin: 0 auto 26px; max-width: 680px; color: var(--muted); }
-#class-cards { display: grid; grid-template-columns: repeat(3, minmax(190px, 1fr)); gap: 18px; }
-.class-card {
-  min-height: 330px;
-  padding: 14px;
-  cursor: pointer;
-  border: 1px solid var(--edge);
-  background: linear-gradient(180deg, rgba(32, 41, 88, .85), rgba(10, 14, 32, .88));
-  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
-  clip-path: polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
-  overflow: hidden;
-}
-.class-card:hover { transform: translateY(-8px) scale(1.02); border-color: var(--gold2); box-shadow: 0 18px 45px rgba(0,0,0,.4), 0 0 28px rgba(255,230,155,.18); }
-.class-card .class-art-wrap {
-  height: 190px;
-  margin-bottom: 12px;
-  border-radius: 18px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.08);
-  background: radial-gradient(circle at center, rgba(102,201,255,.18), rgba(5,8,22,.72));
-}
-.class-card .class-art-wrap img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center bottom;
-  filter: drop-shadow(0 20px 28px rgba(0,0,0,.45));
-  transform: scale(1.08);
-}
-.class-card .icone { font-size: 22px; filter: drop-shadow(0 0 16px rgba(255,255,255,.2)); }
-.class-card .nome { margin: 10px 0 8px; font-family: Cinzel, serif; font-size: 22px; color: var(--gold2); }
-.class-card .desc { color: var(--muted); font-size: 12px; line-height: 1.38; }
-
-#enemy-panel {
-  position: fixed;
-  top: 82px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(650px, calc(100vw - 740px));
-  min-width: 420px;
-  padding: 14px 20px;
-  background: linear-gradient(180deg, rgba(23, 30, 67, .92), rgba(8, 11, 28, .86));
-  border: 1px solid var(--edge);
-  box-shadow: 0 20px 55px rgba(0,0,0,.32), inset 0 0 30px rgba(255,230,155,.04);
-  z-index: 10;
-  clip-path: polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
-}
-.enemy-title { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; }
-#enemy-name { font-family: Cinzel, serif; color: var(--gold2); font-size: 22px; font-weight: 800; }
-#enemy-level, #enemy-type { padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; border: 1px solid var(--edge); background: rgba(5,8,22,.72); color: var(--muted); }
-#enemy-type { color: #ffb4c1; }
-#enemy-hp-bar { height: 20px; position: relative; overflow: hidden; border-radius: 999px; border: 1px solid rgba(255,93,93,.32); background: rgba(45, 12, 26, .86); }
-#enemy-hp-fill { height: 100%; width: 100%; transition: width .2s ease; background: linear-gradient(90deg, #c73939, #ff7373, #ffd36e); box-shadow: 0 0 18px rgba(255,93,93,.35); }
-#enemy-hp-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; color: #fff; text-shadow: 0 2px 4px #000; }
-
-#game-shell {
-  grid-row: 2;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: 310px 1fr 330px;
-  gap: 16px;
-  padding: 96px 20px 18px;
-}
-.side-panel {
-  min-height: 0;
-  border: 1px solid var(--edge);
-  background: linear-gradient(180deg, rgba(20, 27, 61, .78), rgba(6, 9, 24, .76));
-  box-shadow: 0 18px 50px rgba(0,0,0,.28), inset 0 0 32px rgba(102,201,255,.04);
-  clip-path: polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px);
-  padding: 16px;
-  overflow: hidden;
-}
-.panel-title, .mini-title { font-family: Cinzel, serif; color: var(--gold2); font-weight: 800; letter-spacing: .04em; }
-.panel-title { font-size: 22px; margin-bottom: 14px; }
-.mini-title { font-size: 15px; margin: 16px 0 10px; color: #d8cdff; }
-
-.hero-portrait {
-  height: 180px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 10px;
-  border: 1px solid rgba(255,255,255,.1);
-  background: radial-gradient(circle, rgba(102,201,255,.22), rgba(8,11,28,.3) 60%);
-  background-size: cover;
-  background-position: center 18%;
-  border-radius: 22px;
-  box-shadow: inset 0 0 30px rgba(102,201,255,.08), 0 16px 34px rgba(0,0,0,.24);
-  overflow: hidden;
-}
-.hero-portrait.has-art::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  box-shadow: inset 0 -42px 56px rgba(5,8,22,.42);
-  pointer-events: none;
-}
-.side-name { font-weight: 900; color: var(--gold2); text-align: center; }
-.side-subtitle { color: var(--muted); text-align: center; font-size: 13px; margin-top: 2px; }
-.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
-.stats-grid div { padding: 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,.08); background: rgba(5,8,22,.42); }
-.stats-grid span { display: block; color: var(--muted); font-size: 12px; }
-.stats-grid strong { display: block; margin-top: 3px; color: #fff; font-size: 16px; }
-.equipment-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.equipment-slot { min-height: 66px; border-radius: 14px; border: 1px dashed rgba(255,255,255,.16); background: rgba(5,8,22,.42); display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; color: var(--muted); font-size: 11px; }
-.equipment-slot.filled { border-style: solid; border-color: rgba(255,230,155,.38); color: #fff; background: radial-gradient(circle at center, rgba(255,230,155,.12), rgba(5,8,22,.52)); }
-
-#stage { position: relative; min-height: 0; overflow: hidden; border: 1px solid var(--edge); background: linear-gradient(180deg, rgba(19,27,67,.32), rgba(5,8,22,.18)); box-shadow: inset 0 0 70px rgba(102,201,255,.04); clip-path: polygon(20px 0,100% 0,100% calc(100% - 20px),calc(100% - 20px) 100%,0 100%,0 20px); }
-#game-canvas { width: 100%; height: 100%; display: block; }
-#stage-banner { position: absolute; left: 24px; top: 18px; z-index: 2; display: flex; flex-direction: column; gap: 2px; }
-#stage-title { font-family: Cinzel, serif; font-size: 22px; color: var(--gold2); text-shadow: 0 0 22px rgba(255,230,155,.2); }
-#stage-subtitle { color: var(--green); font-weight: 800; letter-spacing: .04em; }
-
-.quest-card { padding: 12px; border-radius: 16px; background: rgba(5,8,22,.44); border: 1px solid rgba(255,255,255,.08); }
-.quest-label { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
-.quest-card strong { color: #fff; }
-.quest-bar { height: 10px; margin: 12px 0 6px; border-radius: 999px; overflow: hidden; background: rgba(0,0,0,.42); border: 1px solid rgba(255,255,255,.08); }
-#quest-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--purple), var(--blue)); box-shadow: 0 0 16px rgba(102,201,255,.35); transition: width .3s ease; }
-#quest-progress { color: var(--gold2); font-size: 12px; font-weight: 800; }
-.loot-list { max-height: 135px; overflow: hidden; display: flex; flex-direction: column; gap: 8px; }
-.loot-item { padding: 8px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,.08); background: rgba(5,8,22,.42); font-size: 12px; color: #fff; }
-.loot-raro { border-color: rgba(102,201,255,.5); }
-.loot-epico { border-color: rgba(185,133,255,.6); }
-.loot-lendario { border-color: rgba(255,230,155,.7); }
-#combat-log { height: 190px; overflow: hidden; display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--muted); }
-#combat-log div { padding: 8px 10px; border-radius: 12px; background: rgba(5,8,22,.42); border: 1px solid rgba(255,255,255,.06); }
-#combat-log div:first-child { color: var(--gold2); }
-
-#ability-bar {
-  grid-row: 3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 12px 18px;
-  background: linear-gradient(180deg, rgba(9,13,31,.8), rgba(5,8,22,.96));
-  border-top: 1px solid var(--edge);
-  z-index: 20;
-}
-.ability-slot {
-  position: relative;
-  width: 74px;
-  height: 62px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 6px;
-  border: 1px solid rgba(255,230,155,.24);
-  background: radial-gradient(circle at top, rgba(255,230,155,.13), rgba(5,8,22,.84));
-  color: #fff;
-  border-radius: 16px;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 800;
-  transition: transform .16s ease, box-shadow .16s ease;
-}
-.ability-slot:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0,0,0,.36), 0 0 22px rgba(255,230,155,.16); }
-.cooldown-overlay { position: absolute; inset: 0; border-radius: 16px; background: rgba(0,0,0,.72); display: flex; align-items: center; justify-content: center; color: var(--gold2); font-size: 16px; }
-
-#bottom-menu { grid-row: 4; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 12px; background: rgba(5,8,22,.96); border-top: 1px solid rgba(255,255,255,.08); }
-#bottom-menu button { border: 1px solid rgba(255,255,255,.08); color: var(--muted); background: rgba(18,23,49,.9); padding: 9px 16px; border-radius: 999px; font-weight: 800; cursor: pointer; }
-#bottom-menu button.active, #bottom-menu button:hover { color: var(--gold2); border-color: rgba(255,230,155,.32); }
-
-#fatal-error { position: fixed; inset: 0; z-index: 999; display: flex; align-items: center; justify-content: center; text-align: center; padding: 40px; background: var(--void); color: #ff9a9a; font-size: 17px; }
-.hidden { display: none !important; }
-
-@media (max-width: 1180px) {
-  #game-brand { min-width: 220px; }
-  #game-brand strong { font-size: 14px; }
-  #hud-player { min-width: 160px; }
-  #game-shell { grid-template-columns: 240px 1fr 260px; }
-  #enemy-panel { width: min(560px, calc(100vw - 560px)); min-width: 360px; }
-}
-
-@media (max-width: 920px) {
-  #app { grid-template-rows: auto 1fr 82px 54px; }
-  #hud { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
-  #game-shell { grid-template-columns: 1fr; padding: 92px 12px 12px; }
-  #hero-panel, #right-panel { display: none; }
-  #enemy-panel { width: calc(100vw - 24px); min-width: 0; top: 94px; }
-  #game-brand { min-width: 0; }
-  #game-brand small { display: none; }
-  #hud-player { display: none; }
-  #class-cards { grid-template-columns: 1fr; }
-  #bottom-menu { overflow-x: auto; justify-content: flex-start; }
-}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:radial-gradient(circle at top, rgba(60,80,180,.28), transparent 28%), linear-gradient(180deg,#09102c,#040713 65%);color:var(--text);font-family:Inter,Arial,sans-serif}
+button{font:inherit}
+.hidden{display:none!important}
+#app{height:100vh;display:grid;grid-template-rows:70px 1fr 96px 54px;position:relative}
+#hud{display:flex;align-items:center;gap:16px;padding:10px 22px;background:rgba(8,12,30,.96);border-bottom:1px solid var(--edge);z-index:10}
+#game-brand{display:flex;gap:12px;align-items:center;padding-right:16px;border-right:1px solid rgba(255,255,255,.08);min-width:290px}
+.brand-gem{font-size:28px;color:#8ce5ff;text-shadow:0 0 18px rgba(110,197,255,.55)}
+#game-brand strong{display:block;color:var(--gold);font-family:Cinzel,serif;font-size:17px;letter-spacing:.03em}
+#game-brand small{color:#b8c6ff;font-size:11px}
+#hud-player{min-width:260px;display:flex;flex-direction:column;gap:2px}
+#hud-nome{font-family:Cinzel,serif;font-weight:800;color:var(--gold);font-size:15px}
+#hud-classe{color:#b8c6ff;font-size:13px}
+#hud-asa{white-space:nowrap;color:#d4c8ef}
+#hud-asa span{color:var(--gold);font-weight:800}
+#hud-xp-wrap{flex:1;display:flex;align-items:center;gap:10px;min-width:300px}
+#hud-xp-bar{flex:1;height:14px;background:#02040d;border:1px solid rgba(255,230,155,.16);border-radius:999px;overflow:hidden}
+#hud-xp-fill{height:100%;width:0;background:linear-gradient(90deg,#b88515,#ffd86c,#fff3c2);transition:width .25s ease}
+#hud-xp-text{font-weight:800;color:var(--gold);font-size:12px;min-width:118px;text-align:right}
+.hud-pill{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(1,4,12,.45);border:1px solid var(--edge);border-radius:999px;color:var(--gold);font-weight:800;white-space:nowrap}
+.online-pill{color:#d0d8ff}
+#class-select{position:fixed;inset:70px 0 0;display:flex;align-items:center;justify-content:center;background:rgba(4,7,18,.78);backdrop-filter:blur(6px);z-index:50}
+.select-card{width:min(1120px,calc(100vw - 50px));padding:30px;background:linear-gradient(180deg,rgba(26,35,81,.94),rgba(9,13,31,.94));border:1px solid var(--edge);box-shadow:0 30px 80px rgba(0,0,0,.55);text-align:center;clip-path:polygon(20px 0,100% 0,100% calc(100% - 20px),calc(100% - 20px) 100%,0 100%,0 20px)}
+.eyebrow{text-transform:uppercase;letter-spacing:.3em;color:var(--accent);font-size:12px;font-weight:800}
+#class-select h1{margin:8px 0 10px;font-family:Cinzel,serif;font-size:clamp(34px,4.5vw,62px);color:var(--gold)}
+.select-desc{max-width:760px;margin:0 auto 28px;color:var(--muted);font-size:14px}
+#class-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.class-card{background:linear-gradient(180deg,rgba(18,27,63,.92),rgba(7,10,24,.92));border:1px solid var(--edge);padding:16px;cursor:pointer;transition:.2s ease;clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px)}
+.class-card:hover{transform:translateY(-4px);border-color:rgba(255,230,155,.46);box-shadow:0 18px 42px rgba(0,0,0,.4)}
+.class-art-wrap{height:220px;border-radius:18px;overflow:hidden;background:radial-gradient(circle at center, rgba(92,169,255,.16), rgba(5,8,22,.88) 70%);display:flex;align-items:flex-end;justify-content:center;margin-bottom:10px;border:1px solid rgba(255,255,255,.08)}
+.class-art-wrap img{width:100%;height:100%;object-fit:contain;object-position:center 25%;filter:drop-shadow(0 12px 20px rgba(0,0,0,.34))}
+.class-card .icone{font-size:22px}
+.class-card .nome{margin-top:8px;font-family:Cinzel,serif;color:var(--gold);font-size:22px}
+.class-card .desc{margin-top:8px;color:var(--muted);font-size:12px;line-height:1.4}
+#enemy-panel{position:fixed;top:86px;left:50%;transform:translateX(-50%);width:min(740px,calc(100vw - 720px));min-width:440px;padding:16px 20px;background:linear-gradient(180deg,rgba(22,29,66,.94),rgba(8,11,26,.92));border:1px solid var(--edge);z-index:6;box-shadow:0 20px 48px rgba(0,0,0,.3)}
+.enemy-title{display:flex;justify-content:center;align-items:center;gap:10px}.enemy-subline{text-align:center;color:#bec6e4;font-size:12px;margin:-4px 0 10px}
+#enemy-name{font-family:Cinzel,serif;color:var(--gold);font-size:22px;font-weight:800}
+#enemy-level,#enemy-type{padding:5px 10px;border-radius:999px;border:1px solid var(--edge);background:rgba(2,4,12,.5);font-size:12px;font-weight:800;color:#dfe5ff}
+#enemy-type{text-transform:uppercase;color:#ffcad1}
+#enemy-hp-bar{position:relative;height:22px;border-radius:999px;background:#290917;border:1px solid rgba(255,120,120,.28);overflow:hidden}
+#enemy-hp-fill{height:100%;width:100%;background:linear-gradient(90deg,#d84545,#ff8989,#ffd26c);transition:width .2s ease}
+#enemy-hp-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;text-shadow:0 1px 3px #000}
+#game-shell{padding:106px 20px 12px;display:grid;grid-template-columns:310px 1fr 340px;gap:16px;min-height:0}
+.side-panel{background:linear-gradient(180deg,rgba(13,20,50,.82),rgba(8,11,25,.84));border:1px solid var(--edge);padding:16px;min-height:0;overflow:auto;clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px)}
+.panel-title,.mini-title{font-family:Cinzel,serif;color:var(--gold);font-weight:800}.panel-title{font-size:22px;margin-bottom:14px}.mini-title{margin:16px 0 10px;font-size:16px;color:#e1d8ff}
+.hero-portrait{height:190px;border-radius:20px;background:radial-gradient(circle at center, rgba(92,169,255,.18), rgba(5,8,22,.84) 70%);background-size:cover;background-position:center 22%;border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 -60px 60px rgba(0,0,0,.18)}
+.side-name{margin-top:12px;text-align:center;color:var(--gold);font-weight:900;font-size:18px}.side-subtitle{text-align:center;color:#c1cbf0;margin-top:4px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}.stats-grid div{padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(4,7,18,.42)}.stats-grid span{display:block;font-size:12px;color:#b8c6ff}.stats-grid strong{display:block;margin-top:4px;font-size:17px}
+.equipment-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.equipment-slot{min-height:82px;border:1px dashed rgba(255,255,255,.14);border-radius:14px;padding:8px;background:rgba(5,8,22,.36);font-size:11px;color:#cad4f6}.equipment-slot strong{display:block;color:#fff;margin-top:4px}.equipment-slot em{display:block;font-style:normal;font-size:10px;color:#8ea0e0;margin-top:4px}.equipment-slot.filled{border-style:solid;box-shadow:inset 0 0 20px rgba(255,230,155,.05)}
+#stage{position:relative;border:1px solid var(--edge);overflow:hidden;clip-path:polygon(20px 0,100% 0,100% calc(100% - 20px),calc(100% - 20px) 100%,0 100%,0 20px);background:linear-gradient(180deg,rgba(11,18,50,.4),rgba(2,5,14,.2))}
+#game-canvas{display:block;width:100%;height:100%}
+#stage-banner{position:absolute;left:22px;top:18px;z-index:2}#stage-title{display:block;font-family:Cinzel,serif;color:var(--gold);font-size:20px}#stage-subtitle{color:var(--green);font-weight:800}
+.quest-card{padding:12px;border-radius:16px;background:rgba(4,7,18,.45);border:1px solid rgba(255,255,255,.08)}.quest-label{font-size:12px;color:#bac5ec;margin-bottom:6px}.quest-card strong{display:block;font-size:16px;color:#fff;line-height:1.3}.quest-bar{margin:12px 0 8px;height:12px;background:#02040d;border:1px solid rgba(255,255,255,.08);border-radius:999px;overflow:hidden}#quest-fill{height:100%;width:0;background:linear-gradient(90deg,#8a73ff,#d6aeff)}#quest-progress{font-weight:800;color:var(--gold)}
+.loot-list,#combat-log{display:flex;flex-direction:column;gap:8px}.loot-item,.combat-entry{padding:10px;border-radius:12px;background:rgba(4,7,18,.45);border:1px solid rgba(255,255,255,.08);font-size:13px;line-height:1.4}.loot-item small{display:block;color:#9eb0f0;margin-top:4px}.combat-entry{color:#d7defa}
+#ability-shell{display:flex;align-items:center;justify-content:center;gap:16px;padding:10px 20px;border-top:1px solid var(--edge);background:rgba(8,12,30,.88)}
+#ability-bar{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}.ability-slot{position:relative;width:120px;min-height:64px;padding:10px 10px 12px;background:linear-gradient(180deg,rgba(18,24,55,.94),rgba(8,11,24,.94));border:1px solid rgba(255,230,155,.16);border-radius:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;font-weight:800;transition:.15s ease;overflow:hidden}.ability-slot:hover{transform:translateY(-2px);border-color:rgba(255,230,155,.46)}.ability-slot .ability-name{font-size:13px;line-height:1.15}.cooldown-overlay{position:absolute;inset:0;background:rgba(2,5,14,.7);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px}.cooldown-overlay.hidden{display:none}
+#auto-farm-btn{padding:14px 18px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(5,8,22,.72);color:#fff;font-weight:900;cursor:pointer;min-width:210px}#auto-farm-btn.auto-on{color:#90ffb8;border-color:rgba(144,255,184,.35)}#auto-farm-btn.auto-off{color:#ffb3b3;border-color:rgba(255,140,140,.35)}
+#bottom-menu{display:flex;justify-content:center;gap:10px;padding:8px 20px;background:rgba(6,8,18,.92);border-top:1px solid var(--edge)}#bottom-menu button{padding:10px 18px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:#0b1230;color:#d2dbff;cursor:pointer;font-weight:700}#bottom-menu button.active{color:var(--gold);border-color:rgba(255,230,155,.35)}
+#fatal-error{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:80;background:#541616;color:#fff;padding:12px 16px;border-radius:14px;border:1px solid rgba(255,120,120,.35);max-width:min(90vw,760px)}
+@media (max-width: 1200px){#game-shell{grid-template-columns:280px 1fr 300px}#enemy-panel{min-width:360px;width:min(560px,calc(100vw - 620px))}}

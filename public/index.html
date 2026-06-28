@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -31,14 +32,14 @@
 
       <div class="hud-pill">⚔️ <span id="hud-power-value">0</span> Poder</div>
       <div class="hud-pill">🪙 <span id="hud-gold-value">0</span></div>
-      <div id="hud-online">Online: <span id="hud-online-count">0</span></div>
+      <div class="hud-pill online-pill">Online: <span id="hud-online-count">0</span></div>
     </header>
 
     <section id="class-select">
       <div class="select-card">
         <p class="eyebrow">Legend Of Indle RPG V1</p>
         <h1>Escolha seu Herói</h1>
-        <p class="select-desc">Escolha entre Guerreiro, Mago Arcanjo e Arqueira. O servidor valida dano, XP, loot e progressão.</p>
+        <p class="select-desc">Escolha entre Guerreiro, Mago Arcanjo e Arqueira. Agora com itens, skills, farm automático e 3 monstros em rotação por horda.</p>
         <div id="class-cards"></div>
       </div>
     </section>
@@ -49,6 +50,7 @@
         <span id="enemy-level">Nv. 1</span>
         <span id="enemy-type">NORMAL</span>
       </div>
+      <div class="enemy-subline">Horda <span id="enemy-horda">1</span></div>
       <div id="enemy-hp-bar">
         <div id="enemy-hp-fill"></div>
         <span id="enemy-hp-text">0 / 0 HP</span>
@@ -85,7 +87,7 @@
         <div class="panel-title">Progresso</div>
         <div class="quest-card">
           <div class="quest-label">Missão atual</div>
-          <strong id="quest-text">Derrote monstros para avançar</strong>
+          <strong id="quest-text">Sobreviva até o Dragão Elemental</strong>
           <div class="quest-bar"><div id="quest-fill"></div></div>
           <span id="quest-progress">0 / 10</span>
         </div>
@@ -98,7 +100,10 @@
       </aside>
     </div>
 
-    <footer id="ability-bar"></footer>
+    <footer id="ability-shell">
+      <div id="ability-bar"></div>
+      <button id="auto-farm-btn" class="auto-on">Farm automático: ON</button>
+    </footer>
 
     <nav id="bottom-menu">
       <button class="active">⚔️ Caçar</button>

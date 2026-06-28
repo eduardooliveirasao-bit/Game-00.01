@@ -1,733 +1,367 @@
+
 (function () {
   'use strict';
 
-  function falhaFatal(msg) {
-    var el = document.getElementById('fatal-error');
-    if (el) {
-      el.textContent = msg;
-      el.classList.remove('hidden');
-    } else {
-      console.error(msg);
-    }
+  function byId(id) { return document.getElementById(id); }
+  function escapeHtml(value) {
+    return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+  function fatal(msg) {
+    var el = byId('fatal-error');
+    el.textContent = msg;
+    el.classList.remove('hidden');
   }
 
-  if (typeof io === 'undefined') {
-    falhaFatal('Não foi possível carregar o Socket.io. Verifique a conexão e recarregue a página.');
-    return;
-  }
+  if (typeof io === 'undefined') return fatal('Socket.IO não carregou.');
+  if (!window.GAME_CLASSES || !window.MONSTERS) return fatal('shared/classes.js não carregou.');
 
-  if (typeof window.GAME_CLASSES === 'undefined') {
-    falhaFatal('Não foi possível carregar /shared/classes.js antes do game.js.');
-    return;
-  }
+  var socket = io();
+  var GAME_CLASSES = window.GAME_CLASSES;
+  var MONSTERS = window.MONSTERS;
+  var LEVEL_CAP = window.LEVEL_CAP || 80;
+  var state = {
+    meId: null,
+    me: null,
+    players: {},
+    monster: null,
+    floating: [],
+    effects: [],
+    logs: [],
+    lootRecente: []
+  };
 
-  window.addEventListener('error', function (e) {
-    falhaFatal('Erro inesperado: ' + e.message);
+  var canvas = byId('game-canvas');
+  var ctx = canvas.getContext('2d');
+  var classSelect = byId('class-select');
+  var classCards = byId('class-cards');
+  var abilityBar = byId('ability-bar');
+  var autoFarmBtn = byId('auto-farm-btn');
+
+  var characterImages = {};
+  Object.keys(GAME_CLASSES).forEach(function (id) {
+    var img = new Image(); img.src = GAME_CLASSES[id].asset.sprite; characterImages[id] = img;
   });
+  var monsterImages = {};
+  MONSTERS.forEach(function (m) { var img = new Image(); img.src = m.asset; monsterImages[m.id] = img; });
 
-  try {
-    iniciarJogo();
-  } catch (err) {
-    falhaFatal('Falha ao iniciar o jogo: ' + err.message);
+  function resizeCanvas() {
+    var stage = byId('stage');
+    canvas.width = Math.max(400, stage.clientWidth);
+    canvas.height = Math.max(360, stage.clientHeight);
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function mountClassSelect() {
+    classCards.innerHTML = '';
+    Object.keys(GAME_CLASSES).forEach(function (id) {
+      var classe = GAME_CLASSES[id];
+      var card = document.createElement('div');
+      card.className = 'class-card';
+      card.innerHTML = '<div class="class-art-wrap"><img src="' + classe.asset.portrait + '" alt="' + escapeHtml(classe.nomeCurto) + '"></div>' +
+        '<div class="icone">' + classe.tipoIcone + '</div>' +
+        '<div class="nome">' + escapeHtml(classe.nomeCurto) + '</div>' +
+        '<div class="desc">' + escapeHtml(classe.idleDescricao) + '</div>';
+      card.onclick = function () { socket.emit('selectClass', { classeId: id }); };
+      classCards.appendChild(card);
+    });
   }
 
-  function iniciarJogo() {
-    var GAME_CLASSES = window.GAME_CLASSES;
-    var WING_LEVELS = window.WING_LEVELS || [];
-    var LEVEL_CAP = window.LEVEL_CAP || 80;
-    var socket = io();
-
-    var state = {
-      meuId: null,
-      meuPlayer: null,
-      players: {},
-      monster: null,
-      particulas: [],
-      efeitosAtivos: [],
-      danosFlutuantes: [],
-      log: [],
-      lootRecente: [],
-      tempoInicio: performance.now(),
-      ultimoGolpeVisual: 0
-    };
-
-    var canvas = document.getElementById('game-canvas');
-    var ctx = canvas.getContext('2d');
-    var classSelectEl = document.getElementById('class-select');
-    var classCardsEl = document.getElementById('class-cards');
-    var abilityBarEl = document.getElementById('ability-bar');
-
-    var hudNome = document.getElementById('hud-nome');
-    var hudClasse = document.getElementById('hud-classe');
-    var hudAsaNivel = document.getElementById('hud-asa-nivel');
-    var hudAsaNome = document.getElementById('hud-asa-nome');
-    var hudXpFill = document.getElementById('hud-xp-fill');
-    var hudXpText = document.getElementById('hud-xp-text');
-    var hudOnlineCount = document.getElementById('hud-online-count');
-    var hudGold = document.getElementById('hud-gold-value');
-    var hudPower = document.getElementById('hud-power-value');
-
-    var enemyName = document.getElementById('enemy-name');
-    var enemyLevel = document.getElementById('enemy-level');
-    var enemyType = document.getElementById('enemy-type');
-    var enemyHpFill = document.getElementById('enemy-hp-fill');
-    var enemyHpText = document.getElementById('enemy-hp-text');
-
-    var combatLogEl = document.getElementById('combat-log');
-    var heroNameSide = document.getElementById('hero-name-side');
-    var heroClassSide = document.getElementById('hero-class-side');
-    var heroLevelSide = document.getElementById('hero-level-side');
-    var heroPowerSide = document.getElementById('hero-power-side');
-    var heroHpSide = document.getElementById('hero-hp-side');
-    var heroGoldSide = document.getElementById('hero-gold-side');
-    var equipmentGrid = document.getElementById('equipment-grid');
-    var lootList = document.getElementById('loot-list');
-    var questFill = document.getElementById('quest-fill');
-    var questProgress = document.getElementById('quest-progress');
-    var questText = document.getElementById('quest-text');
-    var heroPortrait = document.getElementById('hero-portrait');
-
-    var characterImages = {};
-    Object.keys(GAME_CLASSES).forEach(function (classeId) {
-      var classe = GAME_CLASSES[classeId];
-      if (!classe.asset || !classe.asset.sprite) return;
-      var img = new Image();
-      img.src = classe.asset.sprite;
-      characterImages[classeId] = img;
+  function mountAbilities(classeId) {
+    var classe = GAME_CLASSES[classeId];
+    if (!classe) { abilityBar.innerHTML = ''; return; }
+    abilityBar.innerHTML = '';
+    classe.habilidades.forEach(function (hab) {
+      var el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'ability-slot';
+      el.dataset.habilidade = hab.id;
+      el.title = hab.nome + ' — ' + hab.descricao;
+      el.innerHTML = '<span class="ability-name">' + escapeHtml(hab.nome) + '</span><div class="cooldown-overlay hidden"></div>';
+      el.onclick = function () { socket.emit('useAbility', { habilidadeId: hab.id }); };
+      abilityBar.appendChild(el);
     });
+  }
 
-    function ajustarCanvas() {
-      var stage = document.getElementById('stage');
-      canvas.width = Math.max(320, stage.clientWidth);
-      canvas.height = Math.max(320, stage.clientHeight);
-    }
-    window.addEventListener('resize', ajustarCanvas);
-    ajustarCanvas();
-
-    function formatarNumero(valor) {
-      valor = Math.floor(valor || 0);
-      if (valor >= 1000000) return (valor / 1000000).toFixed(1) + 'M';
-      if (valor >= 1000) return (valor / 1000).toFixed(1) + 'K';
-      return String(valor);
-    }
-
-    function escaparHtml(valor) {
-      return String(valor)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
-    function obterNomeAsaPorNivel(nivel) {
-      var found = WING_LEVELS.find(function (w) { return w.nivel === nivel; });
-      return found ? found.nome : 'Asas Iniciais';
-    }
-
-    function montarTelaSelecaoClasse() {
-      classCardsEl.innerHTML = '';
-      Object.keys(GAME_CLASSES).forEach(function (classeId) {
-        var classe = GAME_CLASSES[classeId];
-        var card = document.createElement('div');
-        card.className = 'class-card';
-        card.dataset.classe = classeId;
-        var portrait = classe.asset && classe.asset.portrait ? classe.asset.portrait : '';
-        card.innerHTML =
-          '<div class="class-art-wrap">' +
-            (portrait ? '<img src="' + portrait + '" alt="' + escaparHtml(classe.nomeCurto) + '">' : '<div class="icone">' + classe.tipoIcone + '</div>') +
-          '</div>' +
-          '<div class="icone">' + classe.tipoIcone + '</div>' +
-          '<div class="nome">' + classe.nomeCurto + '</div>' +
-          '<div class="desc">' + classe.idleDescricao + '</div>';
-        card.addEventListener('click', function () {
-          socket.emit('selectClass', { classeId: classeId });
-        });
-        classCardsEl.appendChild(card);
-      });
-    }
-
-    function montarBarraHabilidades(classeId) {
-      if (abilityBarEl.dataset.classeAtual === classeId) return;
-      var classe = GAME_CLASSES[classeId];
-      if (!classe) return;
-
-      abilityBarEl.dataset.classeAtual = classeId;
-      abilityBarEl.innerHTML = '';
-
-      classe.habilidades.concat([classe.ultimate]).forEach(function (habilidade) {
-        var slot = document.createElement('div');
-        slot.className = 'ability-slot';
-        slot.dataset.habilidade = habilidade.id;
-        slot.title = habilidade.nome + ' — ' + habilidade.descricao;
-        slot.innerHTML = '<span>' + habilidade.nome + '</span><div class="cooldown-overlay hidden"></div>';
-        slot.addEventListener('click', function () {
-          socket.emit('useAbility', { habilidadeId: habilidade.id });
-        });
-        abilityBarEl.appendChild(slot);
-      });
-    }
-
-    function iniciarCooldownVisual(habilidadeId, duracaoMs) {
-      var slot = abilityBarEl.querySelector('[data-habilidade="' + habilidadeId + '"]');
-      if (!slot) return;
-      var overlay = slot.querySelector('.cooldown-overlay');
-      overlay.classList.remove('hidden');
-
-      var final = performance.now() + duracaoMs;
-      var intervalo = setInterval(function () {
-        var restante = final - performance.now();
-        if (restante <= 0) {
-          clearInterval(intervalo);
-          overlay.classList.add('hidden');
-          overlay.textContent = '';
-          return;
-        }
-        overlay.textContent = Math.ceil(restante / 1000) + 's';
-      }, 120);
-    }
-
-    function atualizarHud() {
-      if (!state.meuPlayer) return;
-      var p = state.meuPlayer;
-      var classe = GAME_CLASSES[p.classeId];
-      var nivel = p.nivel || 1;
-      var xpToNext = p.xpToNext || 0;
-      var xp = p.xp || 0;
-      var xpPercent = nivel >= LEVEL_CAP ? 100 : (p.xpPercent || 0);
-      var power = p.power || 0;
-
-      hudNome.textContent = p.nome + ' [Nv. ' + nivel + ']';
-      hudClasse.textContent = classe ? classe.nome : 'Escolha sua classe';
-      hudAsaNivel.textContent = p.asaNivel || 1;
-      hudAsaNome.textContent = p.asaNome || obterNomeAsaPorNivel(p.asaNivel || 1);
-      hudXpFill.style.width = Math.min(100, Math.max(0, xpPercent)) + '%';
-      hudXpText.textContent = nivel >= LEVEL_CAP ? 'Nível máximo' : xp + ' / ' + xpToNext + ' XP';
-      hudOnlineCount.textContent = Object.keys(state.players).length;
-      if (hudGold) hudGold.textContent = formatarNumero(p.ouro || 0);
-      if (hudPower) hudPower.textContent = formatarNumero(power);
-
-      if (heroNameSide) heroNameSide.textContent = p.nome;
-      if (heroClassSide) heroClassSide.textContent = classe ? classe.nome : 'Escolha uma classe';
-      if (heroLevelSide) heroLevelSide.textContent = nivel;
-      if (heroPowerSide) heroPowerSide.textContent = formatarNumero(power);
-      if (heroHpSide) heroHpSide.textContent = (p.hp || 0) + ' / ' + (p.maxHp || 0);
-      if (heroGoldSide) heroGoldSide.textContent = formatarNumero(p.ouro || 0);
-
-      if (heroPortrait) {
-        if (classe && classe.asset && classe.asset.portrait) {
-          heroPortrait.classList.add('has-art');
-          heroPortrait.style.backgroundImage = 'linear-gradient(180deg, rgba(5,8,22,.08), rgba(5,8,22,.22)), url("' + classe.asset.portrait + '")';
-        } else {
-          heroPortrait.classList.remove('has-art');
-          heroPortrait.style.backgroundImage = '';
-        }
-      }
-
-      atualizarEquipamentos(p);
-      atualizarQuest(p);
-    }
-
-    function atualizarEnemyHud() {
-      if (!state.monster) return;
-      var percent = state.monster.hpMax > 0 ? (state.monster.hpAtual / state.monster.hpMax) * 100 : 0;
-      enemyName.textContent = state.monster.nome;
-      enemyLevel.textContent = 'Nv. ' + state.monster.nivel;
-      enemyType.textContent = state.monster.isBoss ? 'BOSS' : String(state.monster.tipo || 'normal').toUpperCase();
-      enemyHpFill.style.width = Math.min(100, Math.max(0, percent)) + '%';
-      enemyHpText.textContent = state.monster.hpAtual + ' / ' + state.monster.hpMax + ' HP';
-    }
-
-    function atualizarQuest(player) {
-      var kills = player.kills || 0;
-      var dentro = kills % 10;
-      var fase = player.fase || Math.floor(kills / 10) + 1;
-      if (questFill) questFill.style.width = (dentro * 10) + '%';
-      if (questProgress) questProgress.textContent = dentro + ' / 10';
-      if (questText) questText.textContent = 'Fase ' + fase + ' — derrote 10 monstros para invocar o boss';
-    }
-
-    function atualizarEquipamentos(player) {
-      if (!equipmentGrid) return;
-      var inventario = (player.inventario || []).slice(-6).reverse();
-      equipmentGrid.innerHTML = '';
-      for (var i = 0; i < 6; i++) {
-        var item = inventario[i];
-        var slot = document.createElement('div');
-        slot.className = 'equipment-slot' + (item ? ' filled loot-' + item.raridade : '');
-        slot.innerHTML = item
-          ? '<strong>' + item.icone + ' ' + escaparHtml(item.nome) + '</strong><small>+' + (item.stats.ataque || 0) + ' ATQ</small>'
-          : '<span>Vazio</span>';
-        equipmentGrid.appendChild(slot);
-      }
-    }
-
-    function atualizarLoot() {
-      if (!lootList) return;
-      if (state.lootRecente.length === 0) {
-        lootList.innerHTML = '<div class="loot-item">Nenhum loot ainda.</div>';
+  function startCooldownVisual(id, durMs) {
+    var slot = abilityBar.querySelector('[data-habilidade="' + id + '"]');
+    if (!slot) return;
+    var overlay = slot.querySelector('.cooldown-overlay');
+    overlay.classList.remove('hidden');
+    var end = performance.now() + durMs;
+    function step() {
+      var left = end - performance.now();
+      if (left <= 0) {
+        overlay.classList.add('hidden');
+        overlay.textContent = '';
         return;
       }
-      lootList.innerHTML = state.lootRecente.slice(0, 5).map(function (item) {
-        return '<div class="loot-item loot-' + item.raridade + '">' +
-          item.icone + ' <strong>' + escaparHtml(item.nome) + '</strong><br>' +
-          '<span>' + item.raridade.toUpperCase() + ' · +' + (item.stats.ataque || 0) + ' ATQ</span>' +
-          '</div>';
-      }).join('');
+      overlay.textContent = Math.ceil(left / 1000) + 's';
+      requestAnimationFrame(step);
     }
-
-    function adicionarLog(texto) {
-      state.log.unshift(texto);
-      state.log = state.log.slice(0, 7);
-      if (combatLogEl) {
-        combatLogEl.innerHTML = state.log.map(function (linha) {
-          return '<div>' + linha + '</div>';
-        }).join('');
-      }
-    }
-
-    function adicionarDanoFlutuante(texto, isCrit, cor, x, y) {
-      state.danosFlutuantes.push({
-        x: x || canvas.width * 0.68,
-        y: y || canvas.height * 0.46,
-        vy: -0.82 - Math.random() * 0.42,
-        vida: 1,
-        texto: texto,
-        isCrit: !!isCrit,
-        cor: cor || (isCrit ? '#ffe69b' : '#f2efff')
-      });
-    }
-
-    function desenharFundo() {
-      var w = canvas.width;
-      var h = canvas.height;
-      var t = performance.now() / 1000;
-
-      var grd = ctx.createLinearGradient(0, 0, 0, h);
-      grd.addColorStop(0, 'rgba(26, 35, 88, 0.24)');
-      grd.addColorStop(0.55, 'rgba(10, 14, 34, 0.16)');
-      grd.addColorStop(1, 'rgba(0, 0, 0, 0.14)');
-      ctx.fillStyle = grd;
-      ctx.fillRect(0, 0, w, h);
-
-      ctx.save();
-      ctx.globalAlpha = 0.5;
-      for (var i = 0; i < 34; i++) {
-        var sx = (i * 149 + Math.sin(t * 0.1 + i) * 18) % w;
-        var sy = (i * 67) % Math.max(1, h * 0.55);
-        ctx.fillStyle = i % 3 === 0 ? '#66c9ff' : '#ffe69b';
-        ctx.fillRect(sx, sy, 2, 2);
-      }
-      ctx.restore();
-
-      // plataformas e cristais do cenário
-      ctx.fillStyle = 'rgba(0,0,0,.24)';
-      ctx.beginPath();
-      ctx.ellipse(w * 0.28, h * 0.78, 150, 34, 0, 0, Math.PI * 2);
-      ctx.ellipse(w * 0.70, h * 0.76, 170, 38, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      for (var c = 0; c < 7; c++) {
-        var cx = 28 + c * 72;
-        var cy = h - 72 - Math.sin(t + c) * 3;
-        ctx.fillStyle = c % 2 ? 'rgba(185,133,255,.22)' : 'rgba(102,201,255,.22)';
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - 40);
-        ctx.lineTo(cx + 12, cy);
-        ctx.lineTo(cx - 12, cy);
-        ctx.closePath();
-        ctx.fill();
-      }
-    }
-
-    function desenharAsasArcanjo(x, y, escala, nivel) {
-      var camadas = Math.max(4, (nivel || 1) + 3);
-      for (var lado = -1; lado <= 1; lado += 2) {
-        for (var i = 0; i < camadas; i++) {
-          var largura = (34 + i * 9) * escala;
-          var altura = (18 + i * 5) * escala;
-          var px = x + lado * (34 + i * 11) * escala;
-          var py = y - (16 - i * 5) * escala;
-          ctx.save();
-          ctx.globalAlpha = Math.max(0.18, 0.86 - i * 0.08);
-          ctx.fillStyle = i % 2 ? '#d8f4ff' : '#ffffff';
-          ctx.strokeStyle = '#ffe69b';
-          ctx.lineWidth = 1.4;
-          ctx.beginPath();
-          ctx.ellipse(px, py, largura, altura, lado * -0.5, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-          ctx.restore();
-        }
-      }
-    }
-
-    function desenharAsasCristal(x, y, escala, nivel, cor) {
-      for (var i = 0; i < Math.max(2, nivel || 1); i++) {
-        var tamanho = (32 + i * 12) * escala;
-        ctx.save();
-        ctx.globalAlpha = Math.max(0.35, 0.85 - i * 0.1);
-        ctx.fillStyle = cor;
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1;
-        [-1, 1].forEach(function (lado) {
-          ctx.beginPath();
-          ctx.moveTo(x + lado * 10 * escala, y);
-          ctx.lineTo(x + lado * tamanho, y - tamanho * 0.68);
-          ctx.lineTo(x + lado * tamanho * 0.72, y + tamanho * 0.34);
-          ctx.closePath();
-          ctx.fill();
-          ctx.stroke();
-        });
-        ctx.restore();
-      }
-    }
-
-    function desenharJogador(player, index) {
-      var classe = GAME_CLASSES[player.classeId];
-      if (!classe) return;
-
-      var souEu = player.id === state.meuId;
-      var x = souEu ? canvas.width * 0.30 : canvas.width * 0.15 + (index * 46);
-      var y = souEu ? canvas.height * 0.88 : canvas.height * 0.82 + (index % 2) * 18;
-      var t = performance.now() / 1000;
-      var bob = Math.sin(t * 1.65 + index) * (souEu ? 6 : 3);
-      var img = characterImages[player.classeId];
-      var altura = souEu ? Math.min(canvas.height * 0.88, player.classeId === 'mago' ? 430 : 390) : 190;
-
-      ctx.save();
-      ctx.translate(x, y + bob);
-
-      // Sombra do herói no chão
-      ctx.fillStyle = 'rgba(0,0,0,.36)';
-      ctx.beginPath();
-      ctx.ellipse(0, 8, souEu ? 118 : 54, souEu ? 24 : 12, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Aura de classe
-      var aura = ctx.createRadialGradient(0, -altura * 0.44, 8, 0, -altura * 0.44, altura * 0.46);
-      aura.addColorStop(0, classe.corPrimaria + '40');
-      aura.addColorStop(0.55, classe.corSecundaria + '1f');
-      aura.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = aura;
-      ctx.beginPath();
-      ctx.arc(0, -altura * 0.44, altura * 0.46, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (img && img.complete && img.naturalWidth > 0) {
-        var largura = altura * (img.naturalWidth / img.naturalHeight);
-        // O mago tem asas grandes; damos um leve destaque sem cortar o sprite.
-        if (player.classeId === 'mago' && souEu) largura *= 1.06;
-        ctx.save();
-        ctx.shadowColor = classe.corPrimaria;
-        ctx.shadowBlur = souEu ? 26 : 10;
-        ctx.drawImage(img, -largura / 2, -altura, largura, altura);
-        ctx.restore();
-      } else {
-        // Fallback simples caso a imagem ainda não tenha carregado.
-        ctx.fillStyle = classe.corPrimaria;
-        ctx.strokeStyle = classe.corSecundaria;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.roundRect(-22, -92, 44, 74, 14);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = '#f4d0a5';
-        ctx.beginPath();
-        ctx.arc(0, -116, 20, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Placa do nome
-      ctx.font = souEu ? '900 15px Inter' : '700 11px Inter';
-      ctx.textAlign = 'center';
-      var label = player.nome + ' [Nv. ' + player.nivel + ']';
-      var labelY = -altura - 10;
-      var measure = ctx.measureText(label).width + 22;
-      ctx.fillStyle = 'rgba(5,8,22,.72)';
-      ctx.strokeStyle = souEu ? 'rgba(255,230,155,.45)' : 'rgba(255,255,255,.12)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.roundRect(-measure / 2, labelY - 20, measure, 25, 10);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = souEu ? '#ffe69b' : '#f2efff';
-      ctx.fillText(label, 0, labelY - 2);
-
-      ctx.restore();
-
-      if (Math.random() < 0.16) {
-        state.particulas.push({
-          x: x + (Math.random() - 0.5) * 90,
-          y: y - altura * 0.58 + (Math.random() - 0.5) * 85,
-          vy: -0.55 - Math.random() * 0.45,
-          vida: 1,
-          cor: classe.corParticulaIdle
-        });
-      }
-    }
-
-    function desenharMonstro() {
-      if (!state.monster) return;
-      var x = canvas.width * 0.70;
-      var y = canvas.height * 0.60;
-      var t = performance.now() / 1000;
-      var boss = state.monster.isBoss;
-      var escala = boss ? 2.1 : 1.65;
-      var bob = Math.sin(t * 1.8) * 7;
-
-      ctx.save();
-      ctx.translate(x, y + bob);
-      ctx.scale(escala, escala);
-
-      var aura = ctx.createRadialGradient(0, 0, 10, 0, 0, 92);
-      aura.addColorStop(0, boss ? 'rgba(255,230,155,.34)' : 'rgba(102,201,255,.24)');
-      aura.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = aura;
-      ctx.beginPath();
-      ctx.arc(0, 0, 92, 0, Math.PI * 2);
-      ctx.fill();
-
-      // chapéu/coroa cristalina
-      ctx.fillStyle = boss ? '#9854d8' : '#2b7ca0';
-      ctx.strokeStyle = boss ? '#ffe69b' : '#66c9ff';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.ellipse(0, -28, 48, 34, 0, Math.PI, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // corpo
-      ctx.fillStyle = boss ? '#4b235f' : '#14394e';
-      ctx.beginPath();
-      ctx.roundRect(-36, -24, 72, 82, 17);
-      ctx.fill();
-      ctx.stroke();
-
-      // olhos
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(-14, 8, 5, 0, Math.PI * 2);
-      ctx.arc(14, 8, 5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // cristais no topo
-      ctx.fillStyle = boss ? '#ffe69b' : '#66c9ff';
-      for (var i = 0; i < 6; i++) {
-        ctx.beginPath();
-        ctx.moveTo(-34 + i * 13.5, -58);
-        ctx.lineTo(-27 + i * 13.5, -82 - Math.sin(t + i) * 5);
-        ctx.lineTo(-20 + i * 13.5, -58);
-        ctx.closePath();
-        ctx.fill();
-      }
-
-      ctx.restore();
-
-      if (Math.random() < 0.1) {
-        state.particulas.push({
-          x: x + (Math.random() - 0.5) * 150,
-          y: y - 40 + (Math.random() - 0.5) * 90,
-          vy: -0.25 - Math.random() * 0.3,
-          vida: 1,
-          cor: boss ? '#ffe69b' : '#66c9ff'
-        });
-      }
-    }
-
-    function desenharParticulas() {
-      state.particulas.forEach(function (p) {
-        p.y += p.vy;
-        p.vida -= 0.014;
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, p.vida);
-        ctx.fillStyle = p.cor;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      });
-      state.particulas = state.particulas.filter(function (p) { return p.vida > 0; });
-    }
-
-    function desenharEfeitosHabilidade() {
-      var agora = performance.now();
-      state.efeitosAtivos.forEach(function (efeito) {
-        var progresso = (agora - efeito.inicio) / efeito.duracao;
-        var raio = 20 + progresso * 110;
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, 1 - progresso);
-        ctx.strokeStyle = efeito.cor;
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(efeito.x, efeito.y, raio, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(efeito.x - raio, efeito.y);
-        ctx.lineTo(efeito.x + raio, efeito.y);
-        ctx.moveTo(efeito.x, efeito.y - raio);
-        ctx.lineTo(efeito.x, efeito.y + raio);
-        ctx.stroke();
-        ctx.restore();
-      });
-      state.efeitosAtivos = state.efeitosAtivos.filter(function (efeito) {
-        return agora - efeito.inicio < efeito.duracao;
-      });
-    }
-
-    function desenharDanosFlutuantes() {
-      state.danosFlutuantes.forEach(function (d) {
-        d.y += d.vy;
-        d.vida -= 0.018;
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, d.vida);
-        ctx.fillStyle = d.cor;
-        ctx.font = d.isCrit ? '900 28px Inter' : '900 19px Inter';
-        ctx.textAlign = 'center';
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = 'rgba(0,0,0,.72)';
-        ctx.strokeText(d.texto, d.x, d.y);
-        ctx.fillText(d.texto, d.x, d.y);
-        ctx.restore();
-      });
-      state.danosFlutuantes = state.danosFlutuantes.filter(function (d) { return d.vida > 0; });
-    }
-
-    function loopRender() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      desenharFundo();
-      desenharMonstro();
-      var playersList = Object.values(state.players).filter(function (p) { return p.classeId; });
-      playersList.sort(function (a, b) { return a.id === state.meuId ? -1 : (b.id === state.meuId ? 1 : 0); });
-      playersList.forEach(function (player, index) { desenharJogador(player, index); });
-      desenharParticulas();
-      desenharEfeitosHabilidade();
-      desenharDanosFlutuantes();
-      requestAnimationFrame(loopRender);
-    }
-
-    socket.on('connect_error', function (err) {
-      falhaFatal('Não foi possível conectar ao servidor: ' + err.message);
-    });
-
-    socket.on('init', function (data) {
-      state.meuId = data.you.id;
-      state.meuPlayer = data.you;
-      state.monster = data.monster;
-      state.players = {};
-      data.players.forEach(function (p) { state.players[p.id] = p; });
-
-      if (!state.meuPlayer.classeId) {
-        montarTelaSelecaoClasse();
-        classSelectEl.classList.remove('hidden');
-      } else {
-        classSelectEl.classList.add('hidden');
-        montarBarraHabilidades(state.meuPlayer.classeId);
-      }
-
-      atualizarHud();
-      atualizarEnemyHud();
-      atualizarLoot();
-    });
-
-    socket.on('playerJoined', function (player) {
-      state.players[player.id] = player;
-      atualizarHud();
-    });
-
-    socket.on('playerUpdated', function (player) {
-      state.players[player.id] = player;
-      if (player.id === state.meuId) {
-        state.meuPlayer = player;
-        if (player.classeId) {
-          classSelectEl.classList.add('hidden');
-          montarBarraHabilidades(player.classeId);
-        }
-      }
-      atualizarHud();
-    });
-
-    socket.on('playerLeft', function (data) {
-      delete state.players[data.id];
-      atualizarHud();
-    });
-
-    socket.on('gameState', function (lista) {
-      lista.forEach(function (p) {
-        state.players[p.id] = p;
-        if (p.id === state.meuId) state.meuPlayer = p;
-      });
-      atualizarHud();
-    });
-
-    socket.on('enemyUpdate', function (monster) {
-      state.monster = monster;
-      atualizarEnemyHud();
-    });
-
-    socket.on('combatTick', function (data) {
-      if (data.monster) {
-        state.monster = data.monster;
-        atualizarEnemyHud();
-      }
-
-      (data.attacks || []).forEach(function (attack) {
-        var jogador = state.players[attack.playerId];
-        var classe = jogador ? GAME_CLASSES[jogador.classeId] : null;
-        var x = canvas.width * 0.70 + (Math.random() - 0.5) * 90;
-        var y = canvas.height * 0.44 + (Math.random() - 0.5) * 50;
-        adicionarDanoFlutuante((attack.isCrit ? 'CRÍTICO ' : '-') + attack.damage, attack.isCrit, classe ? classe.corSecundaria : null, x, y);
-      });
-    });
-
-    socket.on('enemyDied', function (data) {
-      var texto = '⚔️ ' + data.killerName + ' derrotou ' + data.deadMonster.nome + ' e ganhou +' + data.xpReward + ' XP';
-      if (data.goldGained) texto += ' e +' + data.goldGained + ' ouro';
-      texto += '.';
-      adicionarLog(texto);
-
-      if (data.loot) {
-        state.lootRecente.unshift(data.loot);
-        state.lootRecente = state.lootRecente.slice(0, 8);
-        atualizarLoot();
-        adicionarLog('🎁 Loot: ' + data.loot.icone + ' ' + data.loot.nome + ' [' + data.loot.raridade + ']');
-      }
-
-      if (data.progress && data.progress.leveledUp) {
-        adicionarLog('✨ Level up! Agora você está no Nv. ' + data.progress.currentLevel + '.');
-      }
-
-      if (data.nextMonster) {
-        state.monster = data.nextMonster;
-        atualizarEnemyHud();
-      }
-    });
-
-    socket.on('abilityUsed', function (evento) {
-      var x = canvas.width * 0.70;
-      var y = canvas.height * 0.52;
-      state.efeitosAtivos.push({
-        x: x,
-        y: y,
-        cor: evento.visual && evento.visual.cor ? evento.visual.cor : '#ffe69b',
-        inicio: performance.now(),
-        duracao: 850
-      });
-
-      if (evento.playerId === state.meuId) {
-        iniciarCooldownVisual(evento.habilidadeId, evento.cooldown);
-      }
-    });
-
-    socket.on('cooldownRejected', function (info) {
-      adicionarLog('⏳ Habilidade em recarga: ' + Math.ceil(info.restanteMs / 1000) + 's.');
-    });
-
-    socket.on('errorMsg', function (msg) {
-      adicionarLog('⚠️ ' + msg);
-    });
-
-    requestAnimationFrame(loopRender);
+    requestAnimationFrame(step);
   }
+
+  function formatNumber(n) {
+    n = Math.floor(n || 0);
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return String(n);
+  }
+
+  function updateHUD() {
+    if (!state.me) return;
+    var p = state.me;
+    var classe = GAME_CLASSES[p.classeId];
+    byId('hud-nome').textContent = p.nome + ' [Nv. ' + p.nivel + ']';
+    byId('hud-classe').textContent = classe ? classe.nome : 'Escolha sua classe';
+    byId('hud-asa-nivel').textContent = p.asaNivel || 1;
+    byId('hud-asa-nome').textContent = p.asaNome || 'Asas Iniciais';
+    byId('hud-xp-fill').style.width = (p.xpPercent || 0) + '%';
+    byId('hud-xp-text').textContent = p.nivel >= LEVEL_CAP ? 'Nível máximo' : (p.xp + ' / ' + p.xpToNext + ' XP');
+    byId('hud-power-value').textContent = formatNumber(p.power);
+    byId('hud-gold-value').textContent = formatNumber(p.ouro);
+
+    byId('hero-name-side').textContent = p.nome;
+    byId('hero-class-side').textContent = classe ? classe.nome : 'Sem classe';
+    byId('hero-level-side').textContent = p.nivel;
+    byId('hero-power-side').textContent = formatNumber(p.power);
+    byId('hero-hp-side').textContent = p.hp + ' / ' + p.maxHp;
+    byId('hero-gold-side').textContent = formatNumber(p.ouro);
+
+    var portrait = byId('hero-portrait');
+    portrait.style.backgroundImage = classe ? 'url("' + classe.asset.portrait + '")' : 'none';
+
+    autoFarmBtn.textContent = 'Farm automático: ' + (p.autoFarm ? 'ON' : 'OFF');
+    autoFarmBtn.className = p.autoFarm ? 'auto-on' : 'auto-off';
+    byId('stage-subtitle').textContent = p.autoFarm ? 'Auto batalha ativa' : 'Auto batalha desativada';
+
+    renderEquipment(p);
+    updateLoot();
+  }
+
+  function renderEquipment(player) {
+    var grid = byId('equipment-grid');
+    var labels = { arma: 'Arma', anel: 'Anel', colar: 'Colar', ornamento: 'Ornamento' };
+    var slots = ['arma', 'anel', 'colar', 'ornamento'];
+    grid.innerHTML = '';
+    slots.forEach(function (slot) {
+      var item = player.equipados ? player.equipados[slot] : null;
+      var div = document.createElement('div');
+      div.className = 'equipment-slot' + (item ? ' filled' : '');
+      if (item) {
+        div.style.borderColor = item.rarityColor || item.cor || '#fff';
+        div.innerHTML = '<span>' + labels[slot] + '</span><strong>' + item.icon + ' ' + escapeHtml(item.nome) + '</strong><em>ATQ ' + (item.stats.ataque || 0) + ' · DEF ' + (item.stats.defesa || 0) + ' · CRIT ' + (item.stats.critico || 0) + ' · HP ' + (item.stats.hp || 0) + '</em>';
+      } else {
+        div.innerHTML = '<span>' + labels[slot] + '</span><strong>Vazio</strong><em>Equipe itens desta categoria</em>';
+      }
+      grid.appendChild(div);
+    });
+  }
+
+  function updateEnemyHUD() {
+    var m = state.monster;
+    if (!m) return;
+    byId('enemy-name').textContent = m.nome;
+    byId('enemy-level').textContent = 'Nv. ' + m.nivel;
+    byId('enemy-type').textContent = (m.tipo || 'normal').toUpperCase();
+    byId('enemy-horda').textContent = m.horda || 1;
+    var pct = m.hpMax ? (m.hpAtual / m.hpMax) * 100 : 0;
+    byId('enemy-hp-fill').style.width = pct + '%';
+    byId('enemy-hp-text').textContent = m.hpAtual + ' / ' + m.hpMax + ' HP';
+
+    var current = ((m.horda || 1) - 1) % 10;
+    byId('quest-text').textContent = current === 9 ? 'Enfrente o Dragão Elemental nesta horda!' : 'Avance até a horda 10 para invocar o Dragão Elemental';
+    byId('quest-fill').style.width = ((current / 9) * 100) + '%';
+    byId('quest-progress').textContent = (current + 1) + ' / 10';
+  }
+
+  function addLog(text) {
+    state.logs.unshift(text);
+    state.logs = state.logs.slice(0, 10);
+    var logEl = byId('combat-log');
+    logEl.innerHTML = state.logs.map(function (line) { return '<div class="combat-entry">' + line + '</div>'; }).join('');
+  }
+
+  function updateLoot() {
+    var lootEl = byId('loot-list');
+    if (!state.lootRecente.length) {
+      lootEl.innerHTML = '<div class="loot-item">Nenhum loot ainda.</div>';
+      return;
+    }
+    lootEl.innerHTML = state.lootRecente.map(function (item) {
+      return '<div class="loot-item"><strong style="color:' + (item.rarityColor || item.cor || '#fff') + '">' + item.icon + ' ' + escapeHtml(item.nome) + '</strong><small>' + escapeHtml(item.slot) + ' · ' + escapeHtml(item.raridade) + ' · ATQ ' + (item.stats.ataque || 0) + ' · DEF ' + (item.stats.defesa || 0) + ' · CRIT ' + (item.stats.critico || 0) + ' · HP ' + (item.stats.hp || 0) + '</small></div>';
+    }).join('');
+  }
+
+  function pushFloating(text, color, x, y, isCrit) {
+    state.floating.push({ text: text, x: x, y: y, color: color || '#fff', life: 1, vy: isCrit ? -1.0 : -0.7, isCrit: !!isCrit });
+  }
+
+  function drawBackground() {
+    var g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    g.addColorStop(0, '#0a1442'); g.addColorStop(1, '#030711');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (var i = 0; i < 25; i++) {
+      var x = (i * 97) % canvas.width;
+      var y = (i * 61) % (canvas.height * 0.5);
+      ctx.fillStyle = 'rgba(255,255,255,.15)';
+      ctx.fillRect(x, y, 2, 2);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.beginPath(); ctx.ellipse(canvas.width * 0.32, canvas.height * 0.82, 140, 30, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(canvas.width * 0.72, canvas.height * 0.82, 140, 30, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawPlayer() {
+    if (!state.me || !state.me.classeId) return;
+    var img = characterImages[state.me.classeId];
+    var x = canvas.width * 0.30;
+    var y = canvas.height * 0.78;
+    var width = 280;
+    var height = 360;
+    ctx.save();
+    if (img && img.complete) {
+      ctx.drawImage(img, x - width / 2, y - height, width, height);
+    }
+    ctx.fillStyle = 'rgba(5,8,22,.68)';
+    ctx.strokeStyle = 'rgba(255,230,155,.45)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, x - 110, y - height - 26, 220, 28, 10, true, true);
+    ctx.fillStyle = '#ffe69b';
+    ctx.font = '700 15px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText(state.me.nome + ' [Nv. ' + state.me.nivel + ']', x, y - height - 8);
+    ctx.restore();
+  }
+
+  function drawMonster() {
+    if (!state.monster) return;
+    var img = monsterImages[state.monster.templateId];
+    var x = canvas.width * 0.72;
+    var y = canvas.height * 0.78;
+    var isDragon = state.monster.templateId === 'dragon';
+    var width = isDragon ? 320 : 240;
+    var height = isDragon ? 300 : 260;
+    if (img && img.complete) ctx.drawImage(img, x - width / 2, y - height, width, height);
+    ctx.fillStyle = 'rgba(5,8,22,.68)';
+    ctx.strokeStyle = 'rgba(255,255,255,.18)';
+    roundRect(ctx, x - 90, y - height - 26, 180, 28, 10, true, true);
+    ctx.fillStyle = '#eaf0ff';
+    ctx.font = '700 14px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText(state.monster.nome + ' [Nv. ' + state.monster.nivel + ']', x, y - height - 8);
+  }
+
+  function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
+
+  function drawEffects() {
+    var now = performance.now();
+    state.effects = state.effects.filter(function (e) { return now - e.start < e.duration; });
+    state.effects.forEach(function (e) {
+      var p = (now - e.start) / e.duration;
+      var radius = 10 + p * 100;
+      ctx.save();
+      ctx.globalAlpha = 1 - p;
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(e.x, e.y, radius, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    });
+  }
+
+  function drawFloating() {
+    state.floating = state.floating.filter(function (f) { return f.life > 0; });
+    state.floating.forEach(function (f) {
+      f.y += f.vy; f.life -= 0.018;
+      ctx.save();
+      ctx.globalAlpha = f.life;
+      ctx.font = f.isCrit ? '900 28px Inter' : '900 20px Inter';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(0,0,0,.75)';
+      ctx.fillStyle = f.color;
+      ctx.strokeText(f.text, f.x, f.y);
+      ctx.fillText(f.text, f.x, f.y);
+      ctx.restore();
+    });
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBackground();
+    drawPlayer();
+    drawMonster();
+    drawEffects();
+    drawFloating();
+    requestAnimationFrame(render);
+  }
+
+  autoFarmBtn.onclick = function () {
+    if (!state.me) return;
+    socket.emit('toggleAutoFarm', { enabled: !state.me.autoFarm });
+  };
+
+  socket.on('connect_error', function (err) { fatal('Falha ao conectar: ' + err.message); });
+  socket.on('init', function (data) {
+    state.meId = data.you.id; state.me = data.you; state.monster = data.monster; state.players = {};
+    (data.players || []).forEach(function (p) { state.players[p.id] = p; });
+    if (!state.me.classeId) { mountClassSelect(); classSelect.classList.remove('hidden'); } else { classSelect.classList.add('hidden'); mountAbilities(state.me.classeId); }
+    updateHUD(); updateEnemyHUD();
+  });
+  socket.on('playerJoined', function (p) { state.players[p.id] = p; });
+  socket.on('playerLeft', function (d) { delete state.players[d.id]; });
+  socket.on('onlineCount', function (n) { byId('hud-online-count').textContent = n; });
+  socket.on('playerUpdated', function (player) {
+    state.players[player.id] = player;
+    if (player.id === state.meId) {
+      state.me = player;
+      if (player.classeId) { classSelect.classList.add('hidden'); mountAbilities(player.classeId); }
+    }
+    updateHUD();
+  });
+  socket.on('gameState', function (list) {
+    (list || []).forEach(function (p) { state.players[p.id] = p; if (p.id === state.meId) state.me = p; });
+    updateHUD();
+  });
+  socket.on('enemyUpdate', function (monster) { state.monster = monster; updateEnemyHUD(); });
+  socket.on('combatTick', function (data) {
+    if (data.monster) { state.monster = data.monster; updateEnemyHUD(); }
+    (data.attacks || []).forEach(function (attack) {
+      var color = attack.isCrit ? '#ffe69b' : '#ff9090';
+      pushFloating((attack.isCrit ? 'CRIT ' : '-') + attack.damage, color, canvas.width * 0.72 + (Math.random() - 0.5) * 80, canvas.height * 0.35 + (Math.random() - 0.5) * 60, attack.isCrit);
+    });
+  });
+  socket.on('enemyDied', function (data) {
+    addLog('⚔️ ' + data.killerName + ' derrotou ' + data.deadMonster.nome + ' e ganhou +' + data.xpReward + ' XP e +' + data.goldGained + ' ouro.');
+    if (data.loot) {
+      state.lootRecente.unshift(data.loot); state.lootRecente = state.lootRecente.slice(0, 8); updateLoot();
+      addLog('🎁 ' + data.loot.icon + ' ' + data.loot.nome + (data.autoEquipped ? ' foi equipado automaticamente.' : ' foi para a bolsa.'));
+    }
+    if (data.progress && data.progress.leveledUp) addLog('✨ Level up! Agora você está no Nv. ' + data.progress.currentLevel + '.');
+    if (data.player && data.player.id === state.meId) state.me = data.player;
+    if (data.nextMonster) { state.monster = data.nextMonster; updateEnemyHUD(); }
+    updateHUD();
+  });
+  socket.on('abilityUsed', function (evt) {
+    state.effects.push({ x: canvas.width * 0.72, y: canvas.height * 0.55, color: evt.visual && evt.visual.cor ? evt.visual.cor : '#fff', start: performance.now(), duration: 850 });
+    if (evt.playerId === state.meId) startCooldownVisual(evt.habilidadeId, evt.cooldown);
+  });
+  socket.on('cooldownRejected', function (info) { addLog('⏳ Habilidade em recarga: ' + Math.ceil(info.restanteMs / 1000) + 's.'); });
+  socket.on('errorMsg', function (msg) { addLog('⚠️ ' + msg); });
+
+  mountClassSelect();
+  requestAnimationFrame(render);
 })();

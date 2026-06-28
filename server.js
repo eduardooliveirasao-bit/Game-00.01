@@ -1,3 +1,4 @@
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -12,9 +13,7 @@ const TICK_RATE_MS = 1000;
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: '*' }
-});
+const io = new Server(server, { cors: { origin: '*' } });
 
 app.use(express.static('public'));
 app.use('/shared', express.static('shared'));
@@ -22,14 +21,12 @@ app.use('/shared', express.static('shared'));
 const players = {};
 const monsterManager = new MonsterManager();
 
-function randomSuffix() {
-  return Math.random().toString(36).slice(2, 6);
-}
+function randomSuffix() { return Math.random().toString(36).slice(2, 6); }
 
 function createPlayer(socket) {
   const player = {
     id: socket.id,
-    nome: `Aventureiro-${randomSuffix()}`,
+    nome: 'Aventureiro-' + randomSuffix(),
     classeId: null,
     nivel: 1,
     level: 1,
@@ -38,22 +35,20 @@ function createPlayer(socket) {
     xpPercent: 0,
     hp: 100,
     maxHp: 100,
+    mana: 0,
     asaNivel: 1,
     asaNome: 'Asas Iniciais',
     ouro: 0,
     power: 0,
     kills: 0,
-    fase: 1,
-    inventario: [],
+    horda: 1,
+    autoFarm: true,
     cooldowns: {},
-    posicao: {
-      x: 70 + Math.floor(Math.random() * 120),
-      y: 170 + Math.floor(Math.random() * 120)
-    },
-    createdAt: Date.now(),
-    lastAttackAt: 0
+    nextAutoSkillAt: 0,
+    inventario: [],
+    equipados: { arma: null, anel: null, colar: null, ornamento: null },
+    equipadosList: []
   };
-
   LevelManager.syncProgressFields(player);
   player.power = LootManager.calculatePower(player);
   return player;
@@ -74,152 +69,119 @@ function publicPlayer(player) {
     asaNivel: player.asaNivel,
     asaNome: player.asaNome,
     ouro: player.ouro,
-    power: LootManager.calculatePower(player),
-    kills: player.kills || 0,
-    fase: player.fase || 1,
-    inventario: player.inventario || [],
-    posicao: player.posicao
+    power: player.power,
+    kills: player.kills,
+    horda: player.horda,
+    autoFarm: player.autoFarm,
+    inventario: player.inventario,
+    equipados: player.equipados,
+    mana: player.classeId ? (GAME_CLASSES[player.classeId].baseStats.mana || 0) : 0
   };
 }
 
-function publicPlayersList() {
-  return Object.values(players).map(publicPlayer);
-}
-
-function emitEnemyUpdate() {
-  io.emit('enemyUpdate', monsterManager.getPublicMonster());
-}
+function publicPlayersList() { return Object.values(players).map(publicPlayer); }
+function emitEnemyUpdate() { io.emit('enemyUpdate', monsterManager.getPublicMonster()); }
 
 function rewardIfEnemyDied(player, combatEvent) {
   if (!combatEvent || !combatEvent.monsterDied) return;
-
-  const xpReward = combatEvent.result.xpReward;
   const progress = CombatManager.grantKillRewards(player, combatEvent);
   const loot = LootManager.grantKillLoot(player, combatEvent.result.deadMonster);
-
+  LevelManager.syncProgressFields(player);
+  player.power = LootManager.calculatePower(player);
   io.emit('enemyDied', {
     killerId: player.id,
     killerName: player.nome,
-    xpReward,
+    xpReward: combatEvent.result.xpReward,
     goldGained: loot.gold,
     loot: loot.item,
+    autoEquipped: loot.autoEquipped,
+    progress,
     deadMonster: combatEvent.result.deadMonster,
     nextMonster: combatEvent.result.nextMonster,
-    killCount: combatEvent.result.killCount,
-    progress,
+    horda: combatEvent.result.horda,
     player: publicPlayer(player)
   });
-
   io.emit('playerUpdated', publicPlayer(player));
-  emitEnemyUpdate();
 }
 
 io.on('connection', (socket) => {
   const player = createPlayer(socket);
   players[socket.id] = player;
 
-  socket.emit('init', {
-    you: publicPlayer(player),
-    players: publicPlayersList(),
-    monster: monsterManager.getPublicMonster(),
-    levelCap: LEVEL_CAP
-  });
-
+  socket.emit('init', { you: publicPlayer(player), players: publicPlayersList(), monster: monsterManager.getPublicMonster(), levelCap: LEVEL_CAP });
   socket.broadcast.emit('playerJoined', publicPlayer(player));
+  io.emit('onlineCount', Object.keys(players).length);
   emitEnemyUpdate();
 
   socket.on('selectClass', (data = {}) => {
-    const classeId = data.classeId;
-    const classe = GAME_CLASSES[classeId];
-    if (!classe) {
-      socket.emit('errorMsg', 'Classe inválida.');
-      return;
-    }
-
-    player.classeId = classeId;
-    // Na V3, o jogador assume o herói visual/lore da classe escolhida.
-    // Isso deixa o jogo com identidade de personagens como no estilo Legend of Mushroom.
+    const classe = GAME_CLASSES[data.classeId];
+    if (!classe) return socket.emit('errorMsg', 'Classe inválida.');
+    player.classeId = data.classeId;
     player.nome = classe.nome;
-    player.hp = classe.baseStats.maxHp;
-    player.maxHp = classe.baseStats.maxHp;
+    player.mana = classe.baseStats.mana;
+    player.inventario = [];
+    player.equipados = { arma: null, anel: null, colar: null, ornamento: null };
+    player.equipadosList = [];
     LevelManager.syncProgressFields(player);
     player.power = LootManager.calculatePower(player);
-
     io.emit('playerUpdated', publicPlayer(player));
   });
 
   socket.on('useAbility', (data = {}) => {
     const now = Date.now();
-    const combatEvent = CombatManager.useAbility(
-      player,
-      data.habilidadeId,
-      monsterManager,
-      now
-    );
-
-    if (!combatEvent.ok) {
-      if (combatEvent.restanteMs) {
-        socket.emit('cooldownRejected', { restanteMs: combatEvent.restanteMs });
-      } else {
-        socket.emit('errorMsg', combatEvent.reason);
-      }
+    const event = CombatManager.useAbility(player, data.habilidadeId, monsterManager, now);
+    if (!event.ok) {
+      if (event.restanteMs) socket.emit('cooldownRejected', { restanteMs: event.restanteMs });
+      else socket.emit('errorMsg', event.reason);
       return;
     }
-
-    io.emit('abilityUsed', {
-      playerId: player.id,
-      classeId: player.classeId,
-      habilidadeId: combatEvent.habilidadeId,
-      habilidadeNome: combatEvent.habilidadeNome,
-      visual: combatEvent.visual,
-      cooldown: combatEvent.cooldown,
-      damage: combatEvent.damage,
-      isCrit: combatEvent.isCrit
-    });
-
-    io.emit('combatTick', {
-      attacks: [combatEvent],
-      monster: monsterManager.getPublicMonster(),
-      serverTime: now
-    });
-
-    rewardIfEnemyDied(player, combatEvent);
+    io.emit('abilityUsed', { playerId: player.id, classeId: player.classeId, habilidadeId: event.habilidadeId, habilidadeNome: event.habilidadeNome, visual: event.visual, cooldown: event.cooldown, damage: event.damage, isCrit: event.isCrit });
+    io.emit('combatTick', { attacks: [event], monster: monsterManager.getPublicMonster(), serverTime: now });
+    rewardIfEnemyDied(player, event);
     emitEnemyUpdate();
+  });
+
+  socket.on('toggleAutoFarm', (data = {}) => {
+    player.autoFarm = !!data.enabled;
+    io.emit('playerUpdated', publicPlayer(player));
   });
 
   socket.on('disconnect', () => {
     delete players[socket.id];
     io.emit('playerLeft', { id: socket.id });
+    io.emit('onlineCount', Object.keys(players).length);
     io.emit('gameState', publicPlayersList());
   });
 });
 
 setInterval(() => {
+  const now = Date.now();
   const attacks = [];
 
   for (const player of Object.values(players)) {
-    if (!player.classeId) continue;
+    if (!player.classeId || !player.autoFarm) continue;
 
-    const combatEvent = CombatManager.basicAttack(player, monsterManager);
-    if (!combatEvent) continue;
+    const basic = CombatManager.basicAttack(player, monsterManager);
+    if (basic) {
+      attacks.push(basic);
+      rewardIfEnemyDied(player, basic);
+    }
 
-    player.lastAttackAt = Date.now();
-    attacks.push(combatEvent);
-    rewardIfEnemyDied(player, combatEvent);
+    const autoSkill = CombatManager.tryAutoAbility(player, monsterManager, now);
+    if (autoSkill) {
+      attacks.push(autoSkill);
+      io.emit('abilityUsed', { playerId: player.id, classeId: player.classeId, habilidadeId: autoSkill.habilidadeId, habilidadeNome: autoSkill.habilidadeNome, visual: autoSkill.visual, cooldown: autoSkill.cooldown, damage: autoSkill.damage, isCrit: autoSkill.isCrit });
+      rewardIfEnemyDied(player, autoSkill);
+    }
+
+    LevelManager.syncProgressFields(player);
+    player.power = LootManager.calculatePower(player);
   }
 
   io.emit('gameState', publicPlayersList());
-
-  if (attacks.length > 0) {
-    io.emit('combatTick', {
-      attacks,
-      monster: monsterManager.getPublicMonster(),
-      serverTime: Date.now()
-    });
-    emitEnemyUpdate();
-  }
+  io.emit('onlineCount', Object.keys(players).length);
+  if (attacks.length) io.emit('combatTick', { attacks, monster: monsterManager.getPublicMonster(), serverTime: now });
+  emitEnemyUpdate();
 }, TICK_RATE_MS);
 
-server.listen(PORT, () => {
-  console.log(`Servidor em http://localhost:${PORT}`);
-});
+server.listen(PORT, () => console.log(`Servidor em http://localhost:${PORT}`));
