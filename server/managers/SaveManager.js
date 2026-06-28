@@ -46,6 +46,7 @@ function sanitizePlayer(player) {
     achievements: player.achievements || [],
     bestiary: player.bestiary || {},
     stats: player.stats || {},
+    mount: player.mount || { id: 'lobo_cristalino', level: 1 },
     updatedAt: Date.now()
   };
 }
@@ -67,6 +68,10 @@ class SaveManager {
     saves[player.saveId] = sanitizePlayer(player);
     writeAll(saves);
     return true;
+  }
+
+  static list() {
+    return Object.values(readAll());
   }
 
   static apply(player, save) {
@@ -92,7 +97,8 @@ class SaveManager {
       equipados: save.equipados || { arma: null, anel: null, colar: null, ornamento: null },
       achievements: save.achievements || [],
       bestiary: save.bestiary || {},
-      stats: save.stats || {}
+      stats: save.stats || {},
+      mount: save.mount || { id: 'lobo_cristalino', level: 1 }
     });
     player.id = keepSocketId;
     player.isDead = false;

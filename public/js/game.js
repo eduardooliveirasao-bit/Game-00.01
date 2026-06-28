@@ -26,6 +26,8 @@
   var GAME_CLASSES = window.GAME_CLASSES;
   var MONSTERS = window.MONSTERS;
   var LEVEL_CAP = window.LEVEL_CAP || 80;
+  var GEM_TYPES = window.GEM_TYPES || {};
+  var MOUNTS = window.MOUNTS || {};
 
   var state = {
     meId: null,
@@ -38,12 +40,15 @@
     logs: [],
     lootRecente: [],
     selectedItemId: null,
+    ranking: null,
     anim: {
       playerAttackUntil: 0,
       playerHitUntil: 0,
       monsterAttackUntil: 0,
       monsterHitUntil: 0,
-      shakeUntil: 0
+      shakeUntil: 0,
+      playerSkillType: null,
+      monsterSkillType: null
     }
   };
 
@@ -62,6 +67,16 @@
   var sellAllBtn = byId('sell-all-btn');
   var equipBestBtn = byId('equip-best-btn');
   var equipmentGrid = byId('equipment-grid');
+  var paperDoll = byId('paper-doll');
+  var menuRanking = byId('menu-ranking');
+  var rankingModal = byId('ranking-modal');
+  var rankingClose = byId('ranking-close');
+  var rankingLevel = byId('ranking-level');
+  var rankingPower = byId('ranking-power');
+  var menuMount = byId('menu-mount');
+  var mountModal = byId('mount-modal');
+  var mountClose = byId('mount-close');
+  var mountCard = byId('mount-card');
 
   var audioCtx = null;
   function ensureAudio() {
@@ -102,6 +117,8 @@
   });
   var monsterImages = {};
   MONSTERS.forEach(function (m) { var img = new Image(); img.src = m.asset; monsterImages[m.id] = img; });
+  var mountImages = {};
+  Object.keys(MOUNTS).forEach(function (id) { var img = new Image(); img.src = MOUNTS[id].asset; mountImages[id] = img; });
 
   function resizeCanvas() {
     var stage = byId('stage');
@@ -198,7 +215,7 @@
     byId('stage-subtitle').textContent = isDead ? 'Herói derrotado' : (p.autoFarm ? 'Auto batalha ativa' : 'Auto batalha desativada');
     byId('hero-status-line').textContent = isDead ? 'Ressurreição automática em instantes' : 'Herói em combate';
 
-    renderEquipment(); renderBag(); updateLoot(); renderAchievements();
+    renderEquipment(); renderPaperDoll(); renderBag(); updateLoot(); renderAchievements();
   }
 
   function renderEquipment() {
@@ -212,7 +229,7 @@
       if (item) {
         div.style.borderColor = item.rarityColor || item.cor || '#fff';
         div.innerHTML = '<span>' + labels[slot] + '</span>' +
-          '<strong style="color:' + (item.rarityColor || '#fff') + '">' + item.icon + ' ' + escapeHtml(item.nome) + '</strong>' +
+          '<strong style="color:' + (item.rarityColor || '#fff') + '"><img class="mini-item-img" src="' + (item.asset || '') + '" alt=""> ' + item.icon + ' ' + escapeHtml(item.nome) + '</strong>' +
           '<em>' + escapeHtml(item.raridade) + ' · ATQ ' + (item.stats.ataque || 0) + ' · DEF ' + (item.stats.defesa || 0) + ' · CRIT ' + (item.stats.critico || 0) + ' · HP ' + (item.stats.hp || 0) + ' · MANA ' + (item.stats.mana || 0) + '</em>' +
           '<button data-unequip="' + slot + '">Desequipar</button>';
       } else {
@@ -222,10 +239,27 @@
     });
   }
 
+
+  function renderPaperDoll() {
+    if (!paperDoll || !state.me) return;
+    var cls = GAME_CLASSES[state.me.classeId];
+    var eq = state.me.equipados || {};
+    var mount = state.me.mount || (state.me.visualMods && state.me.visualMods.mount);
+    function slotHtml(slot, label) {
+      var item = eq[slot];
+      if (!item) return '<div class="paper-slot ' + slot + '"><span>' + label + '</span><strong>Vazio</strong></div>';
+      return '<div class="paper-slot ' + slot + '" style="border-color:' + (item.rarityColor || '#fff') + '"><span>' + label + '</span><img src="' + (item.asset || '') + '" alt=""><strong>' + escapeHtml(item.nome) + '</strong></div>';
+    }
+    paperDoll.innerHTML = (mount ? '<img class="paper-mount" src="' + mount.asset + '" alt="' + escapeHtml(mount.nome) + '">' : '') +
+      (cls ? '<img class="paper-hero" src="' + cls.asset.sprite + '" alt="' + escapeHtml(cls.nome) + '">' : '') +
+      slotHtml('arma','Arma') + slotHtml('anel','Anel') + slotHtml('colar','Colar') + slotHtml('ornamento','Asa/Orn.');
+  }
+
   function openBag() { bagModal.classList.remove('hidden'); renderBag(); }
   function closeBag() { bagModal.classList.add('hidden'); if (menuHunt) menuHunt.classList.add('active'); if (menuBag) menuBag.classList.remove('active'); }
 
-  function statValue(item, key) { return item && item.stats ? (item.stats[key] || 0) : 0; }
+  function itemStats(item) { return (item && (item.totalStats || item.stats)) || {}; }
+  function statValue(item, key) { var st = itemStats(item); return st ? (st[key] || 0) : 0; }
   function diffHtml(item, equipped, key, label) {
     var d = statValue(item, key) - statValue(equipped, key);
     var cls = d > 0 ? 'diff-plus' : d < 0 ? 'diff-minus' : 'diff-eq';
@@ -246,7 +280,7 @@
       var el = document.createElement('div');
       el.className = 'bag-item' + (state.selectedItemId === item.id ? ' active' : '');
       el.style.borderColor = item.rarityColor || item.cor || 'rgba(255,255,255,.08)';
-      el.innerHTML = '<strong style="color:' + (item.rarityColor || '#fff') + '">' + item.icon + ' ' + escapeHtml(item.nome) + '</strong>' +
+      el.innerHTML = '<strong style="color:' + (item.rarityColor || '#fff') + '"><img class="mini-item-img" src="' + (item.asset || '') + '" alt=""> ' + item.icon + ' ' + escapeHtml(item.nome) + '</strong>' +
         '<small>' + escapeHtml(item.slot) + ' · ' + escapeHtml(item.raridade) + ' · Nv.' + (item.requiredLevel || 1) + ' · Venda ' + (item.sellValue || 0) + ' ouro</small>';
       el.onclick = function () { state.selectedItemId = item.id; renderBag(); renderBagDetail(item); };
       bagList.appendChild(el);
@@ -258,64 +292,37 @@
   function renderBagDetail(item) {
     if (!item) { bagDetail.innerHTML = 'Selecione um item da bolsa.'; return; }
     var equipped = state.me && state.me.equipados ? state.me.equipados[item.slot] : null;
-    var compare = equipped ? '<div class="compare-box"><strong>Comparado com equipado:</strong><br>' + escapeHtml(equipped.nome) + '</div>' : '<div class="compare-box">Nenhum item equipado neste slot.</div>';
-    bagDetail.innerHTML = '<h3 style="color:' + (item.rarityColor || '#fff') + '">' + item.icon + ' ' + escapeHtml(item.nome) + '</h3>' +
-      '<div class="rarity ' + rarityClass(item.raridade) + '">' + escapeHtml(String(item.raridade).toUpperCase()) + (item.exclusivoBoss ? ' · LOOT EXCLUSIVO DE BOSS' : '') + ' · Slot ' + escapeHtml(item.slot) + ' · Requer Nv. ' + (item.requiredLevel || 1) + '</div>' +
-      '<p>Venda por <strong>' + (item.sellValue || 0) + ' ouro</strong> ou equipe para alterar seus atributos.</p>' +
-      compare +
+    var gems = item.gems || [];
+    var sockets = item.sockets || 1;
+    var socketHtml = '<div class="gem-sockets"><strong>Encaixes de gema</strong><div class="socket-row">';
+    for (var i = 0; i < sockets; i++) {
+      var gemId = gems[i];
+      var gem = gemId ? GEM_TYPES[gemId] : null;
+      socketHtml += '<span class="gem-socket ' + (gem ? 'filled' : '') + '">' + (gem ? '<img src="' + gem.asset + '" title="' + escapeHtml(gem.nome) + '">' : '+') + '</span>';
+    }
+    socketHtml += '</div><div class="gem-buttons">';
+    Object.keys(GEM_TYPES).forEach(function (gid) {
+      var g = GEM_TYPES[gid];
+      socketHtml += '<button data-gem="' + gid + '"><img src="' + g.asset + '" alt=""> ' + escapeHtml(g.nome) + '</button>';
+    });
+    socketHtml += '</div><small>Cada gema inserida consome 1 💎 e aumenta os atributos do item.</small></div>';
+
+    bagDetail.innerHTML = '<h3 style="color:' + (item.rarityColor || '#fff') + '"><img class="detail-item-img" src="' + (item.asset || '') + '" alt=""> ' + item.icon + ' ' + escapeHtml(item.nome) + '</h3>' +
+      '<div class="rarity ' + rarityClass(item.raridade) + '">' + escapeHtml(String(item.raridade).toUpperCase()) + ' · Slot ' + escapeHtml(item.slot) + ' · Requer Nv. ' + (item.requiredLevel || 1) + '</div>' +
+      '<p>Venda por <strong>' + (item.sellValue || 0) + ' ouro</strong> ou equipe para alterar os atributos e o visual do herói.</p>' +
       '<div class="detail-stats">' +
-        diffHtml(item, equipped, 'ataque', 'ATQ') +
-        diffHtml(item, equipped, 'defesa', 'DEF') +
-        diffHtml(item, equipped, 'critico', 'CRIT') +
-        diffHtml(item, equipped, 'hp', 'HP') +
-        diffHtml(item, equipped, 'mana', 'MANA') +
-        '<div>PODER<br><strong>' + (item.powerScore || 0) + '</strong></div>' +
+        diffHtml(item, equipped, 'ataque', 'ATQ') + diffHtml(item, equipped, 'defesa', 'DEF') + diffHtml(item, equipped, 'critico', 'CRIT') + diffHtml(item, equipped, 'hp', 'HP') + diffHtml(item, equipped, 'mana', 'MANA') + '<div>PODER<br><strong>' + (item.powerScore || 0) + '</strong></div>' +
       '</div>' +
-      '<button id="equip-selected-btn">Equipar item</button>' +
-      '<button id="sell-selected-btn">Vender item</button>';
+      '<div class="compare-box"><strong>Equipado no slot:</strong><br>' + (equipped ? '<span style="color:' + (equipped.rarityColor || '#fff') + '">' + equipped.icon + ' ' + escapeHtml(equipped.nome) + '</span>' : 'Nada equipado') + '</div>' +
+      socketHtml +
+      '<button id="equip-selected-btn">Equipar item</button><button id="sell-selected-btn">Vender item</button>';
     var equipBtn = byId('equip-selected-btn');
     var sellBtn = byId('sell-selected-btn');
     if (equipBtn) equipBtn.onclick = function () { ensureAudio(); socket.emit('equipItem', { itemId: item.id }); };
     if (sellBtn) sellBtn.onclick = function () { ensureAudio(); socket.emit('sellItem', { itemId: item.id }); };
-  }
-
-  function updateEnemyHUD() {
-    var m = state.monster;
-    if (!m) return;
-    byId('enemy-name').textContent = m.nome;
-    byId('enemy-level').textContent = 'Nv. ' + m.nivel;
-    byId('enemy-type').textContent = (m.tipo || 'normal').toUpperCase();
-    byId('enemy-horda').textContent = m.horda || 1;
-    var pct = m.hpMax ? (m.hpAtual / m.hpMax) * 100 : 0;
-    byId('enemy-hp-fill').style.width = pct + '%';
-    byId('enemy-hp-text').textContent = m.hpAtual + ' / ' + m.hpMax + ' HP';
-    var specialWrap = byId('enemy-special-wrap');
-    var specialName = byId('enemy-special-name');
-    if (m.special && m.special.active) {
-      specialWrap.classList.remove('hidden');
-      specialName.textContent = '— ' + m.special.name;
-      var spct = m.special.shieldMax ? (m.special.shieldHp / m.special.shieldMax) * 100 : 0;
-      byId('enemy-special-fill').style.width = spct + '%';
-      byId('enemy-special-text').textContent = m.special.shieldHp + ' / ' + m.special.shieldMax + ' Escudo';
-    } else {
-      specialWrap.classList.add('hidden'); specialName.textContent = '';
-    }
-    var current = ((m.horda || 1) - 1) % 10;
-    byId('quest-text').textContent = current === 9 ? 'Enfrente o Dragão Elemental nesta horda!' : 'Avance até a horda 10 para invocar o Dragão Elemental';
-    byId('quest-fill').style.width = ((current / 9) * 100) + '%';
-    byId('quest-progress').textContent = (current + 1) + ' / 10';
-  }
-
-  function addLog(text) {
-    state.logs.unshift(text); state.logs = state.logs.slice(0, 12);
-    byId('combat-log').innerHTML = state.logs.map(function (line) { return '<div class="combat-entry">' + line + '</div>'; }).join('');
-  }
-  function updateLoot() {
-    var lootEl = byId('loot-list');
-    if (!state.lootRecente.length) { lootEl.innerHTML = '<div class="loot-item">Nenhum loot ainda.</div>'; return; }
-    lootEl.innerHTML = state.lootRecente.map(function (item) {
-      return '<div class="loot-item"><strong class="' + rarityClass(item.raridade) + '" style="color:' + (item.rarityColor || item.cor || '#fff') + '">' + item.icon + ' ' + escapeHtml(item.nome) + '</strong><small>' + escapeHtml(item.slot) + ' · ' + escapeHtml(item.raridade) + ' · ATQ ' + (item.stats.ataque || 0) + ' · DEF ' + (item.stats.defesa || 0) + ' · CRIT ' + (item.stats.critico || 0) + ' · HP ' + (item.stats.hp || 0) + ' · MANA ' + (item.stats.mana || 0) + '</small></div>';
-    }).join('');
+    Array.prototype.forEach.call(bagDetail.querySelectorAll('[data-gem]'), function (btn) {
+      btn.onclick = function () { ensureAudio(); socket.emit('insertGem', { itemId: item.id, gemId: btn.getAttribute('data-gem') }); };
+    });
   }
 
   function renderAchievements() {
@@ -346,23 +353,71 @@
   function drawPlayer(now) {
     if (!state.me || !state.me.classeId) return;
     var img = characterImages[state.me.classeId];
-    var cls = GAME_CLASSES[state.me.classeId];
+    var mods = state.me.visualMods || {};
+    var mount = state.me.mount || (mods && mods.mount);
+    var mountImg = mount && mountImages[mount.id];
     var idle = Math.sin(now / 420) * 5;
     var x = canvas.width * 0.28;
     var y = canvas.height * 0.88 + idle;
     var hit = now < state.anim.playerHitUntil;
     var attack = now < state.anim.playerAttackUntil;
     var dead = !!state.me.isDead;
-    if (attack) x += 28 * Math.sin((state.anim.playerAttackUntil - now) / 280 * Math.PI);
-    if (hit) x -= 18 + Math.random() * 10;
-    var h = Math.min(285, Math.max(190, canvas.height * 0.68));
-    var w = state.me.classeId === 'mago' ? h * 1.02 : h * 0.76;
+    var progress = attack ? 1 - Math.max(0, (state.anim.playerAttackUntil - now) / 520) : 0;
+    if (attack) {
+      x += Math.sin(progress * Math.PI) * 70;
+      y -= Math.sin(progress * Math.PI) * 18;
+    }
+    if (hit) x -= 22 + Math.random() * 10;
+
+    var charH = Math.min(250, Math.max(170, canvas.height * 0.58));
+    var charW = state.me.classeId === 'mago' ? charH * 1.02 : charH * 0.76;
+    var mountH = mount ? Math.min(120, charH * 0.46) : 0;
+    var mountY = y;
+
     ctx.save();
     if (dead) { ctx.globalAlpha = 0.55; ctx.filter = 'grayscale(1)'; }
-    if (img && img.complete) ctx.drawImage(img, x - w / 2, y - h, w, h);
+    if (mountImg && mountImg.complete) {
+      var mountW = mountH * 1.55;
+      ctx.save();
+      ctx.globalAlpha = dead ? 0.55 : 1;
+      ctx.translate(x - 5, mountY - mountH * 0.18);
+      ctx.scale(1 + Math.sin(now / 320) * 0.012, 1);
+      ctx.drawImage(mountImg, -mountW / 2, -mountH, mountW, mountH);
+      ctx.restore();
+    }
+
+    // Asa visual muda com ornamento equipado.
+    var wing = mods.wing || null;
+    if (wing || state.me.classeId === 'mago') {
+      var wingColor = wing ? wing.color : '#d7ebff';
+      var scale = wing ? (wing.size || 1.15) : 1.0;
+      ctx.save();
+      ctx.globalAlpha = 0.58;
+      ctx.fillStyle = wingColor;
+      ctx.shadowColor = wingColor;
+      ctx.shadowBlur = 24;
+      ctx.beginPath();
+      ctx.ellipse(x - charW * 0.42, y - mountH - charH * 0.55, charW * 0.34 * scale, charH * 0.22 * scale, -0.55, 0, Math.PI * 2);
+      ctx.ellipse(x + charW * 0.42, y - mountH - charH * 0.55, charW * 0.34 * scale, charH * 0.22 * scale, 0.55, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    if (img && img.complete) ctx.drawImage(img, x - charW / 2, y - mountH - charH, charW, charH);
+
+    // Glows/equipamento visual por item equipado.
+    if (mods.aura) {
+      ctx.save(); ctx.globalAlpha = 0.45; ctx.strokeStyle = mods.aura; ctx.shadowColor = mods.aura; ctx.shadowBlur = 20; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(x, y - mountH - charH * 0.45, charW * 0.55, charH * 0.48, 0, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+    }
+    if (mods.weaponGlow) {
+      ctx.save(); ctx.strokeStyle = mods.weaponGlow; ctx.shadowColor = mods.weaponGlow; ctx.shadowBlur = 18; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x + charW * 0.16, y - mountH - charH * 0.38); ctx.lineTo(x + charW * 0.48, y - mountH - charH * 0.78); ctx.stroke(); ctx.restore();
+    }
+    if (mods.ringGlow) {
+      ctx.save(); ctx.fillStyle = mods.ringGlow; ctx.shadowColor = mods.ringGlow; ctx.shadowBlur = 16; ctx.beginPath(); ctx.arc(x - charW * 0.2, y - mountH - charH * 0.42, 7, 0, Math.PI*2); ctx.fill(); ctx.restore();
+    }
     ctx.restore();
-    if (hit) spawnParticles(x, y - h * 0.55, '#ff7b7b', 2);
-    drawNameplate(state.me.nome + ' [Nv. ' + state.me.nivel + ']', x, Math.max(22, y - h - 12), dead ? '#ffb3b3' : '#ffe69b', 'rgba(255,230,155,.4)');
+    if (hit) spawnParticles(x, y - mountH - charH * 0.55, '#ff7b7b', 2);
+    drawNameplate(state.me.nome + ' [Nv. ' + state.me.nivel + ']', x, Math.max(22, y - mountH - charH - 12), dead ? '#ffb3b3' : '#ffe69b', 'rgba(255,230,155,.4)');
   }
 
   function drawMonster(now) {
@@ -411,9 +466,47 @@
   function drawFloating() { state.floating = state.floating.filter(function (f) { return f.life > 0; }); state.floating.forEach(function (f) { f.y += f.vy; f.life -= 0.02; ctx.save(); ctx.globalAlpha = f.life; ctx.font = f.isCrit ? '900 30px Inter' : '900 20px Inter'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.78)'; ctx.fillStyle = f.color; ctx.strokeText(f.text, f.x, f.y); ctx.fillText(f.text, f.x, f.y); ctx.restore(); }); }
   function render() { resizeCanvas(); var now = performance.now(); ctx.clearRect(0, 0, canvas.width, canvas.height); drawBackground(); drawPlayer(now); drawMonster(now); drawEffects(); drawParticles(); drawFloating(); requestAnimationFrame(render); }
 
+
+
+  function openRanking() { rankingModal.classList.remove('hidden'); socket.emit('requestRanking'); }
+  function closeRanking() { rankingModal.classList.add('hidden'); }
+  function renderRanking(data) {
+    state.ranking = data || state.ranking;
+    if (!state.ranking) return;
+    function rows(list, kind) {
+      return (list || []).map(function (p, idx) {
+        var cls = GAME_CLASSES[p.classeId] || { tipoIcone: '•', nomeCurto: p.classeId || 'Classe' };
+        return '<div class="rank-row"><span class="rank-pos">#' + (idx + 1) + '</span><span>' + cls.tipoIcone + ' ' + escapeHtml(p.nome) + '<small>' + escapeHtml(cls.nomeCurto || p.classeId) + ' · Montaria ' + escapeHtml((p.mount && p.mount.nome) || '-') + '</small></span><strong>' + (kind === 'level' ? ('Nv. ' + p.nivel) : (formatNumber(p.power) + ' poder')) + '</strong></div>';
+      }).join('') || '<div class="rank-row">Nenhum jogador ranqueado.</div>';
+    }
+    rankingLevel.innerHTML = rows(state.ranking.level, 'level');
+    rankingPower.innerHTML = rows(state.ranking.power, 'power');
+  }
+
+  function openMount() { mountModal.classList.remove('hidden'); renderMount(); }
+  function closeMount() { mountModal.classList.add('hidden'); }
+  function renderMount() {
+    if (!state.me || !mountCard) return;
+    var mount = state.me.mount || { id: 'lobo_cristalino', nome: 'Lobo Cristalino', level: 1, asset: 'assets/mounts/lobo_cristalino.png', bonus: { ataque: 4, hp: 40, power: 80 } };
+    var nextCost = 150 * (mount.level || 1);
+    mountCard.innerHTML = '<div class="mount-preview"><img src="' + mount.asset + '" alt="' + escapeHtml(mount.nome) + '"></div>' +
+      '<h3>' + escapeHtml(mount.nome) + ' <span>Nv. ' + (mount.level || 1) + '</span></h3>' +
+      '<p>Montaria equipada no palco. Treinamentos aumentam poder, HP e ataque.</p>' +
+      '<div class="detail-stats"><div>PODER<br><strong>+' + (mount.bonus.power || 0) + '</strong></div><div>ATQ<br><strong>+' + (mount.bonus.ataque || 0) + '</strong></div><div>HP<br><strong>+' + (mount.bonus.hp || 0) + '</strong></div><div>CUSTO<br><strong>' + nextCost + ' ouro</strong></div></div>' +
+      '<button id="upgrade-mount-btn">Treinar montaria</button>';
+    var btn = byId('upgrade-mount-btn');
+    if (btn) btn.onclick = function () { ensureAudio(); socket.emit('upgradeMount'); };
+  }
+
   autoFarmBtn.onclick = function () { ensureAudio(); if (!state.me) return; socket.emit('toggleAutoFarm', { enabled: !state.me.autoFarm }); };
   menuBag.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuBag.classList.add('active'); openBag(); };
   bagClose.onclick = closeBag;
+  if (menuRanking) menuRanking.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuRanking.classList.add('active'); openRanking(); };
+  if (rankingClose) rankingClose.onclick = closeRanking;
+  if (rankingModal) rankingModal.addEventListener('click', function (e) { if (e.target === rankingModal) closeRanking(); });
+  if (menuMount) menuMount.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuMount.classList.add('active'); openMount(); };
+  if (mountClose) mountClose.onclick = closeMount;
+  if (mountModal) mountModal.addEventListener('click', function (e) { if (e.target === mountModal) closeMount(); });
   bagModal.addEventListener('click', function (e) { if (e.target === bagModal) closeBag(); });
   sellAllBtn.onclick = function () { ensureAudio(); socket.emit('sellAllItems'); };
   if (equipBestBtn) equipBestBtn.onclick = function () { ensureAudio(); socket.emit('equipBestItems'); };
@@ -431,12 +524,15 @@
   });
   socket.on('enemyDied', function (data) { addLog('⚔️ ' + data.killerName + ' derrotou ' + data.deadMonster.nome + ' e ganhou +' + data.xpReward + ' XP e +' + data.goldGained + ' ouro.'); if (data.loot) { state.lootRecente.unshift(data.loot); state.lootRecente = state.lootRecente.slice(0, 8); addLog((data.loot.exclusivoBoss ? '🐉 Loot exclusivo: ' : '🎁 Loot obtido: ') + data.loot.icon + ' ' + data.loot.nome + ' [' + data.loot.raridade + ']'); playSound(data.loot.exclusivoBoss ? 'boss' : 'loot'); } if (data.progress && data.progress.leveledUp) addLog('✨ Level up! Agora você está no Nv. ' + data.progress.currentLevel + '.'); if (data.player && data.player.id === state.meId) state.me = data.player; if (data.nextMonster) { state.monster = data.nextMonster; updateEnemyHUD(); } updateHUD(); });
   socket.on('abilityUsed', function (evt) { spawnEffect(evt.visual && evt.visual.tipo, evt.visual && evt.visual.cor ? evt.visual.cor : '#fff'); if (evt.playerId === state.meId) startCooldownVisual(evt.habilidadeId, evt.cooldown); });
-  socket.on('inventoryAction', function (info) { if (info.type === 'equip') { addLog('🧰 Item equipado: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'unequip') { addLog('🎒 Item retornou para a bolsa: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'sell') { addLog('🪙 Item vendido por +' + info.gold + ' ouro: ' + info.item.nome + '.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'sellAll') { addLog('🪙 ' + info.sold + ' itens vendidos por +' + info.gold + ' ouro.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'equipBest') { addLog('⚡ Melhor equipamento aplicado: ' + ((info.equippedItems || []).length) + ' item(ns).'); playSound('equip'); } });
+  socket.on('inventoryAction', function (info) { if (info.type === 'equip') { addLog('🧰 Item equipado: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'unequip') { addLog('🎒 Item retornou para a bolsa: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'sell') { addLog('🪙 Item vendido por +' + info.gold + ' ouro: ' + info.item.nome + '.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'sellAll') { addLog('🪙 ' + info.sold + ' itens vendidos por +' + info.gold + ' ouro.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'equipBest') { addLog('⚡ Melhor equipamento aplicado: ' + ((info.equippedItems || []).length) + ' item(ns).'); playSound('equip'); } if (info.type === 'gem') { addLog('💎 Gema inserida: ' + info.gem.nome + ' em ' + info.item.nome + '.'); playSound('equip'); } });
   socket.on('playerDied', function (data) { if (data.playerId === state.meId) { addLog('💀 Você foi derrotado por ' + data.monsterName + '. Ressurreição automática em 5s.'); state.anim.playerHitUntil = performance.now() + 900; playSound('death'); } });
   socket.on('playerRevived', function (data) { if (data.player && data.player.id === state.meId) { state.me = data.player; addLog('✨ Você ressuscitou e voltou ao combate.'); playSound('loot'); updateHUD(); } });
   socket.on('saveLoaded', function (info) { if (info.ok && info.player) { state.me = info.player; localStorage.setItem('legend_of_indle_save_id', info.saveId); if (byId('hud-save-status')) byId('hud-save-status').textContent = 'Save carregado'; addLog('💾 Progresso carregado.'); if (info.offlineRewards) addLog('🌙 Recompensa offline: +' + info.offlineRewards.xp + ' XP, +' + info.offlineRewards.gold + ' ouro e ' + info.offlineRewards.kills + ' abates.'); updateHUD(); } else { if (info.saveId) localStorage.setItem('legend_of_indle_save_id', info.saveId); if (byId('hud-save-status')) byId('hud-save-status').textContent = 'Novo save'; } });
   socket.on('saveStatus', function (info) { if (info.ok && byId('hud-save-status')) byId('hud-save-status').textContent = 'Salvo'; });
   socket.on('achievementsUnlocked', function (list) { (list || []).forEach(function (a) { addLog('🏆 Conquista: ' + a.nome + ' +' + (a.reward.ouro || 0) + ' ouro +' + (a.reward.gemas || 0) + ' gemas.'); playSound('loot'); }); });
+  socket.on('rankingUpdate', function (data) { renderRanking(data); });
+  socket.on('mountUpdated', function (data) { addLog('🐺 Montaria treinada: ' + data.mount.nome + ' Nv. ' + data.mount.level + '.'); playSound('equip'); renderMount(); });
+
   socket.on('cooldownRejected', function (info) { addLog('⏳ Habilidade em recarga: ' + Math.ceil(info.restanteMs / 1000) + 's.'); });
   socket.on('errorMsg', function (msg) { addLog('⚠️ ' + msg); });
 

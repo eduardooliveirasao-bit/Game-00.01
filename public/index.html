@@ -123,8 +123,8 @@
       <button id="menu-hunt" class="active">⚔️ Caçar</button>
       <button id="menu-bag">🎒 Bolsa</button>
       <button>🪽 Asas</button>
-      <button>🏰 Guilda</button>
-      <button>🏆 Ranking</button>
+      <button id="menu-mount">🐺 Montaria</button>
+      <button id="menu-ranking">🏆 Ranking</button>
       <button>🛒 Loja</button>
     </nav>
 
@@ -137,7 +137,11 @@
           </div>
           <button id="bag-close" class="modal-close">✕</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body bag-modal-body">
+          <div class="bag-column paper-column">
+            <div class="bag-title">Personagem</div>
+            <div id="paper-doll" class="paper-doll"></div>
+          </div>
           <div class="bag-column">
             <div class="bag-title-row"><div class="bag-title">Itens na bolsa</div><div class="bag-actions"><button id="equip-best-btn">Equipar melhor</button><button id="sell-all-btn">Vender tudo</button></div></div>
             <div id="bag-list" class="bag-list"></div>
@@ -146,6 +150,27 @@
             <div class="bag-title">Detalhes do item</div>
             <div id="bag-detail" class="bag-detail">Selecione um item da bolsa.</div>
           </div>
+        </div>
+      </div>
+    </section>
+
+
+
+    <section id="ranking-modal" class="modal hidden">
+      <div class="modal-card compact-modal">
+        <div class="modal-header"><div><h2>Ranking Global</h2><p>Disputa global por nível e poder entre todos os jogadores salvos.</p></div><button id="ranking-close" class="modal-close">✕</button></div>
+        <div class="modal-body ranking-body">
+          <div><div class="bag-title">Top Nível</div><div id="ranking-level" class="ranking-list"></div></div>
+          <div><div class="bag-title">Top Poder</div><div id="ranking-power" class="ranking-list"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="mount-modal" class="modal hidden">
+      <div class="modal-card compact-modal">
+        <div class="modal-header"><div><h2>Montaria</h2><p>Treine sua montaria para ganhar poder, ataque e HP. Ela aparece no palco junto do herói.</p></div><button id="mount-close" class="modal-close">✕</button></div>
+        <div class="modal-body mount-body">
+          <div id="mount-card" class="mount-card"></div>
         </div>
       </div>
     </section>

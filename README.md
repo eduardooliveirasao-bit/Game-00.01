@@ -37,3 +37,12 @@ http://localhost:3000
 
 A pasta `node_modules` não está no ZIP. Rode `npm install`.
 O progresso é salvo em `data/saves.json` e o navegador guarda o `saveId` no `localStorage`.
+
+
+## Hotfix V8.1
+
+Corrigido o erro `RangeError: Maximum call stack size exceeded` no `LootManager`.
+
+Causa: `enrichItem()` chamava `sellValue()`, e `sellValue()` chamava `enrichItem()` novamente, criando recursão infinita.
+
+Correção: `sellValue()` agora calcula o valor de venda diretamente com `scoreItem()` sem chamar `enrichItem()`.

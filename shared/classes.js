@@ -45,6 +45,10 @@
           requiredLevel: 1 + index * 8,
           cor: color,
           icon: icons[slot],
+          asset: 'assets/items/' + slot + '_' + rarities[Math.min(rarities.length - 1, index)] + '.png',
+          sockets: Math.min(3, 1 + Math.floor(index / 2)),
+          gems: [],
+          visual: { glow: color, wing: slot === 'ornamento' && (name.indexOf('Asa') >= 0 || name.indexOf('Pena') >= 0 || name.indexOf('Sigilo') >= 0), tier: tier },
           stats: stats
         });
       });
@@ -148,7 +152,22 @@
     { nivel: 5, nome: 'Asas Supremas', minLevel: 65 }
   ];
 
-  var EXPORTS = { LEVEL_CAP: LEVEL_CAP, XP_TABLE: XP_TABLE, GAME_CLASSES: GAME_CLASSES, ITEM_CATALOG: ITEM_CATALOG, MONSTERS: MONSTERS, WING_LEVELS: WING_LEVELS };
+
+
+  var GEM_TYPES = {
+    rubi: { id: 'rubi', nome: 'Rubi de Ataque', asset: 'assets/gems/rubi.png', cor: '#ff4965', stats: { ataque: 10, defesa: 0, critico: 0, hp: 0, mana: 0 } },
+    safira: { id: 'safira', nome: 'Safira Arcana', asset: 'assets/gems/safira.png', cor: '#6db8ff', stats: { ataque: 4, defesa: 0, critico: 0, hp: 0, mana: 45 } },
+    esmeralda: { id: 'esmeralda', nome: 'Esmeralda Vital', asset: 'assets/gems/esmeralda.png', cor: '#66f59d', stats: { ataque: 0, defesa: 3, critico: 0, hp: 80, mana: 0 } },
+    topazio: { id: 'topazio', nome: 'Topázio Crítico', asset: 'assets/gems/topazio.png', cor: '#ffd86b', stats: { ataque: 3, defesa: 0, critico: 6, hp: 0, mana: 0 } }
+  };
+
+  var MOUNTS = {
+    lobo_cristalino: { id: 'lobo_cristalino', nome: 'Lobo Cristalino', asset: 'assets/mounts/lobo_cristalino.png', unlockLevel: 1, bonus: { power: 80, speed: 1.0, ataque: 4, hp: 40 } },
+    grifo_dourado: { id: 'grifo_dourado', nome: 'Grifo Dourado', asset: 'assets/mounts/grifo_dourado.png', unlockLevel: 10, bonus: { power: 220, speed: 1.12, ataque: 12, hp: 120 } },
+    dragao_mirim: { id: 'dragao_mirim', nome: 'Dragão Mirim Elemental', asset: 'assets/mounts/dragao_mirim.png', unlockLevel: 25, bonus: { power: 520, speed: 1.28, ataque: 28, hp: 260 } }
+  };
+
+  var EXPORTS = { LEVEL_CAP: LEVEL_CAP, XP_TABLE: XP_TABLE, GAME_CLASSES: GAME_CLASSES, ITEM_CATALOG: ITEM_CATALOG, MONSTERS: MONSTERS, WING_LEVELS: WING_LEVELS, GEM_TYPES: GEM_TYPES, MOUNTS: MOUNTS };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = EXPORTS;
   else {
@@ -158,5 +177,7 @@
     window.ITEM_CATALOG = ITEM_CATALOG;
     window.MONSTERS = MONSTERS;
     window.WING_LEVELS = WING_LEVELS;
+    window.GEM_TYPES = GEM_TYPES;
+    window.MOUNTS = MOUNTS;
   }
 })();

@@ -1,8 +1,8 @@
 {
   "name": "legend-of-indle-rpg-v1",
-  "version": "0.7.0",
+  "version": "0.8.1",
   "private": true,
-  "description": "Legend Of Indle RPG V1 — V7 polida com save, offline rewards, conquistas, inventário, boss, animações e layout corrigido",
+  "description": "Legend Of Indle RPG V1 — V8.1 corrigida: fix do LootManager sem recursão",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

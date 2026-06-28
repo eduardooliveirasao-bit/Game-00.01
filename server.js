@@ -66,6 +66,7 @@ function createPlayer(socket) {
     inventario: [],
     equipados: { arma: null, anel: null, colar: null, ornamento: null },
     equipadosList: [],
+    mount: { id: 'lobo_cristalino', level: 1 },
     achievements: [],
     bestiary: {},
     stats: { damageDealt: 0, damageTaken: 0, goldEarned: 0, bossKills: 0, deaths: 0, itemsSold: 0 }
@@ -107,6 +108,8 @@ function publicPlayer(player) {
     deadUntil: player.deadUntil,
     inventario,
     equipados,
+    visualMods: LootManager.getVisualMods(player),
+    mount: LootManager.getMount(player),
     achievements: player.achievements || [],
     bestiary: player.bestiary || {},
     stats: player.stats || {}
@@ -114,6 +117,31 @@ function publicPlayer(player) {
 }
 
 function publicPlayersList() { return Object.values(players).map(publicPlayer); }
+
+function buildRanking() {
+  const map = new Map();
+  for (const p of Object.values(players)) {
+    if (!p.classeId) continue;
+    syncPlayerPower(p);
+    map.set(p.saveId || p.id, publicPlayer(p));
+  }
+  for (const save of SaveManager.list()) {
+    if (!save || !save.classeId) continue;
+    const key = save.saveId || save.nome;
+    if (map.has(key)) continue;
+    const fake = createPlayer({ id: key });
+    SaveManager.apply(fake, save);
+    syncPlayerPower(fake);
+    map.set(key, publicPlayer(fake));
+  }
+  const base = Array.from(map.values()).map((p) => ({
+    nome: p.nome, classeId: p.classeId, nivel: p.nivel, power: p.power, kills: p.kills || 0, horda: p.horda || 1, bossKills: (p.stats && p.stats.bossKills) || 0, mount: p.mount
+  }));
+  return {
+    level: base.slice().sort((a,b) => (b.nivel - a.nivel) || (b.power - a.power)).slice(0, 20),
+    power: base.slice().sort((a,b) => (b.power - a.power) || (b.nivel - a.nivel)).slice(0, 20)
+  };
+}
 function emitEnemyUpdate() { io.emit('enemyUpdate', monsterManager.getPublicMonster()); }
 
 function syncPlayerPower(player) {
@@ -263,6 +291,7 @@ io.on('connection', (socket) => {
     player.nome = classe.nome;
     player.inventario = [];
     player.equipados = { arma: null, anel: null, colar: null, ornamento: null };
+    player.mount = player.mount || { id: 'lobo_cristalino', level: 1 };
     player.cooldowns = {};
     player.horda = Math.max(1, player.horda || 1);
     player.isDead = false;
@@ -353,6 +382,28 @@ io.on('connection', (socket) => {
     socket.emit('inventoryAction', { type: 'sellAll', gold: result.gold, sold: result.sold });
   });
 
+  socket.on('insertGem', (data = {}) => {
+    const result = LootManager.insertGem(player, data.itemId, data.gemId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('inventoryAction', { type: 'gem', item: LootManager.enrichItem(result.item), gem: result.gem });
+  });
+
+  socket.on('upgradeMount', () => {
+    const result = LootManager.upgradeMount(player);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('mountUpdated', { mount: result.mount, cost: result.cost });
+  });
+
+  socket.on('requestRanking', () => {
+    socket.emit('rankingUpdate', buildRanking());
+  });
+
   socket.on('disconnect', () => {
     savePlayer(player, true);
     delete players[socket.id];
@@ -403,6 +454,7 @@ setInterval(() => {
 
   io.emit('gameState', publicPlayersList());
   io.emit('onlineCount', Object.keys(players).length);
+  io.emit('rankingUpdate', buildRanking());
   if (attacks.length || monsterAttacks.length) io.emit('combatTick', { attacks, monsterAttacks, monster: monsterManager.getPublicMonster(), serverTime: now });
   emitEnemyUpdate();
 }, TICK_RATE_MS);
