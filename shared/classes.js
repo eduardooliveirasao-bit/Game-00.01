@@ -1,13 +1,232 @@
 (function () {
   'use strict';
+
+  var LEVEL_CAP = 80;
+
+  // XP necess√°ria para subir do n√≠vel atual para o pr√≥ximo.
+  // Exemplo: XP_TABLE[1] = XP necess√°ria para sair do Nv. 1 e ir ao Nv. 2.
+  var XP_TABLE = {};
+  for (var level = 1; level <= LEVEL_CAP; level++) {
+    XP_TABLE[level] = level >= LEVEL_CAP
+      ? 0
+      : Math.floor(90 + (level * 55) + Math.pow(level, 1.82) * 42);
+  }
+
   var GAME_CLASSES = {
-    guerreiro: { id: 'guerreiro', nome: 'Guardi„o de Cristal', tipoIcone: '???', corPrimaria: '#C0392B', corSecundaria: '#D4AF37', especialidade: { critico: 1, mobilidade: 2, defesa: 5 }, idleDescricao: 'RespiraÁ„o pesada. Escudo ‡ frente, espada apontada para baixo. PartÌculas vermelhas sobem ao redor.', corParticulaIdle: '#E74C3C', habilidades: [{ id: 'muralha_divina', nome: 'Muralha Divina', descricao: 'Finca o escudo no ch„o.', cooldown: 20000, visual: { tipo: 'barreira', cor: '#D4AF37' } }, { id: 'impacto_colossal', nome: 'Impacto Colossal', descricao: 'Salta e cai violentamente.', cooldown: 16000, visual: { tipo: 'impacto_solo', cor: '#E74C3C' } }, { id: 'escudo_espelhado', nome: 'Escudo Espelhado', descricao: 'Reflete projÈteis.', cooldown: 25000, visual: { tipo: 'espelho', cor: '#F1C40F' } }], ultimate: { id: 'fortaleza_guardiao', nome: 'Fortaleza do Guardi„o', descricao: 'Castelo de cristal ao redor do grupo.', cooldown: 90000, visual: { tipo: 'fortaleza', cor: '#D4AF37' } } },
-    arqueiro: { id: 'arqueiro', nome: 'CaÁador Celestial', tipoIcone: '??', corPrimaria: '#1E8449', corSecundaria: '#17A2B8', especialidade: { critico: 5, mobilidade: 4, defesa: 2 }, idleDescricao: 'Arco preparado, asas vibram suavemente.', corParticulaIdle: '#2ECC71', habilidades: [{ id: 'flecha_fantasma', nome: 'Flecha Fantasma', descricao: 'Divide-se em 12 flechas.', cooldown: 12000, visual: { tipo: 'flecha_dividida', cor: '#2ECC71' } }, { id: 'tempestade_mil_flechas', nome: 'Tempestade de Mil Flechas', descricao: 'Invoca centenas de flechas m·gicas.', cooldown: 22000, visual: { tipo: 'chuva_flechas', cor: '#16A085' } }, { id: 'instinto_mortal', nome: 'Instinto Mortal', descricao: 'Buff de +70% crÌtico.', cooldown: 18000, visual: { tipo: 'buff_aura', cor: '#1ABC9C' } }], ultimate: { id: 'eclipse_cacador', nome: 'Eclipse do CaÁador', descricao: 'Dispara centenas de flechas simult‚neas.', cooldown: 95000, visual: { tipo: 'eclipse', cor: '#0B5345' } } },
-    mago: { id: 'mago', nome: 'S·bio Arcano', tipoIcone: '??', corPrimaria: '#5DADE2', corSecundaria: '#8E44AD', corTerciaria: '#FFFFFF', especialidade: { cura: 5, magia: 4, controle: 2 }, idleDescricao: 'O cajado flutua, runas giram, pequenos cristais orbitam.', corParticulaIdle: '#AF7AC5', habilidades: [{ id: 'chuva_celestial', nome: 'Chuva Celestial', descricao: 'Chuva de meteoros que aplica lentid„o.', cooldown: 20000, visual: { tipo: 'meteoros', cor: '#5DADE2' } }, { id: 'cura_suprema', nome: 'Cura Suprema', descricao: 'Cura em ·rea e regeneraÁ„o.', cooldown: 24000, visual: { tipo: 'circulo_cura', cor: '#FFFFFF' } }, { id: 'prisma_arcano', nome: 'Prisma Arcano', descricao: 'Feixe m·gico que se divide.', cooldown: 16000, visual: { tipo: 'prisma', cor: '#8E44AD' } }], ultimate: { id: 'santuario_celestial', nome: 'Santu·rio Celestial', descricao: 'Uma ·rvore de cristal gigante que cura e protege.', cooldown: 100000, visual: { tipo: 'arvore_cristal', cor: '#FFFFFF' } } }
+    guerreiro: {
+      id: 'guerreiro',
+      nome: 'Kael, Guardi√£o de Ferro',
+      nomeCurto: 'Guerreiro',
+      tipoIcone: '‚öîÔ∏è',
+      papel: 'Tank / DPS corpo a corpo',
+      corPrimaria: '#C0392B',
+      corSecundaria: '#D4AF37',
+      corTerciaria: '#FFFFFF',
+      baseStats: {
+        maxHp: 260,
+        mana: 30,
+        baseDano: 18,
+        multiplicadorNivel: 3.2,
+        defesa: 24,
+        velocidade: 1.0,
+        critico: 8
+      },
+      especialidade: { critico: 1, mobilidade: 2, defesa: 5 },
+      idleDescricao: 'Linha de frente. Escudo alto, espada pesada e part√≠culas vermelhas subindo ao redor.',
+      corParticulaIdle: '#E74C3C',
+      lore: 'Antigo capit√£o de Valdoria, Kael protege o grupo como uma muralha viva enquanto busca reden√ß√£o nas masmorras corrompidas.',
+      habilidades: [
+        {
+          id: 'muralha_divina',
+          nome: 'Muralha Divina',
+          descricao: 'Finca o escudo no ch√£o e causa dano pesado ao inimigo atual.',
+          cooldown: 12000,
+          danoMultiplicador: 1.75,
+          visual: { tipo: 'barreira', cor: '#D4AF37' }
+        },
+        {
+          id: 'impacto_colossal',
+          nome: 'Impacto Colossal',
+          descricao: 'Salta e cai violentamente, causando dano brutal.',
+          cooldown: 16000,
+          danoMultiplicador: 2.25,
+          visual: { tipo: 'impacto_solo', cor: '#E74C3C' }
+        },
+        {
+          id: 'escudo_espelhado',
+          nome: 'Escudo Espelhado',
+          descricao: 'Concentra energia no escudo e libera uma onda dourada.',
+          cooldown: 22000,
+          danoMultiplicador: 2.75,
+          visual: { tipo: 'espelho', cor: '#F1C40F' }
+        }
+      ],
+      ultimate: {
+        id: 'fortaleza_guardiao',
+        nome: 'Fortaleza do Guardi√£o',
+        descricao: 'Invoca uma fortaleza de cristal e desfere um golpe massivo.',
+        cooldown: 90000,
+        danoMultiplicador: 6.5,
+        visual: { tipo: 'fortaleza', cor: '#D4AF37' }
+      }
+    },
+
+    arqueiro: {
+      id: 'arqueiro',
+      nome: 'Lyra, Sombra Verde',
+      nomeCurto: 'Arqueira',
+      tipoIcone: 'üèπ',
+      papel: 'DPS r√°pido / Cr√≠tico',
+      corPrimaria: '#1E8449',
+      corSecundaria: '#17A2B8',
+      corTerciaria: '#FFFFFF',
+      baseStats: {
+        maxHp: 145,
+        mana: 85,
+        baseDano: 22,
+        multiplicadorNivel: 3.8,
+        defesa: 10,
+        velocidade: 1.35,
+        critico: 24
+      },
+      especialidade: { critico: 5, mobilidade: 4, defesa: 2 },
+      idleDescricao: 'Retaguarda. Arco preparado, postura leve e flechas espirituais orbitando.',
+      corParticulaIdle: '#2ECC71',
+      lore: 'Criada nas florestas de Eldara, Lyra elimina amea√ßas antes que elas alcancem o grupo.',
+      habilidades: [
+        {
+          id: 'flecha_fantasma',
+          nome: 'Flecha Fantasma',
+          descricao: 'Uma flecha et√©rea que atravessa a defesa do alvo.',
+          cooldown: 9000,
+          danoMultiplicador: 1.95,
+          visual: { tipo: 'flecha_dividida', cor: '#2ECC71' }
+        },
+        {
+          id: 'tempestade_mil_flechas',
+          nome: 'Tempestade de Mil Flechas',
+          descricao: 'Invoca centenas de flechas m√°gicas sobre o inimigo.',
+          cooldown: 18000,
+          danoMultiplicador: 3.0,
+          visual: { tipo: 'chuva_flechas', cor: '#16A085' }
+        },
+        {
+          id: 'instinto_mortal',
+          nome: 'Instinto Mortal',
+          descricao: 'Disparo concentrado com chance elevada de cr√≠tico.',
+          cooldown: 14000,
+          danoMultiplicador: 2.35,
+          bonusCritico: 30,
+          visual: { tipo: 'buff_aura', cor: '#1ABC9C' }
+        }
+      ],
+      ultimate: {
+        id: 'eclipse_cacador',
+        nome: 'Eclipse do Ca√ßador',
+        descricao: 'Cobre o c√©u com flechas luminosas em um ataque devastador.',
+        cooldown: 95000,
+        danoMultiplicador: 7.2,
+        bonusCritico: 45,
+        visual: { tipo: 'eclipse', cor: '#0B5345' }
+      }
+    },
+
+    mago: {
+      id: 'mago',
+      nome: 'Elyon, Arcanjo Arcano',
+      nomeCurto: 'Mago Arcanjo',
+      tipoIcone: 'ü™Ω',
+      papel: 'DPS m√°gico / Controle / Suporte',
+      corPrimaria: '#5DADE2',
+      corSecundaria: '#8E44AD',
+      corTerciaria: '#FFFFFF',
+      baseStats: {
+        maxHp: 120,
+        mana: 320,
+        baseDano: 26,
+        multiplicadorNivel: 4.25,
+        defesa: 8,
+        velocidade: 1.08,
+        critico: 16
+      },
+      especialidade: { cura: 5, magia: 5, controle: 3 },
+      idleDescricao: 'Mago de asas de arcanjo. Cajado flutuante, aur√©ola arcana, runas e penas de luz ao redor.',
+      corParticulaIdle: '#AF7AC5',
+      lore: 'Elyon nasceu na Academia de Lunaris e despertou asas de arcanjo ao tocar um n√∫cleo celestial proibido.',
+      asas: {
+        tipo: 'arcanjo',
+        descricao: 'Duas asas grandes, brancas e azuladas, com penas luminosas, brilho dourado nas pontas e runas flutuantes.'
+      },
+      habilidades: [
+        {
+          id: 'chuva_celestial',
+          nome: 'Chuva Celestial',
+          descricao: 'Meteoro sagrado que explode em luz azul e dourada.',
+          cooldown: 11000,
+          danoMultiplicador: 2.2,
+          visual: { tipo: 'meteoros', cor: '#5DADE2' }
+        },
+        {
+          id: 'cura_suprema',
+          nome: 'Lan√ßa Ser√°fica',
+          descricao: 'Conjura uma lan√ßa de luz angelical contra o inimigo.',
+          cooldown: 15000,
+          danoMultiplicador: 2.75,
+          visual: { tipo: 'circulo_cura', cor: '#FFFFFF' }
+        },
+        {
+          id: 'prisma_arcano',
+          nome: 'Prisma Arcano',
+          descricao: 'Feixe m√°gico que se divide em raios arcanos.',
+          cooldown: 17000,
+          danoMultiplicador: 3.15,
+          visual: { tipo: 'prisma', cor: '#8E44AD' }
+        }
+      ],
+      ultimate: {
+        id: 'santuario_celestial',
+        nome: 'Ju√≠zo do Arcanjo',
+        descricao: 'Abre as asas de arcanjo e invoca um julgamento celestial.',
+        cooldown: 100000,
+        danoMultiplicador: 8.0,
+        visual: { tipo: 'arvore_cristal', cor: '#FFFFFF' }
+      }
+    }
   };
-  var WING_LEVELS = [{ nivel: 1, nome: 'Cristal Bruto', minXp: 0 }, { nivel: 2, nome: 'Cristal Refinado', minXp: 500 }, { nivel: 3, nome: 'Cristal Celestial', minXp: 2000 }, { nivel: 4, nome: 'Cristal Divino', minXp: 6000 }, { nivel: 5, nome: 'Asa Suprema', minXp: 15000 }];
-  var XP_TABLE = {}; for (let i = 1; i <= 80; i++) { XP_TABLE[i] = Math.floor(100 * Math.pow(i, 1.8)); }
-  var MONSTERS = [{ id: 1, nome: 'Cristal Corrompido', hpBase: 100, xp: 20 }, { id: 2, nome: 'Sentinela de AÁo', hpBase: 250, xp: 50 }, { id: 3, nome: 'Guardi„o Abissal', hpBase: 600, xp: 150 }];
-  var EXPORTS = { GAME_CLASSES, WING_LEVELS, XP_TABLE, MONSTERS };
-  if (typeof module !== 'undefined' && module.exports) { module.exports = EXPORTS; } else { window.GAME_CLASSES = GAME_CLASSES; window.WING_LEVELS = WING_LEVELS; window.XP_TABLE = XP_TABLE; window.MONSTERS = MONSTERS; }
+
+  // Asas visuais evoluem por n√≠vel do personagem, separadas da XP de level.
+  var WING_LEVELS = [
+    { nivel: 1, nome: 'Asas Iniciais', minLevel: 1 },
+    { nivel: 2, nome: 'Asas Refinadas', minLevel: 10 },
+    { nivel: 3, nome: 'Asas Celestiais', minLevel: 25 },
+    { nivel: 4, nome: 'Asas Divinas', minLevel: 45 },
+    { nivel: 5, nome: 'Asas Supremas', minLevel: 65 }
+  ];
+
+  var MONSTERS = [
+    { id: 'slime_cristal', nome: 'Slime de Cristal', minLevel: 1, hpBase: 70, xpBase: 35, tipo: 'normal' },
+    { id: 'cogumelo_sombrio', nome: 'Cogumelo Sombrio', minLevel: 3, hpBase: 110, xpBase: 55, tipo: 'normal' },
+    { id: 'besouro_runa', nome: 'Besouro de Runa', minLevel: 8, hpBase: 190, xpBase: 95, tipo: 'normal' },
+    { id: 'sentinela_aco', nome: 'Sentinela de A√ßo', minLevel: 15, hpBase: 340, xpBase: 170, tipo: 'elite' },
+    { id: 'guardiao_abissal', nome: 'Guardi√£o Abissal', minLevel: 30, hpBase: 650, xpBase: 350, tipo: 'elite' },
+    { id: 'arcanjo_corrompido', nome: 'Arcanjo Corrompido', minLevel: 50, hpBase: 1200, xpBase: 760, tipo: 'elite' }
+  ];
+
+  var EXPORTS = {
+    LEVEL_CAP: LEVEL_CAP,
+    GAME_CLASSES: GAME_CLASSES,
+    WING_LEVELS: WING_LEVELS,
+    XP_TABLE: XP_TABLE,
+    MONSTERS: MONSTERS
+  };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = EXPORTS;
+  } else {
+    window.LEVEL_CAP = LEVEL_CAP;
+    window.GAME_CLASSES = GAME_CLASSES;
+    window.WING_LEVELS = WING_LEVELS;
+    window.XP_TABLE = XP_TABLE;
+    window.MONSTERS = MONSTERS;
+  }
 })();

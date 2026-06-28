@@ -19,8 +19,11 @@
       <div id="hud-asa">
         🪽 Asa: <span id="hud-asa-nivel">1</span> — <span id="hud-asa-nome">Cristal Bruto</span>
       </div>
-      <div id="hud-xp-bar">
-        <div id="hud-xp-fill"></div>
+      <div id="hud-xp-wrap">
+        <div id="hud-xp-bar">
+          <div id="hud-xp-fill"></div>
+        </div>
+        <span id="hud-xp-text">0 / 0 XP</span>
       </div>
       <div id="hud-online">Online: <span id="hud-online-count">0</span></div>
     </header>
@@ -31,6 +34,19 @@
       <div id="class-cards"></div>
     </section>
 
+    <!-- Painel do monstro atual / PvE -->
+    <section id="enemy-panel">
+      <div class="enemy-title">
+        <span id="enemy-name">Aguardando monstro...</span>
+        <span id="enemy-level">Nv. 1</span>
+        <span id="enemy-type">NORMAL</span>
+      </div>
+      <div id="enemy-hp-bar">
+        <div id="enemy-hp-fill"></div>
+        <span id="enemy-hp-text">0 / 0 HP</span>
+      </div>
+    </section>
+
     <!-- Palco do jogo -->
     <main id="stage">
       <canvas id="game-canvas"></canvas>
@@ -38,6 +54,9 @@
 
     <!-- Barra de habilidades -->
     <footer id="ability-bar"></footer>
+
+    <!-- Log de combate -->
+    <aside id="combat-log"></aside>
 
     <!-- Log de erros visível (em vez de tela branca silenciosa) -->
     <div id="fatal-error" class="hidden"></div>

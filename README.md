@@ -1,62 +1,6 @@
-# Crystal Realms — MMORPG Idle (estrutura base corrigida)
+# Crystal Realms — MMORPG Idle
 
-## O que estava quebrado
-
-1. **`ReferenceError: io is not defined`** — `game.js` rodava `io(...)`
-   antes do script da CDN do Socket.io terminar de carregar.
-2. A tentativa de corrigir isso com `DOMContentLoaded` + injeção dinâmica
-   de `<script>` acabou apagando a lógica de renderização original →
-   **tela branca**.
-
-## A correção (raiz do problema, não um remendo)
-
-Scripts **sem** `defer`/`async` são executados em ordem, e o navegador só
-avança para o próximo depois de baixar **e rodar** o anterior por
-completo. Por isso, em `public/index.html`, os três scripts ficam, nessa
-ordem, sem nenhum atributo extra, no fim do `<body>`:
-
-```html
-<script src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
-<script src="shared/classes.js"></script>
-<script src="js/game.js"></script>
-```
-
-Isso por si só já resolve o `ReferenceError`. Além disso, `game.js`
-agora começa com uma guarda explícita:
-
-```js
-if (typeof io === 'undefined') {
-  // mostra um erro visível em #fatal-error em vez de travar tudo
-  return;
-}
-```
-
-Então, **mesmo que algo saia errado** (CDN fora do ar, bloqueador de
-anúncios agressivo, etc.), você vê uma mensagem de erro na tela —
-nunca mais uma tela branca silenciosa.
-
-> ⚠️ Importante: a versão do Socket.io no servidor (`package.json`) e a
-> da CDN no `index.html` precisam ser compatíveis. Aqui as duas estão
-> fixadas em `4.8.3`. Se você atualizar uma, atualize a outra.
-
-## Estrutura de pastas
-
-```
-MeuJogoIdle/
-├── server.js              # Express + Socket.io, game loop idle
-├── package.json
-├── shared/
-│   └── classes.js          # fonte única dos dados das 3 classes (server + client)
-└── public/
-    ├── index.html
-    ├── css/style.css       # identidade visual (cristais, dourado, cores por classe)
-    └── js/game.js          # render em canvas, HUD, habilidades, socket
-```
-
-`shared/classes.js` é exigido (`require`) pelo servidor **e** servido
-como arquivo estático pro navegador — uma única fonte de verdade para
-nomes, cores e cooldowns das habilidades, para o client e o server nunca
-dessincronizarem conforme o jogo crescer.
+Base Node.js + Express + Socket.IO para um MMORPG Idle inspirado em jogos como Legend of Mushroom, com combate automático, monstro atual, XP, nível máximo e evolução visual das asas.
 
 ## Como rodar
 
@@ -65,36 +9,103 @@ npm install
 npm start
 ```
 
-Abra `http://localhost:3000`.
+Depois abra:
 
-## O que já está implementado (esqueleto funcional)
+```txt
+http://localhost:3000
+```
 
-- Conexão Socket.io robusta (`io()` sem host fixo — funciona em
-  qualquer porta/domínio, inclusive depois do deploy).
-- Tela de seleção das 3 classes (Guerreiro, Arqueiro, Mago), gerada
-  dinamicamente a partir do GDD em `shared/classes.js`.
-- Sistema de Asas de Cristal (5 níveis, progressão por XP, desenhado em
-  camadas crescentes + fragmentos orbitantes a partir do nível 4).
-- Barra de habilidades com cooldown validado **no servidor** (o cliente
-  não pode burlar o cooldown editando o JS local).
-- Broadcast de `abilityUsed` para todos os jogadores conectados, para
-  que efeitos de habilidade apareçam sincronizados para quem está
-  assistindo — comportamento esperado em MMORPG.
-- Idle tick no servidor (XP passivo a cada 1s) com sincronização via
-  `gameState`.
-- Renderização em `<canvas>` com placeholders geométricos por classe
-  (corpo + asas + partículas ambiente coloridas conforme o GDD).
+## O que foi implementado nesta versão
 
-## O que falta para chegar na visão completa do GDD
+### PvE / Monstro atual
 
-Isto é uma **base de arquitetura**, não a arte final. Os próximos
-passos óbvios:
+- Um `MonsterManager` no servidor instancia o monstro atual.
+- Cada monstro possui:
+  - nome;
+  - nível;
+  - HP máximo;
+  - HP atual;
+  - XP concedida ao morrer;
+  - tipo: normal, elite ou boss.
+- A cada 10 mortes nasce um boss mais forte.
+- Quando o HP chega a 0, o servidor emite `enemyDied`, entrega XP ao jogador que matou e gera o próximo monstro.
 
-1. Trocar os placeholders geométricos por sprite sheets/animações reais
-   (idle, cast, hit) para cada classe.
-2. Implementar a lógica de dano/combate (atualmente `useAbility` só
-   dispara o efeito visual e o cooldown — não há cálculo de dano).
-3. Persistir os jogadores em um banco (hoje é tudo em memória — reinicia
-   o servidor e todo progresso some).
-4. Separar "zonas"/salas (`socket.join(sala)`) se você quiser várias
-   áreas do mapa em vez de uma praça única.
+### Leveling
+
+- Level cap em 80.
+- `XP_TABLE` progressiva do nível 1 ao 80 em `shared/classes.js`.
+- `LevelManager` controla ganho de XP, level up, XP restante, barra de XP e evolução das asas.
+- O personagem aparece no formato:
+
+```txt
+Aventureiro-abcd [Nv. 1]
+```
+
+### Combate Idle
+
+- O servidor executa um loop de combate a cada 1 segundo.
+- O dano é validado no servidor, não no cliente.
+- Fórmula base:
+
+```txt
+dano = baseDanoDaClasse + (nivel * multiplicadorDaClasse)
+```
+
+- Habilidades também são validadas no servidor com cooldown.
+- O cliente apenas pede o uso da habilidade; quem decide dano, crítico e cooldown é o servidor.
+
+### Frontend
+
+- Barra de HP do monstro.
+- Nome, nível e tipo do monstro.
+- Barra de XP do jogador em tempo real.
+- Log de combate.
+- Dano flutuante no canvas.
+- Mago com asas visuais de arcanjo.
+- Guerreiro, arqueiro e mago com identidades próprias.
+
+## Estrutura principal
+
+```txt
+MeuJogoIdle/
+├── server.js
+├── server/
+│   └── managers/
+│       ├── CombatManager.js
+│       ├── LevelManager.js
+│       └── MonsterManager.js
+├── shared/
+│   └── classes.js
+└── public/
+    ├── index.html
+    ├── css/style.css
+    └── js/game.js
+```
+
+## Eventos Socket.IO principais
+
+### Servidor → Cliente
+
+- `init`: envia jogador, jogadores online, monstro atual e level cap.
+- `playerUpdated`: atualiza dados públicos do jogador.
+- `gameState`: sincroniza lista de jogadores.
+- `enemyUpdate`: atualiza HP/dados do monstro atual.
+- `enemyDied`: informa morte do monstro, XP recebida e próximo monstro.
+- `combatTick`: envia ataques realizados no tick para efeitos visuais.
+- `abilityUsed`: sincroniza efeito visual de habilidade.
+
+### Cliente → Servidor
+
+- `selectClass`: seleciona guerreiro, arqueiro ou mago.
+- `useAbility`: tenta usar uma habilidade; o servidor valida cooldown e dano.
+
+## Próximos sistemas recomendados
+
+1. Loot e equipamentos.
+2. Inventário.
+3. Dungeons por estágio.
+4. Boss especial por mapa.
+5. Sistema offline idle.
+6. Save em banco de dados.
+7. Skills passivas e árvore de talentos.
+8. Ranking e guildas.
