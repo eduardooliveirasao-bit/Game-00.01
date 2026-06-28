@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { GAME_CLASSES } = require('../../shared/classes.js');
 
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', '..', 'data');
 const ACCOUNTS_FILE = path.join(DATA_DIR, 'accounts.json');
 
 function ensureStore() {
@@ -24,7 +24,9 @@ function readAll() {
 
 function writeAll(data) {
   ensureStore();
-  fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify({ accounts: data.accounts || {}, nickIndex: data.nickIndex || {} }, null, 2), 'utf8');
+  const tmp = ACCOUNTS_FILE + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify({ accounts: data.accounts || {}, nickIndex: data.nickIndex || {} }, null, 2), 'utf8');
+  fs.renameSync(tmp, ACCOUNTS_FILE);
 }
 
 function normLogin(login) {

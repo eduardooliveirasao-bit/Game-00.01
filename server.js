@@ -22,6 +22,16 @@ const io = new Server(server, { cors: { origin: '*' } });
 app.use(express.static('public'));
 app.use('/shared', express.static('shared'));
 
+app.get('/healthz', (req, res) => {
+  res.status(200).json({
+    ok: true,
+    service: 'Legend Of Indle RPG V1',
+    uptime: Math.floor(process.uptime()),
+    online: Object.keys(players || {}).length,
+    timestamp: Date.now()
+  });
+});
+
 const players = {};
 const monsterManager = new MonsterManager();
 AccountManager.ensureDefaultGM(SaveManager, createPlayer);
@@ -743,4 +753,26 @@ setInterval(() => {
   emitEnemyUpdate();
 }, TICK_RATE_MS);
 
-server.listen(PORT, () => console.log(`Servidor em http://localhost:${PORT}`));
+
+function saveAllPlayers(reason = 'shutdown') {
+  for (const player of Object.values(players)) {
+    try { savePlayer(player, true); } catch (err) { console.error('Falha ao salvar jogador em', reason, err); }
+  }
+}
+
+process.on('SIGTERM', () => {
+  console.log('Recebido SIGTERM. Salvando jogadores antes de encerrar...');
+  saveAllPlayers('SIGTERM');
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 5000).unref();
+});
+
+process.on('SIGINT', () => {
+  console.log('Recebido SIGINT. Salvando jogadores antes de encerrar...');
+  saveAllPlayers('SIGINT');
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 5000).unref();
+});
+
+server.listen(PORT, '0.0.0.0', () => console.log(`Servidor em http://0.0.0.0:${PORT}`));
+

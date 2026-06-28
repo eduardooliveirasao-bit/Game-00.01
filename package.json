@@ -1,15 +1,19 @@
 {
   "name": "legend-of-indle-rpg-v1",
-  "version": "0.10.0",
+  "version": "0.16.0",
   "private": true,
-  "description": "Legend Of Indle RPG V1 — V10 com login, nick unico, GM, loja e gemas cash",
+  "description": "Legend Of Indle RPG V1 — preparado para deploy no Render",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "render-start": "NODE_ENV=production node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
     "socket.io": "^4.8.3"
+  },
+  "engines": {
+    "node": ">=20 <25"
   }
 }

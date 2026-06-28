@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', '..', 'data');
 const SAVE_FILE = path.join(DATA_DIR, 'saves.json');
 
 function ensureStore() {
@@ -21,7 +21,9 @@ function readAll() {
 
 function writeAll(data) {
   ensureStore();
-  fs.writeFileSync(SAVE_FILE, JSON.stringify(data, null, 2), 'utf8');
+  const tmp = SAVE_FILE + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
+  fs.renameSync(tmp, SAVE_FILE);
 }
 
 function sanitizePlayer(player) {

@@ -75,3 +75,17 @@ Novidades:
 - Poções utilizáveis pela loja.
 - Gemas/cash salvas na conta.
 - Mochila, itens, classe, montaria, nível e progresso salvos por login.
+
+---
+
+## Deploy no Render
+
+Esta versão inclui `render.yaml` e está pronta para subir no Render como Web Service Node.js.
+
+Para produção com contas e saves persistentes, use o Blueprint principal `render.yaml`, que configura `DATA_DIR=/var/data` e um disco persistente em `/var/data`.
+
+Veja o guia completo em:
+
+```txt
+docs/RENDER_DEPLOY.md
+```
