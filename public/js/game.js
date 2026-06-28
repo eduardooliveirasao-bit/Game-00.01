@@ -45,6 +45,7 @@
     logs: [],
     lootRecente: [],
     selectedItemId: null,
+    bagTab: 'items',
     isAuthenticated: false,
     ranking: null,
     anim: {
@@ -57,7 +58,9 @@
       monsterSkillType: null
     },
     v30Tab: 'season',
-    v90Tab: 'hub'
+    v90Tab: 'hub',
+    v94Combo: { count: 0, until: 0 },
+    v94HeavyVfx: true
   };
 
   var canvas = byId('game-canvas');
@@ -157,6 +160,13 @@
   var v92Modal = byId('v92-modal');
   var v92Close = byId('v92-close');
   var v92Content = byId('v92-content');
+  var menuV94 = byId('menu-v94');
+  var v94Modal = byId('v94-modal');
+  var v94Close = byId('v94-close');
+  var v94RewardCard = byId('v94-reward-card');
+  var v94ComboMeter = byId('v94-combo-meter');
+  var v94ComboCount = byId('v94-combo-count');
+  var v94ComboLabel = byId('v94-combo-label');
 
   var audioCtx = null;
   function ensureAudio() {
@@ -386,9 +396,10 @@
     var attrs = state.me.attributes || {};
     var mounts = state.me.mountCollection || [];
     var mountBonus = state.me.mountBonus || {};
+    var classBase = cls && cls.baseStats ? cls.baseStats : {};
     function slotHtml(slot, label) {
       var item = eq[slot];
-      if (!item) return '<button class="paper-slot ' + slot + '"><span>' + label + '</span><strong>Vazio</strong></button>';
+      if (!item) return '<button class="paper-slot ' + slot + '"><span>' + label + '</span><strong>Vazio</strong><em>Sem item</em></button>';
       return '<button class="paper-slot ' + slot + ' filled" style="border-color:' + (item.rarityColor || '#fff') + '"><span>' + label + '</span><img src="' + (item.asset || '') + '" alt=""><strong>' + escapeHtml(item.nome) + '</strong><em style="color:' + (item.rarityColor || '#fff') + '">' + escapeHtml(item.raridade) + '</em></button>';
     }
     function attr(label, value, icon, clsName) {
@@ -398,23 +409,67 @@
       var b = m.bonusCalculated || {};
       return '<div class="mount-mini ' + (m.active ? 'active' : '') + '" data-mount-id="' + m.id + '"><img src="' + m.asset + '" alt=""><div><strong>' + escapeHtml(m.nome) + ' Nv.' + (m.level || 1) + '</strong><small>+' + formatNumber((b.power||0)) + ' poder · +' + (b.ataque||0) + ' ATK · +' + (b.hp||0) + ' HP</small></div><button data-activate-mount="' + m.id + '">' + (m.active ? 'Ativa' : 'Ativar') + '</button></div>';
     }).join('') || '<div class="mount-mini empty">Nenhuma montaria.</div>';
+    var wingsName = (state.me.wing && state.me.wing.nome) || (state.me.visualMods && state.me.visualMods.wingsName) || 'Asa padrão';
     paperDoll.innerHTML =
       '<div class="paper-hero-card">' +
-        '<div class="paper-hero-frame">' + (cls ? '<img class="paper-hero" src="' + cls.asset.sprite + '" alt="' + escapeHtml(cls.nome) + '">' : '') + slotHtml('arma','Arma') + slotHtml('anel','Anel') + slotHtml('colar','Colar') + slotHtml('ornamento','Asa/Orn.') + '</div>' +
-        '<div class="paper-name"><strong>' + escapeHtml(state.me.nome || 'Herói') + '</strong><small>' + escapeHtml(cls ? cls.nome : 'Sem classe') + ' · Nv. ' + (state.me.nivel || 1) + '</small></div>' +
+        '<div class="paper-hero-frame">' +
+          (cls ? '<img class="paper-hero" src="' + cls.asset.sprite + '" alt="' + escapeHtml(cls.nome) + '">' : '') +
+          slotHtml('arma','Arma') + slotHtml('anel','Anel') + slotHtml('colar','Colar') + slotHtml('ornamento','Asa/Orn.') +
+        '</div>' +
+        '<div class="paper-name"><strong>' + escapeHtml(state.me.nome || 'Herói') + '</strong><small>' + escapeHtml(cls ? cls.nome : 'Sem classe') + ' · Nv. ' + (state.me.nivel || 1) + ' · Asa: ' + escapeHtml(wingsName) + '</small></div>' +
       '</div>' +
       '<div class="paper-stats-panel">' +
-        '<div class="paper-section-title">Atributos</div>' +
+        '<div class="paper-section-title">Atributos principais</div>' +
         '<div class="paper-attr-grid">' +
-          attr('Poder', attrs.power || state.me.power, '⚔️', 'main') + attr('Ataque', attrs.attack, '🗡️') + attr('Defesa', attrs.defense, '🛡️') + attr('HP Máx.', attrs.maxHp || state.me.maxHp, '❤️') + attr('Mana Máx.', attrs.maxMana || state.me.maxMana, '🔷') + attr('Crítico', attrs.crit, '🎯') + attr('Velocidade', attrs.speed, '⚡') + attr('Evasão', attrs.evasion, '🌀') +
+          attr('Poder', attrs.power || state.me.power, '⚔️', 'main') +
+          attr('Ataque', attrs.attack || classBase.baseDano, '🗡️') +
+          attr('Defesa', attrs.defense || classBase.defesa, '🛡️') +
+          attr('HP Máx.', attrs.maxHp || state.me.maxHp || classBase.maxHp, '❤️') +
+          attr('Mana Máx.', attrs.maxMana || state.me.maxMana || classBase.mana, '🔷') +
+          attr('Crítico', attrs.crit || classBase.critico, '🎯') +
+          attr('Velocidade', attrs.speed || 100, '⚡') +
+          attr('Evasão', attrs.evasion || 0, '🌀') +
+          attr('Perfuração', attrs.pierce || 0, '🧩') +
+          attr('Tenacidade', attrs.tough || 0, '🛡️') +
         '</div>' +
         '<div class="paper-section-title">Bônus acumulado de montarias</div>' +
-        '<div class="mount-bonus-line">+' + formatNumber(mountBonus.power || 0) + ' Poder · +' + (mountBonus.ataque || 0) + ' ATK · +' + (mountBonus.defesa || 0) + ' DEF · +' + (mountBonus.hp || 0) + ' HP</div>' +
+        '<div class="mount-bonus-line">+' + formatNumber(mountBonus.power || 0) + ' Poder · +' + (mountBonus.ataque || 0) + ' ATK · +' + (mountBonus.defesa || 0) + ' DEF · +' + (mountBonus.hp || 0) + ' HP · +' + (mountBonus.critico || 0) + ' CRIT</div>' +
+        '<div class="paper-section-title">Coleção de montarias</div>' +
         '<div class="mount-collection-list">' + mountRows + '</div>' +
       '</div>';
+    Array.prototype.forEach.call(paperDoll.querySelectorAll('[data-activate-mount]'), function(btn){ btn.onclick = function(){ ensureAudio(); socket.emit('activateMount', { mountId: btn.getAttribute('data-activate-mount') }); }; });
   }
 
-  function openBag() { bagModal.classList.remove('hidden'); renderBag(); }
+  function bagTabMeta(tab) {
+    var meta = {
+      items: { title: 'Inventário', subtitle: 'Slots, raridades, gemas e comparação de equipamento.' },
+      fashion: { title: 'Fashion', subtitle: 'Camadas visuais, looks e aparência do herói.' },
+      skills: { title: 'Livro de Skills', subtitle: 'Habilidades da classe, cooldown, custo e atalho.' },
+      shortcuts: { title: 'Barra de Atalhos', subtitle: 'Slots rápidos para skills e consumíveis.' },
+      forge: { title: 'Forja', subtitle: 'Fortaleça itens, gerencie upgrade e sockets.' }
+    };
+    return meta[tab] || meta.items;
+  }
+
+  function showBagView(tab) {
+    ['bag-list','bag-fashion-list','bag-skill-list','bag-shortcut-list','bag-forge-list'].forEach(function(id){
+      var el = byId(id); if (!el) return; el.classList.toggle('hidden', (id !== ({items:'bag-list',fashion:'bag-fashion-list',skills:'bag-skill-list',shortcuts:'bag-shortcut-list',forge:'bag-forge-list'}[tab])));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-bag-tab]'), function(btn){ btn.classList.toggle('active', btn.getAttribute('data-bag-tab') === tab); });
+    var meta = bagTabMeta(tab);
+    var t = byId('bag-active-title'); if (t) t.textContent = meta.title;
+    var st = byId('bag-active-subtitle'); if (st) st.textContent = meta.subtitle;
+  }
+
+  function bindBagTabs() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-bag-tab]'), function(btn){
+      if (btn.__boundBagTab) return;
+      btn.__boundBagTab = true;
+      btn.onclick = function(){ ensureAudio(); state.bagTab = btn.getAttribute('data-bag-tab'); state.selectedItemId = null; renderBag(); };
+    });
+  }
+
+  function openBag() { state.bagTab = state.bagTab || 'items'; bindBagTabs(); bagModal.classList.remove('hidden'); renderBag(); }
   function closeBag() { bagModal.classList.add('hidden'); if (menuHunt) menuHunt.classList.add('active'); if (menuBag) menuBag.classList.remove('active'); }
 
   function itemStats(item) { return (item && (item.totalStats || item.stats)) || {}; }
@@ -428,6 +483,18 @@
 
   function renderBag() {
     if (!state.me || bagModal.classList.contains('hidden')) return;
+    bindBagTabs();
+    var tab = state.bagTab || 'items';
+    showBagView(tab);
+    renderPaperDoll();
+    if (tab === 'items') return renderBagItems();
+    if (tab === 'fashion') return renderBagFashion();
+    if (tab === 'skills') return renderBagSkills();
+    if (tab === 'shortcuts') return renderBagShortcuts();
+    if (tab === 'forge') return renderBagForge();
+  }
+
+  function renderBagItems() {
     var items = (state.me.inventario || []).slice().sort(function(a,b){ if(!!a.equipped !== !!b.equipped) return a.equipped ? -1 : 1; return (b.powerScore||0) - (a.powerScore||0); });
     bagList.innerHTML = '';
     if (!items.length) {
@@ -440,18 +507,112 @@
       if (item.equipped) badges.push('<span class="bag-item-badge">Equipado</span>');
       if (item.locked) badges.push('<span class="bag-item-badge lock">🔒</span>');
       if ((item.upgradeLevel || 0) > 0) badges.push('<span class="bag-item-badge plus">+' + item.upgradeLevel + '</span>');
-      var equippedBadge = badges.join('');
       var el = document.createElement('div');
       el.className = 'bag-item' + (state.selectedItemId === item.id ? ' active' : '') + (item.equipped ? ' is-equipped' : '');
       el.style.borderColor = item.rarityColor || item.cor || 'rgba(255,255,255,.08)';
-      el.innerHTML = '<div class="bag-item-top"><div class="bag-item-image-wrap"><img class="bag-item-img" src="' + (item.asset || '') + '" alt="">' + equippedBadge + '</div><div class="bag-item-text"><strong style="color:' + (item.rarityColor || '#fff') + '">' + item.icon + ' ' + escapeHtml(item.nome) + '</strong>' +
-        '<small>' + escapeHtml(item.slot) + ' · ' + escapeHtml(item.raridade) + ' · Nv.' + (item.requiredLevel || 1) + ((item.upgradeLevel||0)>0 ? ' · +' + item.upgradeLevel : '') + (item.locked ? ' · Protegido' : '') + '</small></div></div>' +
-        '<div class="bag-item-bottom"><span>Poder ' + (item.powerScore || 0) + '</span><span>Venda ' + (item.sellValue || 0) + ' ouro</span></div>';
-      el.onclick = function () { state.selectedItemId = item.id; renderBag(); renderBagDetail(item); };
+      el.innerHTML = '<div class="bag-item-top"><div class="bag-item-image-wrap"><img class="bag-item-img" src="' + (item.asset || '') + '" alt="">' + badges.join('') + '</div><div class="bag-item-text"><strong style="color:' + (item.rarityColor || '#fff') + '">' + item.icon + ' ' + escapeHtml(item.nome) + '</strong><small>' + escapeHtml(item.slot) + ' · ' + escapeHtml(item.raridade) + '<br>Nv.' + (item.requiredLevel || 1) + ((item.upgradeLevel||0)>0 ? ' · +' + item.upgradeLevel : '') + '</small></div></div><div class="bag-item-bottom"><span>Poder ' + (item.powerScore || 0) + '</span><span>Venda ' + (item.sellValue || 0) + '</span></div>';
+      el.onclick = function () { state.selectedItemId = item.id; renderBagItems(); renderBagDetail(item); };
       bagList.appendChild(el);
     });
     var selected = items.find(function (it) { return it.id === state.selectedItemId; }) || items[0];
     if (selected) { state.selectedItemId = selected.id; renderBagDetail(selected); }
+  }
+
+  function renderBagFashion() {
+    var wrap = byId('bag-fashion-list');
+    if (!wrap) return;
+    var fashion = state.me && state.me.v92 && state.me.v92.fashion ? state.me.v92.fashion : { catalog: [], owned: [], equipped: {} };
+    var owned = fashion.owned || [];
+    wrap.innerHTML = (fashion.catalog || []).map(function(it){
+      var has = owned.indexOf(it.id) >= 0;
+      var equipped = fashion.equipped && fashion.equipped[it.layer] === it.id;
+      return '<div class="fashion-card ' + (equipped ? 'equipped' : has ? 'ready' : '') + '" data-fashion-id="' + it.id + '"><div class="fashion-preview"><div style="font-size:34px">' + (it.icon || '✨') + '</div></div><h3>' + escapeHtml(it.nome) + '</h3><small>Camada: ' + escapeHtml(it.layer) + '</small><small>' + bonusLine(it.bonus || {}) + '</small><button data-fashion-action="' + it.id + '">' + (equipped ? 'Equipado' : has ? 'Equipar' : 'Desbloquear') + '</button></div>';
+    }).join('') || '<div class="fashion-card">Nenhum look cadastrado ainda.</div>';
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-fashion-id]'), function(card){
+      card.onclick = function(){
+        var id = card.getAttribute('data-fashion-id');
+        var item = (fashion.catalog || []).find(function(it){ return it.id === id; });
+        if (!item) return;
+        renderFashionDetail(item, owned.indexOf(id) >= 0, fashion.equipped && fashion.equipped[item.layer] === id);
+      };
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-fashion-action]'), function(btn){
+      btn.onclick = function(e){ e.stopPropagation(); ensureAudio();
+        var id = btn.getAttribute('data-fashion-action');
+        var item = (fashion.catalog || []).find(function(it){ return it.id === id; });
+        if (!item) return;
+        if (owned.indexOf(id) >= 0) socket.emit('v92EquipFashion', { id: id });
+        else socket.emit('v92UnlockFashion', { id: id });
+      };
+    });
+    var first = fashion.catalog && fashion.catalog[0];
+    if (first) renderFashionDetail(first, owned.indexOf(first.id) >= 0, fashion.equipped && fashion.equipped[first.layer] === first.id);
+  }
+
+  function renderFashionDetail(item, owned, equipped) {
+    bagDetail.innerHTML = '<div class="bag-detail-header"><div class="bag-item-image-wrap"><div style="font-size:34px">' + (item.icon || '✨') + '</div></div><div><h3>' + escapeHtml(item.nome) + '</h3><div class="rarity rarity-épico">Camada ' + escapeHtml(item.layer) + '</div></div></div><div class="skill-detail-box"><strong>Status</strong><br>' + (equipped ? '✅ Equipado agora.' : owned ? 'Disponível para equipar.' : 'Bloqueado, precisa de fragmentos.') + '</div><div class="detail-stats"><div>Camada<br><strong>' + escapeHtml(item.layer) + '</strong></div><div>Owned<br><strong>' + (owned ? 'Sim' : 'Não') + '</strong></div><div>Bônus<br><strong>' + bonusLine(item.bonus || {}) + '</strong></div></div><button id="bag-fashion-main-btn">' + (owned ? (equipped ? 'Equipado' : 'Equipar agora') : 'Desbloquear look') + '</button>';
+    var btn = byId('bag-fashion-main-btn');
+    if (btn) btn.onclick = function(){ ensureAudio(); if (owned) socket.emit('v92EquipFashion', { id: item.id }); else socket.emit('v92UnlockFashion', { id: item.id }); };
+  }
+
+  function renderBagSkills() {
+    var wrap = byId('bag-skill-list');
+    if (!wrap || !state.me) return;
+    var cls = GAME_CLASSES[state.me.classeId];
+    var skills = cls ? cls.habilidades || [] : [];
+    wrap.innerHTML = skills.map(function(skill, index){ return '<div class="skill-card ready" data-skill-id="' + skill.id + '"><div class="skill-preview"><img src="' + skill.icon + '" alt=""></div><h3>' + escapeHtml(skill.nome) + '</h3><small>' + escapeHtml(skill.descricao) + '</small><small>Mana ' + skill.manaCost + ' · CD ' + Math.round(skill.cooldown / 1000) + 's</small><button data-use-skill="' + skill.id + '">Usar</button></div>'; }).join('') || '<div class="skill-card">Nenhuma skill.</div>';
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-skill-id]'), function(card){
+      card.onclick = function(){ var id = card.getAttribute('data-skill-id'); var skill = skills.find(function(s){ return s.id === id; }); if (skill) renderSkillDetail(skill); };
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-use-skill]'), function(btn){ btn.onclick = function(e){ e.stopPropagation(); ensureAudio(); socket.emit('useSkill', { skillId: btn.getAttribute('data-use-skill') }); }; });
+    if (skills[0]) renderSkillDetail(skills[0]);
+  }
+
+  function renderSkillDetail(skill) {
+    bagDetail.innerHTML = '<div class="bag-detail-header"><img class="detail-item-img" src="' + skill.icon + '" alt=""><div><h3>' + escapeHtml(skill.nome) + '</h3><div class="rarity rarity-lendário">Skill de Classe</div></div></div><div class="skill-detail-box"><strong>Descrição</strong><br>' + escapeHtml(skill.descricao) + '</div><div class="detail-stats"><div>Mana<br><strong>' + skill.manaCost + '</strong></div><div>Cooldown<br><strong>' + Math.round(skill.cooldown / 1000) + 's</strong></div><div>Multiplicador<br><strong>x' + skill.danoMultiplicador + '</strong></div><div>Crit Bonus<br><strong>+' + (skill.bonusCritico || 0) + '</strong></div><div>VFX<br><strong>' + escapeHtml((skill.visual && skill.visual.tipo) || '-') + '</strong></div><div>Cor<br><strong>' + escapeHtml((skill.visual && skill.visual.cor) || '#fff') + '</strong></div></div><button id="skill-cast-btn">Lançar habilidade</button>';
+    var btn = byId('skill-cast-btn'); if (btn) btn.onclick = function(){ ensureAudio(); socket.emit('useSkill', { skillId: skill.id }); };
+  }
+
+  function renderBagShortcuts() {
+    var wrap = byId('bag-shortcut-list');
+    if (!wrap || !state.me) return;
+    var cls = GAME_CLASSES[state.me.classeId];
+    var skills = cls ? cls.habilidades || [] : [];
+    var quick = [
+      { key: '1', type: 'skill', name: skills[0] ? skills[0].nome : 'Ataque', icon: skills[0] ? skills[0].icon : '', desc: skills[0] ? skills[0].descricao : 'Ataque básico', action: 'skill-1' },
+      { key: '2', type: 'skill', name: skills[1] ? skills[1].nome : 'Skill 2', icon: skills[1] ? skills[1].icon : '', desc: skills[1] ? skills[1].descricao : '—', action: 'skill-2' },
+      { key: '3', type: 'skill', name: skills[2] ? skills[2].nome : 'Skill 3', icon: skills[2] ? skills[2].icon : '', desc: skills[2] ? skills[2].descricao : '—', action: 'skill-3' },
+      { key: '4', type: 'skill', name: skills[3] ? skills[3].nome : 'Ultimate', icon: skills[3] ? skills[3].icon : '', desc: skills[3] ? skills[3].descricao : '—', action: 'skill-4' },
+      { key: 'Q', type: 'auto', name: 'Farm Automático', icon: '', desc: 'Liga ou desliga o farm automático.', action: 'auto' },
+      { key: 'W', type: 'item', name: 'Poção Menor', icon: '', desc: 'Reservado para consumíveis de HP/Mana.', action: 'potion-hp' }
+    ];
+    wrap.innerHTML = quick.map(function(q, idx){ return '<div class="shortcut-card ' + (idx < 4 ? 'active-shortcut' : '') + '" data-shortcut="' + q.action + '"><div class="shortcut-preview">' + (q.icon ? '<img src="' + q.icon + '" alt="">' : '<div style="font-size:28px">' + q.key + '</div>') + '</div><h3>' + escapeHtml(q.name) + '</h3><small>Tecla ' + q.key + '</small><small>' + escapeHtml(q.desc) + '</small></div>'; }).join('');
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-shortcut]'), function(card){ card.onclick = function(){ var act = card.getAttribute('data-shortcut'); var q = quick.find(function(x){ return x.action === act; }); if (q) renderShortcutDetail(q); }; });
+    renderShortcutDetail(quick[0]);
+  }
+
+  function renderShortcutDetail(q) {
+    bagDetail.innerHTML = '<div class="bag-detail-header"><div class="bag-item-image-wrap"><div style="font-size:30px">' + q.key + '</div></div><div><h3>' + escapeHtml(q.name) + '</h3><div class="rarity rarity-raro">Atalho rápido</div></div></div><div class="shortcut-detail-box">' + escapeHtml(q.desc) + '</div><div class="detail-stats"><div>Tecla<br><strong>' + q.key + '</strong></div><div>Tipo<br><strong>' + escapeHtml(q.type) + '</strong></div><div>Ação<br><strong>' + escapeHtml(q.action) + '</strong></div></div><button id="shortcut-action-btn">' + (q.action === 'auto' ? 'Alternar Auto Farm' : 'Executar ação') + '</button>';
+    var btn = byId('shortcut-action-btn');
+    if (btn) btn.onclick = function(){ ensureAudio(); if (q.action === 'auto') autoFarmBtn && autoFarmBtn.click(); else addLog('⚡ Atalho "' + q.key + '" preparado para futuras integrações de consumíveis.'); };
+  }
+
+  function renderBagForge() {
+    var wrap = byId('bag-forge-list');
+    if (!wrap || !state.me) return;
+    var items = (state.me.inventario || []).slice().sort(function(a,b){ return (b.upgradeLevel||0) - (a.upgradeLevel||0) || (b.powerScore||0) - (a.powerScore||0); });
+    wrap.innerHTML = items.map(function(item){ return '<div class="forge-card ready" data-forge-item="' + item.id + '"><div class="forge-preview"><img src="' + (item.asset || '') + '" alt=""></div><h3 style="color:' + (item.rarityColor || '#fff') + '">' + escapeHtml(item.nome) + '</h3><small>+' + (item.upgradeLevel||0) + ' · ' + escapeHtml(item.raridade) + '</small><small>Slots: ' + (item.sockets || 1) + ' · Poder ' + (item.powerScore||0) + '</small><button data-forge-upgrade="' + item.id + '">Fortalecer</button></div>'; }).join('') || '<div class="forge-card">Nenhum item para forjar.</div>';
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-forge-item]'), function(card){ card.onclick = function(){ var id = card.getAttribute('data-forge-item'); var item = items.find(function(it){ return it.id === id; }); if (item) renderForgeDetail(item); }; });
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-forge-upgrade]'), function(btn){ btn.onclick = function(e){ e.stopPropagation(); ensureAudio(); socket.emit('upgradeItem', { itemId: btn.getAttribute('data-forge-upgrade') }); }; });
+    if (items[0]) renderForgeDetail(items[0]);
+  }
+
+  function renderForgeDetail(item) {
+    var upgradeLevel = item.upgradeLevel || 0;
+    var upgradeCostGold = Math.floor(220 + Math.pow(upgradeLevel + 1, 1.65) * 145 + (['comum','raro','épico','lendário','mítico','boss'].indexOf(item.raridade) || 0) * 180);
+    var upgradeCostGems = upgradeLevel >= 5 ? Math.ceil((upgradeLevel - 4) / 3) : 0;
+    bagDetail.innerHTML = '<div class="bag-detail-header"><img class="detail-item-img" src="' + (item.asset || '') + '" alt=""><div><h3 style="color:' + (item.rarityColor || '#fff') + '">' + escapeHtml(item.nome) + '</h3><div class="rarity ' + rarityClass(item.raridade) + '">' + escapeHtml(item.raridade) + ' · +' + upgradeLevel + '</div></div></div><div class="upgrade-box"><strong>Fortalecimento</strong><br>Próximo nível: <b>+' + (upgradeLevel + 1) + '</b><br>Custo: <b>' + upgradeCostGold + ' ouro</b>' + (upgradeCostGems ? ' + <b>' + upgradeCostGems + ' 💎</b>' : '') + '</div><div class="detail-stats"><div>ATQ<br><strong>' + statValue(item,'ataque') + '</strong></div><div>DEF<br><strong>' + statValue(item,'defesa') + '</strong></div><div>CRIT<br><strong>' + statValue(item,'critico') + '</strong></div><div>HP<br><strong>' + statValue(item,'hp') + '</strong></div><div>MANA<br><strong>' + statValue(item,'mana') + '</strong></div><div>PWR<br><strong>' + (item.powerScore || 0) + '</strong></div></div><button id="forge-upgrade-main-btn">Melhorar Item</button>';
+    var btn = byId('forge-upgrade-main-btn'); if (btn) btn.onclick = function(){ ensureAudio(); socket.emit('upgradeItem', { itemId: item.id }); };
   }
 
   function renderBagDetail(item) {
@@ -469,7 +630,7 @@
     socketHtml += '</div><div class="gem-buttons">';
     Object.keys(GEM_TYPES).forEach(function (gid) {
       var g = GEM_TYPES[gid];
-      socketHtml += '<button data-gem="' + gid + '"><img src="' + g.asset + '" alt=""> ' + escapeHtml(g.nome) + '</button>';
+      socketHtml += '<button data-gem="' + gid + '"><img src="' + g.asset + '" alt="" style="width:18px;height:18px;border-radius:8px;vertical-align:middle;margin-right:6px"> ' + escapeHtml(g.nome) + '</button>';
     });
     socketHtml += '</div><small>Cada gema inserida consome 1 💎 e aumenta os atributos do item.</small></div>';
 
@@ -482,10 +643,9 @@
     var upgradeCostGems = upgradeLevel >= 5 ? Math.ceil((upgradeLevel - 4) / 3) : 0;
     var compareLabel = isEquipped ? 'Item atualmente equipado no slot:' : 'Equipado no slot:';
 
-    bagDetail.innerHTML = '<h3 style="color:' + (item.rarityColor || '#fff') + '"><img class="detail-item-img" src="' + (item.asset || '') + '" alt=""> ' + item.icon + ' ' + escapeHtml(item.nome) + '</h3>' +
-      '<div class="rarity ' + rarityClass(item.raridade) + '">' + escapeHtml(String(item.raridade).toUpperCase()) + ' · Slot ' + escapeHtml(item.slot) + ' · Requer Nv. ' + (item.requiredLevel || 1) + ' · Melhoria +' + (item.upgradeLevel || 0) + (item.locked ? ' · 🔒 Protegido' : '') + '</div>' +
+    bagDetail.innerHTML = '<div class="bag-detail-header"><img class="detail-item-img" src="' + (item.asset || '') + '" alt=""><div><h3 style="color:' + (item.rarityColor || '#fff') + '">' + item.icon + ' ' + escapeHtml(item.nome) + '</h3><div class="rarity ' + rarityClass(item.raridade) + '">' + escapeHtml(String(item.raridade).toUpperCase()) + ' · Slot ' + escapeHtml(item.slot) + ' · Requer Nv. ' + (item.requiredLevel || 1) + '</div></div></div>' +
       equippedState +
-      '<p>Venda por <strong>' + (item.sellValue || 0) + ' ouro</strong> ou equipe para alterar os atributos e o visual do herói.</p>' +
+      '<div class="bag-detail-hero">Venda por <strong>' + (item.sellValue || 0) + ' ouro</strong> ou equipe para alterar atributos e o visual do herói.</div>' +
       '<div class="detail-stats">' +
         diffHtml(item, equipped, 'ataque', 'ATQ') + diffHtml(item, equipped, 'defesa', 'DEF') + diffHtml(item, equipped, 'critico', 'CRIT') + diffHtml(item, equipped, 'hp', 'HP') + diffHtml(item, equipped, 'mana', 'MANA') + '<div>PODER<br><strong>' + (item.powerScore || 0) + '</strong></div>' +
       '</div>' +
@@ -506,6 +666,74 @@
     });
   }
 
+
+
+  function v94Open() { if (v94Modal) v94Modal.classList.remove('hidden'); }
+  function v94CloseModal() { if (v94Modal) v94Modal.classList.add('hidden'); }
+
+  function v94UpdateCombo(hitPower) {
+    var n = performance.now();
+    if (!state.v94Combo) state.v94Combo = { count: 0, until: 0 };
+    if (n > state.v94Combo.until) state.v94Combo.count = 0;
+    state.v94Combo.count += hitPower || 1;
+    state.v94Combo.until = n + 2300;
+    if (v94ComboCount) v94ComboCount.textContent = state.v94Combo.count;
+    if (v94ComboLabel) {
+      v94ComboLabel.textContent = state.v94Combo.count >= 20 ? 'Execução lendária' : state.v94Combo.count >= 10 ? 'Pressão total' : 'Ritmo de batalha';
+    }
+    if (v94ComboMeter) {
+      v94ComboMeter.classList.remove('hidden');
+      clearTimeout(state.__v94ComboTimer);
+      state.__v94ComboTimer = setTimeout(function(){ if (v94ComboMeter) v94ComboMeter.classList.add('hidden'); }, 2400);
+    }
+  }
+
+  function v94ShowRewardCard(loot) {
+    if (!v94RewardCard || !loot) return;
+    var color = loot.rarityColor || loot.cor || '#ffe69b';
+    v94RewardCard.style.borderColor = color;
+    v94RewardCard.innerHTML = '<div class="v94-reward-inner"><div class="v94-reward-icon">' +
+      (loot.asset ? '<img src="' + loot.asset + '" alt="">' : '<span style="font-size:34px">' + (loot.icon || '🎁') + '</span>') +
+      '</div><div class="v94-reward-text"><h3 style="color:' + color + '">' + (loot.icon || '🎁') + ' ' + escapeHtml(loot.nome || 'Item obtido') + '</h3>' +
+      '<p>Drop obtido na caçada. Poder ' + formatNumber(loot.powerScore || 0) + ' · Venda ' + formatNumber(loot.sellValue || 0) + ' ouro.</p>' +
+      '<span class="v94-reward-rarity" style="color:' + color + '">' + escapeHtml(String(loot.raridade || 'item').toUpperCase()) + '</span></div></div>';
+    v94RewardCard.classList.remove('hidden');
+    clearTimeout(state.__v94RewardTimer);
+    state.__v94RewardTimer = setTimeout(function(){ if (v94RewardCard) v94RewardCard.classList.add('hidden'); }, 4300);
+  }
+
+  function v94Bind() {
+    if (menuV94 && !menuV94.__v94Bound) {
+      menuV94.__v94Bound = true;
+      menuV94.onclick = function(){
+        ensureAudio();
+        Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); });
+        menuV94.classList.add('active');
+        v94Open();
+      };
+    }
+    if (v94Close && !v94Close.__v94Bound) { v94Close.__v94Bound = true; v94Close.onclick = v94CloseModal; }
+    var testReward = byId('v94-test-reward');
+    if (testReward && !testReward.__v94Bound) {
+      testReward.__v94Bound = true;
+      testReward.onclick = function(){
+        ensureAudio();
+        v94ShowRewardCard({ nome:'Relíquia de Teste V94', icon:'🎁', raridade:'mítico', rarityColor:'#d783ff', powerScore:940, sellValue:1200, asset:'assets/items/arma_mítico.png' });
+        if (vfx) { vfx.playDeathBurst(canvas.width * 0.72, canvas.height * 0.43, '#d783ff'); vfx.flashScreen('#d783ff', 180, .12); }
+      };
+    }
+    var testCombo = byId('v94-test-combo');
+    if (testCombo && !testCombo.__v94Bound) {
+      testCombo.__v94Bound = true;
+      testCombo.onclick = function(){ ensureAudio(); v94UpdateCombo(5); if (vfx) vfx.playPlayerAttack({ classId: state.me && state.me.classeId || 'guerreiro', crit:true }); };
+    }
+    var toggle = byId('v94-toggle-heavy-vfx');
+    if (toggle && !toggle.__v94Bound) {
+      toggle.__v94Bound = true;
+      toggle.onclick = function(){ ensureAudio(); state.v94HeavyVfx = !state.v94HeavyVfx; document.body.classList.toggle('v94-heavy-vfx', !!state.v94HeavyVfx); };
+    }
+    document.body.classList.toggle('v94-heavy-vfx', !!state.v94HeavyVfx);
+  }
 
   function addLog(text) {
     var el = byId('combat-log');
@@ -744,10 +972,58 @@
   }
 
   function drawHeroSkinLayer(layerSrc, x, y, w, h, transform, opts) {
-    if (!layerSrc || !vfx || !vfx.drawSkinLayer) return;
+    if (!layerSrc) return;
     var layerImg = cachedImage(layerSrc);
     if (!layerImg || !layerImg.complete) return;
-    vfx.drawSkinLayer(layerImg, x, y, w, h, transform, opts || {});
+    if (opts && opts.rigPose) drawRiggedSprite(layerImg, x, y, w, h, transform, opts.rigPose, opts || {});
+    else if (vfx && vfx.drawSkinLayer) vfx.drawSkinLayer(layerImg, x, y, w, h, transform, opts || {});
+  }
+
+  function drawRiggedSprite(img, x, y, w, h, transform, pose, opts) {
+    if (!img || !img.complete) return;
+    opts = opts || {};
+    pose = pose || {};
+    var sw = img.naturalWidth || img.width || 1;
+    var sh = img.naturalHeight || img.height || 1;
+    if (transform && transform.trail && vfx && vfx.drawGhostImage) vfx.drawGhostImage(img, x, y, w, h, transform.trailColor, opts.facing || 1);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((transform && transform.rot) || 0);
+    ctx.scale(((transform && transform.sx) || 1) * (opts.facing || 1), ((transform && transform.sy) || 1));
+    if (opts.shadowColor) { ctx.shadowColor = opts.shadowColor; ctx.shadowBlur = opts.shadowBlur || 0; }
+    if (opts.dead) { ctx.globalAlpha = 0.55; ctx.filter = 'grayscale(1)'; }
+    if (transform && transform.flash) {
+      ctx.filter = transform.flash === 'red' ? 'brightness(1.95) sepia(1) saturate(6) hue-rotate(-35deg) contrast(1.25)' : 'brightness(2.9) saturate(0.12) contrast(1.25)';
+    }
+    var idle = pose.idle || 0;
+    var swing = pose.swing || 0;
+    var hit = pose.hit || 0;
+    var cast = pose.cast || 0;
+    function seg(top0, top1, lx, ly, dw, dh, rot, sx, sy, alpha) {
+      ctx.save();
+      ctx.translate(lx, ly);
+      ctx.rotate(rot || 0);
+      ctx.scale(sx || 1, sy || 1);
+      ctx.globalAlpha = alpha == null ? 1 : alpha;
+      var srcY = sh * top0;
+      var srcH = sh * (top1 - top0);
+      ctx.drawImage(img, 0, srcY, sw, srcH, -dw / 2, -dh / 2, dw, dh);
+      ctx.restore();
+    }
+    if (pose.mode === 'slime') {
+      var squish = 1 + Math.sin((pose.time || 0) / 180) * 0.06 + Math.abs(swing) * 0.10;
+      ctx.save();
+      ctx.translate(0, -h * 0.52 + hit * 6);
+      ctx.scale(1 + Math.abs(swing) * 0.08, 1 / squish);
+      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      ctx.restore();
+    } else {
+      var lean = pose.lean || 0;
+      seg(0.70, 1.00, swing * 6, -h * 0.16 + idle * 0.18, w * 0.96, h * 0.34, swing * 0.12 - hit * 0.04 + lean * 0.2, 1 + Math.abs(swing) * 0.02, 1 - Math.abs(swing) * 0.01);
+      seg(0.30, 0.70, swing * 8, -h * 0.50 - Math.abs(swing) * 6 + cast * 3, w * 0.98, h * 0.42, -swing * 0.10 + hit * 0.05 + lean, 1, 1);
+      seg(0.00, 0.30, swing * 3, -h * 0.82 - Math.abs(swing) * 2 - hit * 2, w * 0.86, h * 0.26, swing * 0.05 + hit * 0.04 + lean * 0.5, 1, 1);
+    }
+    ctx.restore();
   }
 
   function drawPlayer(now) {
@@ -807,20 +1083,19 @@
       ctx.restore();
     }
 
-    // Camadas futuras, todas usando o mesmo pivot/transform do corpo.
-    drawHeroSkinLayer(layers.back || layers.wingsBack, tr.x, tr.y, w, h, tr, { shadowColor: mods.aura, shadowBlur: 10, dead: state.me.isDead });
-    if (vfx && vfx.drawCharacterImage) vfx.drawCharacterImage(img, tr.x, tr.y, w, h, tr, { shadowColor: mods.aura || '#000', shadowBlur: mods.aura ? 16 : 0, dead: state.me.isDead });
-    else {
-      ctx.save(); ctx.translate(tr.x, tr.y); ctx.rotate(tr.rot || 0); ctx.scale(tr.sx || 1, tr.sy || 1); if (tr.flash) ctx.filter = tr.flash === 'red' ? 'brightness(1.9) sepia(1) saturate(6) hue-rotate(-35deg)' : 'brightness(2.8)'; ctx.drawImage(img, -w / 2, -h, w, h); ctx.restore();
-    }
-    drawHeroSkinLayer(layers.outfit || layers.armor, tr.x, tr.y, w, h, tr, { dead: state.me.isDead });
-    drawHeroSkinLayer(layers.hair, tr.x, tr.y, w, h, tr, { dead: state.me.isDead });
-    drawHeroSkinLayer(layers.front || layers.wingsFront, tr.x, tr.y, w, h, tr, { shadowColor: mods.aura, shadowBlur: 14, dead: state.me.isDead });
+    var poseRig = { idle: idleBob, swing: attackSwing, hit: hitProg, cast: clsId === 'mago' ? Math.sin(now / 260) * 0.6 : 0, lean: clsId === 'arqueiro' ? -attackSwing * 0.12 : clsId === 'guerreiro' ? attackSwing * 0.06 : 0, time: now };
+
+    // Camadas futuras, todas usando o mesmo pivot/transform do corpo, agora com pseudo-rig para dar mais animação.
+    drawHeroSkinLayer(layers.back || layers.wingsBack, tr.x, tr.y, w, h, tr, { shadowColor: mods.aura, shadowBlur: 10, dead: state.me.isDead, rigPose: poseRig });
+    drawRiggedSprite(img, tr.x, tr.y, w, h, tr, poseRig, { shadowColor: mods.aura || '#000', shadowBlur: mods.aura ? 16 : 0, dead: state.me.isDead });
+    drawHeroSkinLayer(layers.outfit || layers.armor, tr.x, tr.y, w, h, tr, { dead: state.me.isDead, rigPose: poseRig });
+    drawHeroSkinLayer(layers.hair, tr.x, tr.y, w, h, tr, { dead: state.me.isDead, rigPose: poseRig });
+    drawHeroSkinLayer(layers.front || layers.wingsFront, tr.x, tr.y, w, h, tr, { shadowColor: mods.aura, shadowBlur: 14, dead: state.me.isDead, rigPose: poseRig });
 
     var weap = eq.arma, ring = eq.anel, neck = eq.colar, orn = eq.ornamento;
     var wxBase = tr.x + w * (clsId === 'arqueiro' ? 0.13 : 0.20) + attackSwing * 24;
     var wyBase = tr.y - h * (clsId === 'arqueiro' ? 0.48 : 0.46) - attackSwing * 8;
-    if (layers.weapon) drawHeroSkinLayer(layers.weapon, tr.x, tr.y, w, h, tr, { shadowColor: mods.weaponGlow || '#9fd8ff', shadowBlur: 16 });
+    if (layers.weapon) drawHeroSkinLayer(layers.weapon, tr.x, tr.y, w, h, tr, { shadowColor: mods.weaponGlow || '#9fd8ff', shadowBlur: 16, rigPose: poseRig });
     else if (weap) {
       var wr = clsId === 'guerreiro' ? (0.12 + attackSwing * 1.15) : clsId === 'arqueiro' ? (-0.55 + attackSwing * 0.20) : (0.08 + attackSwing * 0.25);
       var ws = clsId === 'arqueiro' ? 66 : 60;
@@ -874,8 +1149,8 @@
       ctx.restore();
     }
 
-    if (vfx && vfx.drawCharacterImage) vfx.drawCharacterImage(img, tr.x, tr.y, w, h, tr, { shadowColor: isDragon ? '#ff8f3d' : '#9fd8ff', shadowBlur: isDragon ? 18 : 8 });
-    else { ctx.save(); ctx.translate(tr.x, tr.y); ctx.rotate(tr.rot || 0); ctx.scale(tr.sx || 1, tr.sy || 1); if (tr.flash) ctx.filter = tr.flash === 'red' ? 'brightness(1.9) sepia(1) saturate(6) hue-rotate(-35deg)' : 'brightness(2.8)'; ctx.drawImage(img, -w / 2, -h, w, h); ctx.restore(); }
+    var monsterPose = { idle: Math.sin(now / 240) * 3, swing: attackPulse, hit: hitProg, lean: isDragon ? -attackPulse * 0.08 : attackPulse * 0.04, time: now, mode: id === 'slime' ? 'slime' : 'rig' };
+    drawRiggedSprite(img, tr.x, tr.y, w, h, tr, monsterPose, { shadowColor: isDragon ? '#ff8f3d' : '#9fd8ff', shadowBlur: isDragon ? 18 : 8, facing: 1 });
 
     if (id === 'skeleton' && action === 'attack') {
       ctx.save(); ctx.strokeStyle = '#d8f0ff'; ctx.lineWidth = 5; ctx.shadowColor = '#d8f0ff'; ctx.shadowBlur = 16; ctx.beginPath(); ctx.arc(tr.x - 14, tr.y - h * 0.50, w * 0.18, -1.3, 0.45); ctx.stroke(); ctx.restore();
@@ -1443,6 +1718,7 @@
   if (v40Modal) Array.prototype.forEach.call(v40Modal.querySelectorAll('[data-v40-tab]'), function(btn){ btn.onclick=function(){ state.v40Tab=btn.getAttribute('data-v40-tab'); renderV40(); }; });
   if (v90Modal) Array.prototype.forEach.call(v90Modal.querySelectorAll('[data-v90-tab]'), function(btn){ btn.onclick=function(){ state.v90Tab=btn.getAttribute('data-v90-tab'); renderV90(); }; });
   if (v92Modal) Array.prototype.forEach.call(v92Modal.querySelectorAll('[data-v92-tab]'), function(btn){ btn.onclick=function(){ state.v92Tab=btn.getAttribute('data-v92-tab'); renderV92(); }; });
+  v94Bind();
   if (v30Modal) Array.prototype.forEach.call(v30Modal.querySelectorAll('[data-v30-tab]'), function(btn){ btn.onclick=function(){ state.v30Tab=btn.getAttribute('data-v30-tab'); renderV30(); }; });
   if (ascensionModal) ascensionModal.addEventListener('click', function (e) { if (e.target === ascensionModal) closeAscension(); });
   if (v90Modal) v90Modal.addEventListener('click', function (e) { if (e.target === v90Modal) closeV90(); });
@@ -1524,6 +1800,7 @@
         });
       }
       pushFloating((attack.isCrit ? 'CRIT ' : '-') + attack.damage, color, fxX, fxY, attack.isCrit);
+      v94UpdateCombo(attack.isCrit ? 2 : 1);
       spawnImpactBurst(fxX, fxY, color, attack.isCrit ? 1.35 : 1);
       playSound(attack.type === 'ability' ? 'skill' : 'hit');
       if (attack.result && attack.result.specialTriggered) {
@@ -1575,6 +1852,7 @@
       state.lootRecente.unshift(data.loot); state.lootRecente = state.lootRecente.slice(0, 8);
       addLog((data.loot.exclusivoBoss ? '🐉 Loot exclusivo: ' : '🎁 Loot obtido: ') + data.loot.icon + ' ' + data.loot.nome + ' [' + data.loot.raridade + ']');
       playSound(data.loot.exclusivoBoss ? 'boss' : 'loot');
+      v94ShowRewardCard(data.loot);
     }
     if (data.autoEquipSuggestion && data.killerId === state.meId) showEquipSuggestion(data.autoEquipSuggestion);
     if (data.progress && data.progress.leveledUp) addLog('✨ Level up! Agora você está no Nv. ' + data.progress.currentLevel + '.');
@@ -1610,7 +1888,7 @@
       });
       vfx.hitFlinch('monster', { x: 1, y: 0 }, { distance: 32, color: 'white' });
     }
-    spawnImpactBurst(canvas.width * 0.72, canvas.height * 0.40, color, 1.1); playSound('skill');
+    spawnImpactBurst(canvas.width * 0.72, canvas.height * 0.40, color, 1.1); v94UpdateCombo(3); playSound('skill');
   });
   socket.on('inventoryAction', function (info) { if (info.type === 'equip') { addLog('🧰 Item equipado: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'unequip') { addLog('🎒 Item retornou para a bolsa: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'sell') { addLog('🪙 Item vendido por +' + info.gold + ' ouro: ' + info.item.nome + '.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'sellAll') { addLog('🪙 ' + info.sold + ' itens vendidos por +' + info.gold + ' ouro.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'equipBest') { addLog('⚡ Melhor equipamento aplicado: ' + ((info.equippedItems || []).length) + ' item(ns).'); playSound('equip'); } if (info.type === 'gem') { addLog('💎 Gema inserida: ' + info.gem.nome + ' em ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'upgradeItem') { addLog('🔥 Forja: ' + info.item.nome + ' melhorado para +' + (info.item.upgradeLevel || 0) + '.'); playSound('equip'); } if (info.type === 'lockItem') { addLog((info.item.locked ? '🔒 Item protegido: ' : '🔓 Item desbloqueado: ') + info.item.nome + '.'); playSound('equip'); } });
   socket.on('playerDied', function (data) { if (data.playerId === state.meId) { addLog('💀 Você foi derrotado por ' + data.monsterName + '. Ressurreição automática em 5s.'); state.anim.playerHitUntil = performance.now() + 900; playSound('death'); } });

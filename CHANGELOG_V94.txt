@@ -1,0 +1,41 @@
+Legend Of Indle RPG V1 — V94 VISUAL LAB + RESOURCE PIPELINE
+================================================================
+
+Objetivo:
+- Absorver mais do material visual enviado como referência técnica.
+- Evoluir o jogo para uma experiência local mais cinematográfica.
+- Adicionar feedback visual forte sem depender do Render.
+
+Implementado:
+1. V94 Visual Lab
+- Novo botão no menu inferior: 🎬 V94.
+- Modal com resumo de UI, battle feel, asset pipeline e local-first.
+- Botões para testar card de loot, combo e VFX forte.
+
+2. Combo Meter
+- Medidor visual de combo durante ataques e habilidades.
+- Rótulos mudam conforme o ritmo de batalha.
+
+3. Reward Card / Card Prompt
+- Novo card visual quando cai loot.
+- Mostra ícone, nome, raridade, poder e valor de venda.
+- Inspirado na lógica de prompts/cards do material enviado.
+
+4. Integração visual no combate
+- Ataques e skills agora alimentam o combo meter.
+- Loot chama automaticamente o card visual.
+- VFX forte pode ser alternado no Visual Lab.
+
+5. Resource Pipeline local
+- Adicionado tools/asa_resource_inspector.py.
+- A ferramenta lê os blobs enviados como referência, tenta DES+zlib e identifica SWF CWS/FWS.
+- Isso não é necessário para jogar; é ferramenta de análise local.
+
+6. Documentação
+- docs/V94_VISUAL_RESOURCE_PIPELINE.md.
+- CHANGELOG_V94.txt.
+
+Observação importante:
+- A build usa os arquivos enviados como referência técnica e visual.
+- Não inclui assets proprietários externos diretamente dentro do jogo.
+- A ferramenta permite análise local caso você queira estudar seus próprios recursos.

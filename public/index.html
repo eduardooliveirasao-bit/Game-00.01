@@ -205,6 +205,7 @@
       <button id="menu-v40">🌠 V40</button>
       <button id="menu-v90">👑 V90</button>
       <button id="menu-v92">🧬 V92</button>
+      <button id="menu-v94">🎬 V94</button>
       <button>🪽 Asas</button>
       <button id="menu-mount">🐺 Montaria</button>
       <button id="menu-ranking">🏆 Ranking</button>
@@ -212,31 +213,97 @@
     </nav>
 
     <section id="bag-modal" class="modal hidden">
-      <div class="modal-card">
-        <div class="modal-header">
+      <div class="modal-card bag-window">
+        <div class="modal-header bag-window-header">
           <div>
             <h2>Bolsa do Herói</h2>
-            <p>Inventário clicável, equipar e desequipar manualmente.</p>
+            <p>Inventário, fashion, livro de skills, atalhos e forja — inspirados no material visual que você enviou.</p>
           </div>
           <button id="bag-close" class="modal-close">✕</button>
+        </div>
+        <div class="bag-toolbar">
+          <div class="bag-tabs">
+            <button class="bag-tab active" data-bag-tab="items">🎒 Inventário</button>
+            <button class="bag-tab" data-bag-tab="fashion">🎭 Fashion</button>
+            <button class="bag-tab" data-bag-tab="skills">📘 Skills</button>
+            <button class="bag-tab" data-bag-tab="shortcuts">⚡ Atalhos</button>
+            <button class="bag-tab" data-bag-tab="forge">🔥 Forja</button>
+          </div>
+          <div class="bag-actions"><button id="equip-best-btn">Equipar melhor</button><button id="sell-all-btn">Vender tudo</button></div>
         </div>
         <div class="modal-body bag-modal-body">
           <div class="bag-column paper-column">
             <div class="bag-title">Personagem e atributos</div>
             <div id="paper-doll" class="paper-doll"></div>
           </div>
-          <div class="bag-column">
-            <div class="bag-title-row"><div class="bag-title">Itens na bolsa</div><div class="bag-actions"><button id="equip-best-btn">Equipar melhor</button><button id="sell-all-btn">Vender tudo</button></div></div>
-            <div id="bag-list" class="bag-list"></div>
+          <div class="bag-column bag-center-column">
+            <div class="bag-title-row"><div id="bag-active-title" class="bag-title">Inventário</div><div id="bag-active-subtitle" class="bag-subtitle">Slots, raridades e gestão completa de itens.</div></div>
+            <div class="bag-view-stack">
+              <div id="bag-list" class="bag-list bag-view active"></div>
+              <div id="bag-fashion-list" class="bag-fashion-list bag-view hidden"></div>
+              <div id="bag-skill-list" class="bag-skill-list bag-view hidden"></div>
+              <div id="bag-shortcut-list" class="bag-shortcut-list bag-view hidden"></div>
+              <div id="bag-forge-list" class="bag-forge-list bag-view hidden"></div>
+            </div>
           </div>
           <div class="bag-column detail">
-            <div class="bag-title">Detalhes do item</div>
-            <div id="bag-detail" class="bag-detail">Selecione um item da bolsa.</div>
+            <div class="bag-title">Painel de detalhes</div>
+            <div id="bag-detail" class="bag-detail">Selecione um item, look, skill ou recurso.</div>
           </div>
         </div>
       </div>
     </section>
 
+
+
+    <div id="v94-combo-meter" class="v94-combo-meter hidden">
+      <strong id="v94-combo-count">0</strong>
+      <span>COMBO</span>
+      <small id="v94-combo-label">Ritmo de batalha</small>
+    </div>
+
+    <div id="v94-reward-card" class="v94-reward-card hidden" aria-live="polite"></div>
+
+    <section id="v94-modal" class="modal hidden">
+      <div class="modal-card compact-modal v94-modal-card">
+        <div class="modal-header">
+          <div>
+            <h2>🎬 V94 — Visual Lab</h2>
+            <p>Central de visual, animação, asset pipeline e efeitos adaptados para o Legend Of Indle.</p>
+          </div>
+          <button id="v94-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body v94-body">
+          <div class="v94-lab-grid">
+            <div class="v94-lab-card">
+              <h3>🎒 UI MMORPG</h3>
+              <p>Bolsa, skillbook, atalhos, forja, cards e prompts agora seguem uma estrutura mais próxima de cliente MMORPG.</p>
+            </div>
+            <div class="v94-lab-card">
+              <h3>⚔️ Battle Feel</h3>
+              <p>Combo meter, reward cards, pseudo-rig, hit stop, dash, slash, beam, runas e impacto visual por classe.</p>
+            </div>
+            <div class="v94-lab-card">
+              <h3>🧩 Asset Pipeline</h3>
+              <p>Incluído um analisador local para recursos compactados/criptografados enviados como referência técnica.</p>
+            </div>
+            <div class="v94-lab-card">
+              <h3>🖥️ Local First</h3>
+              <p>O jogo continua preparado para rodar local, com liberdade para evoluir até launcher/executável.</p>
+            </div>
+          </div>
+          <div class="v94-control-panel">
+            <button id="v94-test-reward">Testar Card de Loot</button>
+            <button id="v94-test-combo">Testar Combo</button>
+            <button id="v94-toggle-heavy-vfx">Alternar VFX Forte</button>
+          </div>
+          <pre class="v94-debug-note">Arquivos novos:
+tools/asa_resource_inspector.py
+docs/V94_VISUAL_RESOURCE_PIPELINE.md
+CHANGELOG_V94.txt</pre>
+        </div>
+      </div>
+    </section>
 
 
     <section id="ranking-modal" class="modal hidden">

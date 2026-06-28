@@ -1,0 +1,41 @@
+Legend Of Indle RPG V1 — V93 VISUAL + UI + BATTLE FEEL
+========================================================
+
+Base usada:
+- V92 local core
+- Aproveitando o melhor do material visual enviado para orientar a adaptação interna do jogo
+
+Principais melhorias desta versão:
+1. INVENTÁRIO / BOLSA
+- Bolsa redesenhada como janela premium de MMORPG.
+- Abas novas: Inventário, Fashion, Skills, Atalhos e Forja.
+- Visual em grade com foco em raridade, power score, lock, upgrade e status de equipado.
+- Painel de detalhes reforçado com comparação, sockets e ações rápidas.
+
+2. PAPER DOLL / HERO PANEL
+- Painel do personagem reforçado com atributos principais.
+- Exibição melhor de montarias e bônus acumulados.
+- Nome, classe, nível e asa apresentados em destaque.
+
+3. SKILLBOOK / SHORTCUTS
+- Livro de skills com ícones, cooldown, mana e multiplicador.
+- Aba de atalhos para organizar a experiência de combate.
+- Estrutura pronta para crescer com consumíveis e binds adicionais.
+
+4. FORJA
+- Vista dedicada para upgrade de itens.
+- Cálculo de custo visual e ação rápida de melhoria.
+
+5. BATTLE FEEL / ANIMAÇÃO
+- Personagens e monstros com pseudo-rig de segmentos (cabeça, torso, pernas/corpo) para dar mais sensação de animação mesmo com PNG único.
+- Melhor leitura de ataque, impacto e movimento corporal.
+- Integração mantida com VFXManager para dash, shake, flash, hit-stop, partículas e magias.
+
+6. ESTILO GERAL
+- Janela da bolsa, painéis e cartões com acabamento dark fantasy mais forte.
+- Melhor hierarquia visual para informação de loot, build e progressão.
+
+Observações:
+- Esta versão foca em visual, usabilidade e sensação de combate.
+- A aba de atalhos já está pronta para expansão futura de consumíveis/atalhos extras.
+- O sistema aproveita a base já existente de V92 (fashion, montaria, gemas, upgrade, VFX, classes e assets).
