@@ -1,5 +1,5 @@
-
 const { LEVEL_CAP, XP_TABLE, WING_LEVELS, GAME_CLASSES } = require('../../shared/classes.js');
+const LootManager = require('./LootManager');
 
 class LevelManager {
   static getXpToNext(level) {
@@ -16,8 +16,16 @@ class LevelManager {
     const classe = GAME_CLASSES[player.classeId];
     if (!classe) return 100;
     const base = classe.baseStats.maxHp || 100;
-    const hpBonus = (player.equipadosList || []).reduce((s, item) => s + ((item.stats && item.stats.hp) || 0), 0);
+    const hpBonus = LootManager.getHpBonus(player);
     return Math.floor(base + (player.nivel - 1) * 16 + hpBonus);
+  }
+
+  static calculateMaxMana(player) {
+    const classe = GAME_CLASSES[player.classeId];
+    if (!classe) return 0;
+    const base = classe.baseStats.mana || 0;
+    const manaBonus = LootManager.getManaBonus(player);
+    return Math.floor(base + (player.nivel - 1) * 6 + manaBonus);
   }
 
   static syncProgressFields(player) {
@@ -26,14 +34,21 @@ class LevelManager {
     player.xp = Math.max(0, Math.floor(player.xp || 0));
     player.xpToNext = this.getXpToNext(player.nivel);
     player.xpPercent = player.nivel >= LEVEL_CAP || !player.xpToNext ? 100 : Math.max(0, Math.min(100, (player.xp / player.xpToNext) * 100));
+
     const wing = this.getWingForLevel(player.nivel);
     player.asaNivel = wing.nivel;
     player.asaNome = wing.nome;
+
     if (player.classeId) {
       const maxHp = this.calculateMaxHp(player);
       player.maxHp = maxHp;
       player.hp = Math.max(1, Math.min(player.hp || maxHp, maxHp));
+
+      const maxMana = this.calculateMaxMana(player);
+      player.maxMana = maxMana;
+      player.mana = Math.max(0, Math.min(player.mana == null ? maxMana : player.mana, maxMana));
     }
+
     return player;
   }
 
@@ -59,6 +74,7 @@ class LevelManager {
     }
     this.syncProgressFields(player);
     player.hp = player.maxHp;
+    player.mana = player.maxMana;
     result.currentLevel = player.nivel;
     return result;
   }

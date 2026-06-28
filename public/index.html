@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -25,9 +24,15 @@
 
       <div id="hud-asa">🪽 Asa: <span id="hud-asa-nivel">1</span> — <span id="hud-asa-nome">Asas Iniciais</span></div>
 
-      <div id="hud-xp-wrap">
-        <div id="hud-xp-bar"><div id="hud-xp-fill"></div></div>
-        <span id="hud-xp-text">0 / 0 XP</span>
+      <div class="hud-resource-group">
+        <div class="resource-block">
+          <div class="resource-head"><span>XP</span><strong id="hud-xp-text">0 / 0 XP</strong></div>
+          <div class="resource-bar"><div id="hud-xp-fill" class="resource-fill xp"></div></div>
+        </div>
+        <div class="resource-block mana-block">
+          <div class="resource-head"><span>Mana</span><strong id="hud-mana-text">0 / 0</strong></div>
+          <div class="resource-bar"><div id="hud-mana-fill" class="resource-fill mana"></div></div>
+        </div>
       </div>
 
       <div class="hud-pill">⚔️ <span id="hud-power-value">0</span> Poder</div>
@@ -39,7 +44,7 @@
       <div class="select-card">
         <p class="eyebrow">Legend Of Indle RPG V1</p>
         <h1>Escolha seu Herói</h1>
-        <p class="select-desc">Escolha entre Guerreiro, Mago Arcanjo e Arqueira. Agora com itens, skills, farm automático e 3 monstros em rotação por horda.</p>
+        <p class="select-desc">Escolha entre Guerreiro, Mago Arcanjo e Arqueira. Agora com bolsa clicável, equipar manual, habilidades com imagem, barra de mana e boss com mecânica especial.</p>
         <div id="class-cards"></div>
       </div>
     </section>
@@ -50,10 +55,10 @@
         <span id="enemy-level">Nv. 1</span>
         <span id="enemy-type">NORMAL</span>
       </div>
-      <div class="enemy-subline">Horda <span id="enemy-horda">1</span></div>
-      <div id="enemy-hp-bar">
-        <div id="enemy-hp-fill"></div>
-        <span id="enemy-hp-text">0 / 0 HP</span>
+      <div class="enemy-subline">Horda <span id="enemy-horda">1</span> <span id="enemy-special-name"></span></div>
+      <div class="enemy-main-bars">
+        <div class="resource-bar enemy"><div id="enemy-hp-fill" class="resource-fill hp"></div><span id="enemy-hp-text" class="bar-text">0 / 0 HP</span></div>
+        <div id="enemy-special-wrap" class="resource-bar enemy special hidden"><div id="enemy-special-fill" class="resource-fill special"></div><span id="enemy-special-text" class="bar-text">0 / 0</span></div>
       </div>
     </section>
 
@@ -68,7 +73,9 @@
           <div><span>Nível</span><strong id="hero-level-side">1</strong></div>
           <div><span>Poder</span><strong id="hero-power-side">0</strong></div>
           <div><span>HP</span><strong id="hero-hp-side">0</strong></div>
+          <div><span>Mana</span><strong id="hero-mana-side">0</strong></div>
           <div><span>Ouro</span><strong id="hero-gold-side">0</strong></div>
+          <div><span>Bolsa</span><strong id="hero-bag-count">0</strong></div>
         </div>
 
         <div class="mini-title">Equipamentos</div>
@@ -78,7 +85,7 @@
       <main id="stage">
         <div id="stage-banner">
           <span id="stage-title">Floresta Cristalina</span>
-          <small id="stage-subtitle">Auto batalha ativa</small>
+          <small id="stage-subtitle">Auto batalha ativa</small><small id="hero-status-line">Herói pronto</small>
         </div>
         <canvas id="game-canvas"></canvas>
       </main>
@@ -106,13 +113,35 @@
     </footer>
 
     <nav id="bottom-menu">
-      <button class="active">⚔️ Caçar</button>
-      <button>🎒 Bolsa</button>
+      <button id="menu-hunt" class="active">⚔️ Caçar</button>
+      <button id="menu-bag">🎒 Bolsa</button>
       <button>🪽 Asas</button>
       <button>🏰 Guilda</button>
       <button>🏆 Ranking</button>
       <button>🛒 Loja</button>
     </nav>
+
+    <section id="bag-modal" class="modal hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <h2>Bolsa do Herói</h2>
+            <p>Inventário clicável, equipar e desequipar manualmente.</p>
+          </div>
+          <button id="bag-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="bag-column">
+            <div class="bag-title-row"><div class="bag-title">Itens na bolsa</div><button id="sell-all-btn">Vender tudo</button></div>
+            <div id="bag-list" class="bag-list"></div>
+          </div>
+          <div class="bag-column detail">
+            <div class="bag-title">Detalhes do item</div>
+            <div id="bag-detail" class="bag-detail">Selecione um item da bolsa.</div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <div id="fatal-error" class="hidden"></div>
   </div>

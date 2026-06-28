@@ -1,8 +1,8 @@
 {
   "name": "legend-of-indle-rpg-v1",
-  "version": "0.3.0",
+  "version": "0.6.0",
   "private": true,
-  "description": "Legend Of Indle RPG V1 — MMORPG Idle com sprites de Guerreiro, Mago Arcanjo e Arqueira",
+  "description": "Legend Of Indle RPG V1 — V6 com inventário, animações, sons, boss especial e correção de layout",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

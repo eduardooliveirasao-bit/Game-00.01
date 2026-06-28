@@ -1,26 +1,41 @@
+# Legend Of Indle RPG V1 — V6
 
-# Legend Of Indle RPG V1 — V4
+Versão com correção estrutural do layout, inventário mais completo, sons, animações e mecânica de morte/ressurreição.
 
-Versão com correções visuais, sistema de horda com 3 monstros, farm automático, 3 classes com 4 habilidades cada e sistema de itens.
+## Principais melhorias
 
-## Novidades da V4
+- Correção real do bug visual superior:
+  - o painel do inimigo saiu da sobreposição absoluta e virou uma linha própria no layout;
+  - o palco não fica mais por baixo da barra do monstro;
+  - sprites do herói e do monstro escalam conforme a altura do canvas.
+- Inventário clicável com tela de bolsa.
+- Equipar e desequipar manualmente.
+- Vender item individualmente.
+- Vender todos os itens da bolsa.
+- Comparação visual entre item selecionado e item equipado no mesmo slot.
+- Cores de raridade:
+  - comum
+  - raro
+  - épico
+  - lendário
+  - mítico
+  - boss
+- Sons gerados via Web Audio API:
+  - skill
+  - hit
+  - loot
+  - boss
+  - morte
+  - equipamento
+- Barra de mana.
+- Risco de morte do personagem.
+- Ressurreição automática.
+- Dragão Elemental com Escudo Elemental.
+- Loot exclusivo de boss.
+- Animações de idle, ataque e hit para jogador e monstros.
+- Efeitos de skill e partículas de impacto.
 
-- Nome do jogo mantido como **Legend Of Indle RPG V1**
-- Correção de layout do palco e das artes dos personagens
-- Sistema de **hordas**
-  - Hordas ímpares: **Slime Verde**
-  - Hordas pares: **Esqueleto Espadachim**
-  - A cada 10ª horda: **Dragão Elemental** (boss)
-- Imagens implementadas para os 3 monstros
-- 3 classes com **4 habilidades** cada
-- Botão de **farm automático ON/OFF**
-- Sistema de itens com **20 itens por classe**
-  - slots: arma, anel, colar e ornamento
-- Equipamento automático do melhor item obtido
-- Poder calculado com base em equipamento e nível
-- XP, ouro e loot validados no servidor
-
-## Rodar localmente
+## Rodar
 
 ```bash
 npm install

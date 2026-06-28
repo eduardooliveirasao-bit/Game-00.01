@@ -1,11 +1,10 @@
-
 (function () {
   'use strict';
 
   var LEVEL_CAP = 80;
   var XP_TABLE = {};
   for (var level = 1; level <= LEVEL_CAP; level++) {
-    XP_TABLE[level] = level >= LEVEL_CAP ? 0 : Math.floor(100 + level * 55 + Math.pow(level, 1.86) * 38);
+    XP_TABLE[level] = level >= LEVEL_CAP ? 0 : Math.floor(110 + level * 58 + Math.pow(level, 1.88) * 39);
   }
 
   function buildItems(classId, namesBySlot, color) {
@@ -17,24 +16,24 @@
     slotOrder.forEach(function (slot) {
       namesBySlot[slot].forEach(function (name, index) {
         var tier = index + 1;
-        var requiredLevel = 1 + (index * 8);
-        var rarity = rarities[Math.min(rarities.length - 1, index)];
         var stats = { ataque: 0, defesa: 0, critico: 0, hp: 0, mana: 0 };
-
         if (slot === 'arma') {
-          stats.ataque = 8 + tier * 7;
-          stats.critico = classId === 'arqueiro' ? tier * 2 : (classId === 'mago' ? tier : 0);
+          stats.ataque = 9 + tier * 7;
+          stats.critico = classId === 'arqueiro' ? tier * 2 : (classId === 'mago' ? tier : Math.floor(tier / 2));
+          stats.mana = classId === 'mago' ? tier * 6 : 0;
         } else if (slot === 'anel') {
-          stats.critico = 2 + tier * 2;
           stats.ataque = 2 + tier * 2;
+          stats.critico = 3 + tier * 2;
+          stats.mana = classId === 'mago' ? 4 + tier * 6 : 0;
         } else if (slot === 'colar') {
-          stats.hp = 15 + tier * 18;
-          stats.ataque = 1 + tier * 2;
-          stats.mana = classId === 'mago' ? 12 + tier * 8 : 0;
+          stats.hp = 18 + tier * 20;
+          stats.defesa = 2 + tier * 2;
+          stats.mana = classId === 'mago' ? 8 + tier * 5 : 0;
         } else if (slot === 'ornamento') {
-          stats.defesa = 4 + tier * 4;
-          stats.hp = 12 + tier * 14;
-          stats.critico = classId === 'guerreiro' ? tier : 1 + Math.floor(tier / 2);
+          stats.hp = 16 + tier * 15;
+          stats.defesa = 5 + tier * 4;
+          stats.critico = classId === 'arqueiro' ? tier : Math.max(1, Math.floor(tier / 2));
+          stats.mana = classId === 'mago' ? 6 + tier * 4 : 0;
         }
 
         items.push({
@@ -42,8 +41,8 @@
           classeId: classId,
           nome: name,
           slot: slot,
-          raridade: rarity,
-          requiredLevel: requiredLevel,
+          raridade: rarities[Math.min(rarities.length - 1, index)],
+          requiredLevel: 1 + index * 8,
           cor: color,
           icon: icons[slot],
           stats: stats
@@ -61,20 +60,17 @@
       nomeCurto: 'Guerreiro',
       tipoIcone: '⚔️',
       papel: 'Linha de frente / Tank',
-      asset: {
-        sprite: 'assets/characters/guerreiro.png',
-        portrait: 'assets/characters/guerreiro_portrait.png'
-      },
+      asset: { sprite: 'assets/characters/guerreiro.png', portrait: 'assets/characters/guerreiro_portrait.png' },
       corPrimaria: '#c84840',
       corSecundaria: '#ffe69b',
-      corParticulaIdle: '#ff6f61',
-      baseStats: { maxHp: 240, mana: 40, baseDano: 17, multiplicadorNivel: 3.25, defesa: 26, critico: 8 },
-      idleDescricao: 'Escudo alto, espada pesada e presença imponente na linha de frente.',
+      corParticulaIdle: '#ff7b6b',
+      baseStats: { maxHp: 250, mana: 70, baseDano: 18, multiplicadorNivel: 3.35, defesa: 28, critico: 8 },
+      idleDescricao: 'Escudo alto, espada pesada e postura inabalável.',
       habilidades: [
-        { id: 'golpe_brutal', nome: 'Golpe Brutal', descricao: 'Corte pesado de espada.', cooldown: 7000, danoMultiplicador: 1.7, bonusCritico: 5, visual: { cor: '#ff7b6b' } },
-        { id: 'muralha_de_aco', nome: 'Muralha de Aço', descricao: 'Investida com escudo energizado.', cooldown: 11000, danoMultiplicador: 2.2, visual: { cor: '#f6d36a' } },
-        { id: 'impacto_colossal', nome: 'Impacto Colossal', descricao: 'Salto e impacto devastador.', cooldown: 16000, danoMultiplicador: 2.9, visual: { cor: '#d95b43' } },
-        { id: 'fortaleza_do_guardiao', nome: 'Fortaleza do Guardião', descricao: 'Ultimate do guerreiro com energia dourada.', cooldown: 30000, danoMultiplicador: 4.8, bonusCritico: 15, visual: { cor: '#fff0b4' } }
+        { id: 'golpe_brutal', nome: 'Golpe Brutal', descricao: 'Corte pesado de espada.', cooldown: 6500, manaCost: 18, danoMultiplicador: 1.7, bonusCritico: 5, visual: { cor: '#ff7b6b', tipo: 'slash' }, icon: 'assets/skills/golpe_brutal.png' },
+        { id: 'muralha_de_aco', nome: 'Muralha de Aço', descricao: 'Investida com escudo energizado.', cooldown: 10500, manaCost: 28, danoMultiplicador: 2.15, visual: { cor: '#f6d36a', tipo: 'shieldBurst' }, icon: 'assets/skills/muralha_de_aco.png' },
+        { id: 'impacto_colossal', nome: 'Impacto Colossal', descricao: 'Salto e impacto devastador.', cooldown: 14500, manaCost: 38, danoMultiplicador: 2.85, visual: { cor: '#d95b43', tipo: 'groundCrack' }, icon: 'assets/skills/impacto_colossal.png' },
+        { id: 'fortaleza_do_guardiao', nome: 'Fortaleza do Guardião', descricao: 'Ultimate do guerreiro.', cooldown: 26000, manaCost: 55, danoMultiplicador: 4.7, bonusCritico: 15, visual: { cor: '#fff0b4', tipo: 'holyShockwave' }, icon: 'assets/skills/fortaleza_do_guardiao.png' }
       ]
     },
     arqueiro: {
@@ -83,20 +79,17 @@
       nomeCurto: 'Arqueira',
       tipoIcone: '🏹',
       papel: 'Retaguarda / Crítico',
-      asset: {
-        sprite: 'assets/characters/arqueiro.png',
-        portrait: 'assets/characters/arqueiro_portrait.png'
-      },
+      asset: { sprite: 'assets/characters/arqueiro.png', portrait: 'assets/characters/arqueiro_portrait.png' },
       corPrimaria: '#1f8c58',
       corSecundaria: '#8ef0b1',
       corParticulaIdle: '#6cf5a4',
-      baseStats: { maxHp: 155, mana: 90, baseDano: 21, multiplicadorNivel: 3.9, defesa: 10, critico: 24 },
-      idleDescricao: 'Postura leve, arco preciso e disparos rápidos.',
+      baseStats: { maxHp: 160, mana: 110, baseDano: 22, multiplicadorNivel: 3.95, defesa: 11, critico: 25 },
+      idleDescricao: 'Arco em prontidão, mobilidade e tiros precisos.',
       habilidades: [
-        { id: 'flecha_precisa', nome: 'Flecha Precisa', descricao: 'Disparo certeiro de longo alcance.', cooldown: 6500, danoMultiplicador: 1.85, bonusCritico: 10, visual: { cor: '#76ffc6' } },
-        { id: 'rajada_tripla', nome: 'Rajada Tripla', descricao: 'Três flechas em sequência.', cooldown: 9500, danoMultiplicador: 2.3, visual: { cor: '#44dca2' } },
-        { id: 'passo_sombrio', nome: 'Passo Sombrio', descricao: 'Desloca-se e dispara uma flecha espiritual.', cooldown: 14000, danoMultiplicador: 2.75, bonusCritico: 18, visual: { cor: '#11b37b' } },
-        { id: 'chuva_de_flechas', nome: 'Chuva de Flechas', descricao: 'Ultimate da arqueira.', cooldown: 30000, danoMultiplicador: 4.6, bonusCritico: 28, visual: { cor: '#caffdc' } }
+        { id: 'flecha_precisa', nome: 'Flecha Precisa', descricao: 'Disparo certeiro de longo alcance.', cooldown: 6000, manaCost: 16, danoMultiplicador: 1.85, bonusCritico: 10, visual: { cor: '#76ffc6', tipo: 'arrowLine' }, icon: 'assets/skills/flecha_precisa.png' },
+        { id: 'rajada_tripla', nome: 'Rajada Tripla', descricao: 'Três flechas em sequência.', cooldown: 9000, manaCost: 26, danoMultiplicador: 2.3, visual: { cor: '#44dca2', tipo: 'tripleArrow' }, icon: 'assets/skills/rajada_tripla.png' },
+        { id: 'passo_sombrio', nome: 'Passo Sombrio', descricao: 'Disparo espiritual de alta precisão.', cooldown: 13000, manaCost: 34, danoMultiplicador: 2.7, bonusCritico: 18, visual: { cor: '#11b37b', tipo: 'shadowDash' }, icon: 'assets/skills/passo_sombrio.png' },
+        { id: 'chuva_de_flechas', nome: 'Chuva de Flechas', descricao: 'Ultimate da arqueira.', cooldown: 26000, manaCost: 52, danoMultiplicador: 4.55, bonusCritico: 28, visual: { cor: '#caffdc', tipo: 'arrowRain' }, icon: 'assets/skills/chuva_de_flechas.png' }
       ]
     },
     mago: {
@@ -105,20 +98,17 @@
       nomeCurto: 'Mago Arcanjo',
       tipoIcone: '🪽',
       papel: 'DPS mágico / Controle',
-      asset: {
-        sprite: 'assets/characters/mago.png',
-        portrait: 'assets/characters/mago_portrait.png'
-      },
+      asset: { sprite: 'assets/characters/mago.png', portrait: 'assets/characters/mago_portrait.png' },
       corPrimaria: '#5da9ff',
       corSecundaria: '#d7ebff',
       corParticulaIdle: '#9bd0ff',
-      baseStats: { maxHp: 125, mana: 320, baseDano: 26, multiplicadorNivel: 4.35, defesa: 8, critico: 16 },
-      idleDescricao: 'Mago alado com asas de arcanjo, aura azul e magia celestial.',
+      baseStats: { maxHp: 128, mana: 340, baseDano: 27, multiplicadorNivel: 4.45, defesa: 8, critico: 16 },
+      idleDescricao: 'Asas de arcanjo, aura azul e magia celestial.',
       habilidades: [
-        { id: 'chuva_celestial', nome: 'Chuva Celestial', descricao: 'Fragmentos de luz caem do céu.', cooldown: 7000, danoMultiplicador: 1.95, visual: { cor: '#6fc9ff' } },
-        { id: 'lanca_serafica', nome: 'Lança Seráfica', descricao: 'Lança de energia angelical.', cooldown: 10500, danoMultiplicador: 2.5, visual: { cor: '#9fe2ff' } },
-        { id: 'prisma_arcano', nome: 'Prisma Arcano', descricao: 'Prisma mágico concentrado.', cooldown: 15000, danoMultiplicador: 2.95, bonusCritico: 10, visual: { cor: '#6b79ff' } },
-        { id: 'juizo_do_arcanjo', nome: 'Juízo do Arcanjo', descricao: 'Ultimate celestial do mago.', cooldown: 30000, danoMultiplicador: 5.0, bonusCritico: 16, visual: { cor: '#ffffff' } }
+        { id: 'chuva_celestial', nome: 'Chuva Celestial', descricao: 'Fragmentos de luz caem do céu.', cooldown: 6500, manaCost: 22, danoMultiplicador: 1.95, visual: { cor: '#6fc9ff', tipo: 'meteorShower' }, icon: 'assets/skills/chuva_celestial.png' },
+        { id: 'lanca_serafica', nome: 'Lança Seráfica', descricao: 'Lança de energia angelical.', cooldown: 10000, manaCost: 34, danoMultiplicador: 2.45, visual: { cor: '#9fe2ff', tipo: 'holySpear' }, icon: 'assets/skills/lanca_serafica.png' },
+        { id: 'prisma_arcano', nome: 'Prisma Arcano', descricao: 'Feixe prismático concentrado.', cooldown: 14500, manaCost: 45, danoMultiplicador: 2.95, bonusCritico: 10, visual: { cor: '#6b79ff', tipo: 'prismBurst' }, icon: 'assets/skills/prisma_arcano.png' },
+        { id: 'juizo_do_arcanjo', nome: 'Juízo do Arcanjo', descricao: 'Ultimate celestial do mago.', cooldown: 27000, manaCost: 68, danoMultiplicador: 5.0, bonusCritico: 16, visual: { cor: '#ffffff', tipo: 'angelJudgement' }, icon: 'assets/skills/juizo_do_arcanjo.png' }
       ]
     }
   };
@@ -146,8 +136,8 @@
 
   var MONSTERS = [
     { id: 'slime', nome: 'Slime Verde', tipo: 'normal', asset: 'assets/monsters/slime.png', hpBase: 85, xpBase: 28, goldBase: 10 },
-    { id: 'skeleton', nome: 'Esqueleto Espadachim', tipo: 'elite', asset: 'assets/monsters/skeleton.png', hpBase: 155, xpBase: 55, goldBase: 18 },
-    { id: 'dragon', nome: 'Dragão Elemental', tipo: 'boss', asset: 'assets/monsters/dragon.png', hpBase: 780, xpBase: 260, goldBase: 85 }
+    { id: 'skeleton', nome: 'Esqueleto Espadachim', tipo: 'elite', asset: 'assets/monsters/skeleton.png', hpBase: 160, xpBase: 56, goldBase: 18 },
+    { id: 'dragon', nome: 'Dragão Elemental', tipo: 'boss', asset: 'assets/monsters/dragon.png', hpBase: 860, xpBase: 280, goldBase: 90 }
   ];
 
   var WING_LEVELS = [
@@ -158,18 +148,10 @@
     { nivel: 5, nome: 'Asas Supremas', minLevel: 65 }
   ];
 
-  var EXPORTS = {
-    LEVEL_CAP: LEVEL_CAP,
-    XP_TABLE: XP_TABLE,
-    GAME_CLASSES: GAME_CLASSES,
-    ITEM_CATALOG: ITEM_CATALOG,
-    MONSTERS: MONSTERS,
-    WING_LEVELS: WING_LEVELS
-  };
+  var EXPORTS = { LEVEL_CAP: LEVEL_CAP, XP_TABLE: XP_TABLE, GAME_CLASSES: GAME_CLASSES, ITEM_CATALOG: ITEM_CATALOG, MONSTERS: MONSTERS, WING_LEVELS: WING_LEVELS };
 
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = EXPORTS;
-  } else {
+  if (typeof module !== 'undefined' && module.exports) module.exports = EXPORTS;
+  else {
     window.LEVEL_CAP = LEVEL_CAP;
     window.XP_TABLE = XP_TABLE;
     window.GAME_CLASSES = GAME_CLASSES;
