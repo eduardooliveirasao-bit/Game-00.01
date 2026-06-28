@@ -1,0 +1,18 @@
+Legend Of Indle RPG V1 - V12 Polished
+
+Principais melhorias desta versão:
+- sprites animados por frames para jogador, montarias e monstros
+- ataque, idle e hit com animações dedicadas
+- visual do herói reforçado conforme os equipamentos equipados
+- arma, anel, colar e ornamento aparecem no palco como overlays visuais
+- fundo do palco reage ao tipo de monstro
+- golpes e habilidades com bursts/impactos extras
+- mochila mais polida, com ordenação por equipado e poder
+- itens equipados continuam na mochila com selo “Equipado”
+- correções de equipar/desequipar mantendo persistência
+- montaria animada em idle/corrida/hit
+- paper doll melhorado
+- glow dinâmico no retrato do herói
+
+Observação:
+Os sprites animados foram gerados em frame sequences a partir das artes base do projeto, permitindo sensação de animação mais real sem depender de PNG estático apenas se deslocando na tela.

@@ -125,14 +125,61 @@
     else if (kind === 'equip') { playTone(420, 0.08, 'triangle', 0.03); setTimeout(function(){ playTone(700, 0.1, 'triangle', 0.03); }, 70); }
   }
 
+  var imageCache = {};
+  function cachedImage(src) {
+    if (!src) return null;
+    if (!imageCache[src]) { var img = new Image(); img.src = src; imageCache[src] = img; }
+    return imageCache[src];
+  }
+  function loadFrames(prefix, count) {
+    var list = [];
+    for (var i = 0; i < count; i++) list.push(cachedImage(prefix + '/' + i + '.png'));
+    return list;
+  }
   var characterImages = {};
+  var characterAnims = {};
   Object.keys(GAME_CLASSES).forEach(function (id) {
-    var img = new Image(); img.src = GAME_CLASSES[id].asset.sprite; characterImages[id] = img;
+    characterImages[id] = cachedImage(GAME_CLASSES[id].asset.sprite);
+    characterAnims[id] = {
+      idle: loadFrames('assets/anim/characters/' + id + '/idle', 8),
+      attack: loadFrames('assets/anim/characters/' + id + '/attack', 6),
+      hit: loadFrames('assets/anim/characters/' + id + '/hit', 4)
+    };
   });
   var monsterImages = {};
-  MONSTERS.forEach(function (m) { var img = new Image(); img.src = m.asset; monsterImages[m.id] = img; });
+  var monsterAnims = {};
+  MONSTERS.forEach(function (m) {
+    monsterImages[m.id] = cachedImage(m.asset);
+    monsterAnims[m.id] = {
+      idle: loadFrames('assets/anim/monsters/' + m.id + '/idle', 8),
+      attack: loadFrames('assets/anim/monsters/' + m.id + '/attack', 6),
+      hit: loadFrames('assets/anim/monsters/' + m.id + '/hit', 4)
+    };
+  });
   var mountImages = {};
-  Object.keys(MOUNTS).forEach(function (id) { var img = new Image(); img.src = MOUNTS[id].asset; mountImages[id] = img; });
+  var mountAnims = {};
+  Object.keys(MOUNTS).forEach(function (id) {
+    mountImages[id] = cachedImage(MOUNTS[id].asset);
+    mountAnims[id] = {
+      idle: loadFrames('assets/anim/mounts/' + id + '/idle', 8),
+      run: loadFrames('assets/anim/mounts/' + id + '/run', 8),
+      hit: loadFrames('assets/anim/mounts/' + id + '/hit', 4)
+    };
+  });
+
+  function animFrame(frames, now, fps) {
+    if (!frames || !frames.length) return null;
+    return frames[Math.floor((now / 1000) * (fps || 8)) % frames.length];
+  }
+  function getAnimatedImage(kind, id, action, now) {
+    var groups = kind === 'character' ? characterAnims : kind === 'monster' ? monsterAnims : mountAnims;
+    var fallbacks = kind === 'character' ? characterImages : kind === 'monster' ? monsterImages : mountImages;
+    var set = groups[id];
+    var frames = set && set[action];
+    var img = animFrame(frames, now, action === 'attack' ? 12 : action === 'hit' ? 14 : 8);
+    return (img && img.complete) ? img : fallbacks[id];
+  }
+  function getItemImage(src) { return cachedImage(src); }
 
   function resizeCanvas() {
     var stage = byId('stage');
@@ -222,6 +269,10 @@
 
     var portrait = byId('hero-portrait');
     portrait.style.backgroundImage = classe ? 'url("' + classe.asset.portrait + '")' : 'none';
+    var eqColors = []; if (p.equipados) Object.keys(p.equipados).forEach(function(k){ if(p.equipados[k] && p.equipados[k].rarityColor) eqColors.push(p.equipados[k].rarityColor); });
+    var glow = eqColors[0] || (classe && classe.corPrimaria) || '#5da9ff';
+    portrait.style.borderColor = glow;
+    portrait.style.boxShadow = '0 0 0 1px ' + glow + '55, 0 0 26px ' + glow + '30, inset 0 -60px 60px rgba(0,0,0,.18)';
 
     var isDead = !!p.isDead;
     autoFarmBtn.textContent = isDead ? 'Ressuscitando...' : ('Farm automático: ' + (p.autoFarm ? 'ON' : 'OFF'));
@@ -264,7 +315,7 @@
     function slotHtml(slot, label) {
       var item = eq[slot];
       if (!item) return '<div class="paper-slot ' + slot + '"><span>' + label + '</span><strong>Vazio</strong></div>';
-      return '<div class="paper-slot ' + slot + '" style="border-color:' + (item.rarityColor || '#fff') + '"><span>' + label + '</span><img src="' + (item.asset || '') + '" alt=""><strong>' + escapeHtml(item.nome) + '</strong></div>';
+      return '<div class="paper-slot ' + slot + ' filled" style="border-color:' + (item.rarityColor || '#fff') + '"><span>' + label + '</span><img src="' + (item.asset || '') + '" alt=""><strong>' + escapeHtml(item.nome) + '</strong><em style="color:' + (item.rarityColor || '#fff') + '">' + escapeHtml(item.raridade) + '</em></div>';
     }
     paperDoll.innerHTML = (mount ? '<img class="paper-mount" src="' + mount.asset + '" alt="' + escapeHtml(mount.nome) + '">' : '') +
       (cls ? '<img class="paper-hero" src="' + cls.asset.sprite + '" alt="' + escapeHtml(cls.nome) + '">' : '') +
@@ -285,7 +336,7 @@
 
   function renderBag() {
     if (!state.me || bagModal.classList.contains('hidden')) return;
-    var items = state.me.inventario || [];
+    var items = (state.me.inventario || []).slice().sort(function(a,b){ if(!!a.equipped !== !!b.equipped) return a.equipped ? -1 : 1; return (b.powerScore||0) - (a.powerScore||0); });
     bagList.innerHTML = '';
     if (!items.length) {
       bagList.innerHTML = '<div class="bag-item">Nenhum item na bolsa ainda.</div>';
@@ -364,15 +415,58 @@
   function spawnParticles(x, y, color, count) {
     for (var i = 0; i < count; i++) state.particles.push({ x: x, y: y, vx: (Math.random() - 0.5) * 4, vy: -Math.random() * 3 - 0.8, life: 1, color: color });
   }
+  function renderAssetIcon(src, x, y, size, glow, rot) {
+    var img = getItemImage(src);
+    if (!img || !img.complete) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot || 0);
+    if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 18; }
+    ctx.drawImage(img, -size / 2, -size / 2, size, size);
+    ctx.restore();
+  }
+
+  function spawnImpactBurst(x, y, color, scale) {
+    spawnParticles(x, y, color, Math.max(6, Math.floor(8 * (scale || 1))));
+    state.effects.push({ type: 'impactBurst', color: color || '#fff', start: performance.now(), duration: 320, x: x, y: y, toX: x, toY: y, fromX: x, fromY: y, scale: scale || 1 });
+  }
 
   function drawBackground() {
+    var monsterId = state.monster && state.monster.templateId;
     var g = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    g.addColorStop(0, '#0a1442'); g.addColorStop(1, '#030711');
+    if (monsterId === 'dragon') { g.addColorStop(0, '#1b0d1f'); g.addColorStop(0.5, '#2b1231'); g.addColorStop(1, '#09050f'); }
+    else if (monsterId === 'skeleton') { g.addColorStop(0, '#0f1730'); g.addColorStop(0.5, '#0d1e24'); g.addColorStop(1, '#04070c'); }
+    else { g.addColorStop(0, '#0a1442'); g.addColorStop(0.55, '#0b1f57'); g.addColorStop(1, '#030711'); }
     ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    for (var i = 0; i < 30; i++) { var x = (i * 97 + 13) % canvas.width; var y = (i * 61 + 25) % (canvas.height * 0.55); ctx.fillStyle = 'rgba(255,255,255,.16)'; ctx.fillRect(x, y, 2, 2); }
-    ctx.fillStyle = 'rgba(0,0,0,.24)';
-    ctx.beginPath(); ctx.ellipse(canvas.width * 0.28, canvas.height * 0.88, 140, 30, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(canvas.width * 0.72, canvas.height * 0.88, 150, 32, 0, 0, Math.PI * 2); ctx.fill();
+
+    for (var i = 0; i < 36; i++) {
+      var sx = (i * 97 + 13) % canvas.width;
+      var sy = (i * 61 + 25) % (canvas.height * 0.58);
+      ctx.fillStyle = 'rgba(255,255,255,.18)';
+      ctx.fillRect(sx, sy, 2, 2);
+    }
+
+    if (monsterId === 'dragon') {
+      ctx.save();
+      var rg = ctx.createRadialGradient(canvas.width * 0.72, canvas.height * 0.28, 10, canvas.width * 0.72, canvas.height * 0.28, canvas.width * 0.35);
+      rg.addColorStop(0, 'rgba(255,140,80,.24)'); rg.addColorStop(1, 'rgba(255,140,80,0)');
+      ctx.fillStyle = rg; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore();
+    }
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(7,10,26,.6)';
+    ctx.beginPath(); ctx.ellipse(canvas.width * 0.28, canvas.height * 0.88, 165, 34, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(canvas.width * 0.72, canvas.height * 0.88, monsterId === 'dragon' ? 205 : 150, monsterId === 'dragon' ? 44 : 32, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    for (var j = 0; j < 7; j++) {
+      var px = 42 + j * (canvas.width / 8.2);
+      var py = canvas.height * 0.80 + Math.sin(j) * 8;
+      ctx.fillStyle = j % 2 ? 'rgba(146,102,255,.24)' : 'rgba(118,211,255,.18)';
+      ctx.beginPath();
+      ctx.moveTo(px, py); ctx.lineTo(px + 15, py - 44); ctx.lineTo(px + 30, py); ctx.closePath();
+      ctx.fill();
+    }
   }
 
   function drawSegment(img, sw, sh, srcY0, srcY1, dx, dy, dw, dh, rot, sx, sy) {
@@ -388,157 +482,123 @@
 
   function drawPlayer(now) {
     if (!state.me || !state.me.classeId) return;
-    var img = characterImages[state.me.classeId];
-    if (!img || !img.complete) return;
-    var mods = state.me.visualMods || {};
-    var mount = state.me.mount || (mods && mods.mount);
-    var mountImg = mount && mountImages[mount.id];
     var clsId = state.me.classeId;
-    var hit = now < state.anim.playerHitUntil;
-    var attack = now < state.anim.playerAttackUntil;
-    var dead = !!state.me.isDead;
-    var t = now / 1000;
-    var bob = Math.sin(now / 240) * 4;
+    var mods = state.me.visualMods || {};
+    var eq = state.me.equipados || {};
+    var mount = state.me.mount || mods.mount;
+    var action = now < state.anim.playerHitUntil ? 'hit' : (now < state.anim.playerAttackUntil ? 'attack' : 'idle');
+    var img = getAnimatedImage('character', clsId, action, now) || characterImages[clsId];
+    if (!img || !img.complete) return;
+
     var x = canvas.width * 0.28;
-    var y = canvas.height * 0.88 + bob;
-    var progress = attack ? 1 - Math.max(0, (state.anim.playerAttackUntil - now) / 520) : 0;
-    var swing = attack ? Math.sin(progress * Math.PI) : 0;
-    if (attack) { x += swing * 60; y -= swing * 18; }
-    if (hit) { x -= 10 + Math.random() * 5; }
+    var y = canvas.height * 0.90;
+    var shake = action === 'hit' ? (Math.random() - 0.5) * 10 : 0;
+    var h = Math.min(312, Math.max(208, canvas.height * 0.70));
+    var w = h * (img.width / img.height);
+    var attackProg = action === 'attack' ? 1 - Math.max(0, (state.anim.playerAttackUntil - now) / 560) : 0;
+    var attackSwing = Math.sin(attackProg * Math.PI);
+    var idleBob = Math.sin(now / 170) * 3;
+    if (action === 'attack') { x += attackSwing * 38; y -= attackSwing * 12; }
+    x += shake; y += idleBob;
 
-    var charH = Math.min(262, Math.max(184, canvas.height * 0.62));
-    var charW = clsId === 'mago' ? charH * 0.96 : charH * 0.82;
-    var mountH = mount ? Math.min(138, charH * 0.50) : 0;
-    var heroAnchorY = y - mountH;
-    var breath = Math.sin(now / 190) * 0.018;
-    var torsoTilt = (attack ? -0.14 * swing : 0) + (hit ? -0.07 : 0) + Math.sin(now / 450) * 0.015;
-    var upperY = heroAnchorY - charH * 0.62;
-    var midY = heroAnchorY - charH * 0.34;
-    var lowerY = heroAnchorY - charH * 0.12;
-    var lowerBounce = Math.sin(now / (state.me.autoFarm ? 110 : 180)) * (state.me.autoFarm ? 8 : 4);
-    var headNod = Math.sin(now / 220) * 0.05 + (attack ? 0.08 * swing : 0);
-    var armArc = attack ? 0.45 * swing : Math.sin(now / 260) * 0.06;
-
-    ctx.save();
-    if (dead) { ctx.globalAlpha = 0.58; ctx.filter = 'grayscale(1)'; }
-
-    if (mountImg && mountImg.complete) {
-      var mountW = mountH * 1.58;
-      var trot = Math.sin(now / 110) * (state.me.autoFarm ? 4 : 2);
-      ctx.save();
-      ctx.translate(x - 4, y + trot * 0.25);
-      ctx.rotate((attack ? -0.02 * swing : 0) + Math.sin(now / 250) * 0.01);
-      ctx.scale(1 + Math.sin(now / 150) * 0.03, 1 - Math.sin(now / 150) * 0.02);
-      ctx.drawImage(mountImg, -mountW / 2, -mountH, mountW, mountH);
-      ctx.restore();
+    if (mount) {
+      var mountAction = action === 'hit' ? 'hit' : (state.me.autoFarm ? 'run' : 'idle');
+      var mountFrame = getAnimatedImage('mount', mount.id, mountAction, now) || mountImages[mount.id];
+      if (mountFrame && mountFrame.complete) {
+        var mh = Math.min(140, h * 0.38);
+        var mw = mh * (mountFrame.width / mountFrame.height);
+        ctx.save();
+        ctx.globalAlpha = state.me.isDead ? 0.55 : 1;
+        ctx.drawImage(mountFrame, x - mw * 0.55, y - mh * 0.28, mw, mh);
+        ctx.restore();
+      }
     }
 
-    var wing = mods.wing || null;
-    if (wing || clsId === 'mago') {
-      var wingColor = wing ? wing.color : '#d7ebff';
-      var scale = wing ? (wing.size || 1.15) : 1.0;
-      var flap = Math.sin(now / 120) * 0.22 + (attack ? 0.10 * swing : 0);
+    if (mods.wing || clsId === 'mago') {
+      var wing = mods.wing || { color: '#d8edff', size: 1.0 };
+      var flap = Math.sin(now / 120) * 0.16 + (action === 'attack' ? attackSwing * 0.14 : 0);
+      var span = w * 0.28 * (wing.size || 1.05);
+      var lift = h * 0.12;
       ctx.save();
-      ctx.globalAlpha = 0.58;
-      ctx.fillStyle = wingColor;
-      ctx.shadowColor = wingColor;
-      ctx.shadowBlur = 28;
-      ctx.translate(x, heroAnchorY - charH * 0.56);
-      ctx.rotate(-0.2 + flap);
-      ctx.beginPath(); ctx.ellipse(-charW * 0.43, 0, charW * 0.34 * scale, charH * 0.23 * scale, -0.55, 0, Math.PI * 2); ctx.fill();
-      ctx.rotate(0.4 - flap * 2);
-      ctx.beginPath(); ctx.ellipse(charW * 0.43, 0, charW * 0.34 * scale, charH * 0.23 * scale, 0.55, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.52;
+      ctx.fillStyle = wing.color || '#d8edff';
+      ctx.shadowColor = wing.color || '#d8edff';
+      ctx.shadowBlur = 24;
+      ctx.translate(x, y - h * 0.34);
+      ctx.rotate(-0.14 + flap);
+      ctx.beginPath(); ctx.ellipse(-span * 0.88, 0, span, lift, -0.45, 0, Math.PI * 2); ctx.fill();
+      ctx.rotate(0.28 - flap * 2);
+      ctx.beginPath(); ctx.ellipse(span * 0.88, 0, span, lift, 0.45, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
 
     if (mods.aura) {
-      ctx.save(); ctx.globalAlpha = 0.30; ctx.strokeStyle = mods.aura; ctx.shadowColor = mods.aura; ctx.shadowBlur = 24; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.ellipse(x, heroAnchorY - charH * 0.44, charW * 0.6, charH * 0.52, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.save();
+      ctx.strokeStyle = mods.aura; ctx.shadowColor = mods.aura; ctx.shadowBlur = 28; ctx.lineWidth = 3; ctx.globalAlpha = .38;
+      ctx.beginPath(); ctx.ellipse(x, y - h * 0.38, w * 0.36, h * 0.40, 0, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
     }
 
-    var sw = img.naturalWidth || img.width;
-    var sh = img.naturalHeight || img.height;
-
-    // pernas/base
-    drawSegment(img, sw, sh, 0.60, 1.00, x, lowerY + lowerBounce * 0.35, charW, charH * 0.40, attack ? 0.04 * swing : 0, 1 + breath, 1 - breath * 0.5);
-    // tronco
-    drawSegment(img, sw, sh, 0.26, 0.70, x, midY, charW * (1 + (attack ? 0.02 * swing : 0)), charH * 0.44, torsoTilt, 1 + breath, 1 - breath * 0.4);
-    // cabeça/ombro superior
-    drawSegment(img, sw, sh, 0.00, 0.30, x + (hit ? -4 : 0), upperY + (attack ? -5 * swing : 0), charW * 0.88, charH * 0.30, headNod, 1 + breath * 0.6, 1 + breath * 0.2);
-
-    // braço/arma extra por classe para dar sensação de ataque real
     ctx.save();
-    ctx.translate(x, heroAnchorY - charH * 0.42);
-    ctx.rotate(armArc + torsoTilt * 0.6);
-    if (mods.weaponGlow) {
-      ctx.strokeStyle = mods.weaponGlow; ctx.shadowColor = mods.weaponGlow; ctx.shadowBlur = 18; ctx.lineWidth = 5;
-    } else {
-      ctx.strokeStyle = '#d9f0ff'; ctx.lineWidth = 4;
-    }
-    if (clsId === 'guerreiro') {
-      ctx.beginPath(); ctx.moveTo(charW * 0.10, -charH * 0.05); ctx.lineTo(charW * 0.42, -charH * 0.36); ctx.stroke();
-      if (attack) { ctx.beginPath(); ctx.arc(charW * 0.14, -charH * 0.08, charW * 0.42, -1.2, 0.55 + swing * 0.5); ctx.stroke(); }
-    } else if (clsId === 'arqueiro') {
-      ctx.beginPath(); ctx.arc(charW * 0.18, -charH * 0.08, charW * 0.16, -1.2, 1.2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(charW * 0.16, -charH * 0.22); ctx.lineTo(charW * 0.38 + swing * 16, -charH * 0.08); ctx.lineTo(charW * 0.16, charH * 0.08); ctx.stroke();
-    } else {
-      ctx.beginPath(); ctx.moveTo(charW * 0.16, -charH * 0.06); ctx.lineTo(charW * 0.38, -charH * 0.42); ctx.stroke();
-      for (var o = 0; o < 3; o++) {
-        var ang = t * 2.4 + o * 2.09;
-        ctx.beginPath(); ctx.arc(Math.cos(ang) * charW * 0.22, -charH * 0.05 + Math.sin(ang) * 12, 5, 0, Math.PI * 2); ctx.stroke();
-      }
-    }
+    if (state.me.isDead) { ctx.globalAlpha = 0.55; ctx.filter = 'grayscale(1)'; }
+    ctx.drawImage(img, x - w / 2, y - h, w, h);
     ctx.restore();
 
-    if (mods.ringGlow) { ctx.save(); ctx.fillStyle = mods.ringGlow; ctx.shadowColor = mods.ringGlow; ctx.shadowBlur = 14; ctx.beginPath(); ctx.arc(x - charW * 0.16, heroAnchorY - charH * 0.38, 5 + Math.sin(now / 160) * 1.5, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+    var weap = eq.arma, ring = eq.anel, neck = eq.colar, orn = eq.ornamento;
+    if (weap) {
+      var wx = x + w * (clsId === 'arqueiro' ? 0.16 : 0.22);
+      var wy = y - h * 0.44;
+      var wr = clsId === 'guerreiro' ? (0.35 + attackSwing * 0.65) : clsId === 'arqueiro' ? (-0.18 + attackSwing * 0.4) : (0.06 + attackSwing * 0.22);
+      renderAssetIcon(weap.asset, wx, wy, 54, weap.rarityColor, wr);
+    }
+    if (ring) {
+      var orbit = now / 280;
+      renderAssetIcon(ring.asset, x - w * 0.22 + Math.cos(orbit) * 10, y - h * 0.40 + Math.sin(orbit) * 6, 26, ring.rarityColor, orbit);
+    }
+    if (neck) renderAssetIcon(neck.asset, x, y - h * 0.55, 30, neck.rarityColor, 0);
+    if (orn && !mods.wing) renderAssetIcon(orn.asset, x + w * 0.12, y - h * 0.70, 40, orn.rarityColor, Math.sin(now / 420) * 0.15);
 
-    if (hit) spawnParticles(x, heroAnchorY - charH * 0.35, '#ff7b7b', 2);
-    drawNameplate(state.me.nome + ' [Nv. ' + state.me.nivel + ']', x, Math.max(22, heroAnchorY - charH - 18), dead ? '#ffb3b3' : '#ffe69b', 'rgba(255,230,155,.4)');
-    ctx.restore();
+    if (action === 'attack') spawnParticles(x + w * 0.18, y - h * 0.42, mods.weaponGlow || '#9fd1ff', 1);
+    if (action === 'hit') spawnParticles(x, y - h * 0.36, '#ff8686', 2);
+    drawNameplate(state.me.nome + ' [Nv. ' + state.me.nivel + ']', x, Math.max(22, y - h - 8), state.me.isDead ? '#ffb3b3' : '#ffe69b', 'rgba(255,230,155,.4)');
   }
 
   function drawMonster(now) {
     if (!state.monster) return;
-    var img = monsterImages[state.monster.templateId];
-    var idle = Math.sin(now / 280) * 5;
+    var id = state.monster.templateId;
+    var action = now < state.anim.monsterHitUntil ? 'hit' : (now < state.anim.monsterAttackUntil ? 'attack' : 'idle');
+    var img = getAnimatedImage('monster', id, action, now) || monsterImages[id];
+    if (!img || !img.complete) return;
     var x = canvas.width * 0.72;
-    var y = canvas.height * 0.88 + idle;
-    var isDragon = state.monster.templateId === 'dragon';
-    var hit = now < state.anim.monsterHitUntil;
-    var attack = now < state.anim.monsterAttackUntil;
-    var attackPulse = attack ? Math.sin((1 - Math.max(0, (state.anim.monsterAttackUntil - now) / 360)) * Math.PI) : 0;
-    if (attack) x -= 34 * attackPulse;
-    if (hit) x += (Math.random() - 0.5) * 16;
-    var h = isDragon ? Math.min(300, canvas.height * 0.72) : Math.min(220, canvas.height * 0.55);
-    var w = isDragon ? h * 1.18 : h * 0.96;
+    var y = canvas.height * 0.90 + Math.sin(now / 240) * 2;
+    var attackPulse = action === 'attack' ? Math.sin((1 - Math.max(0, (state.anim.monsterAttackUntil - now) / 420)) * Math.PI) : 0;
+    if (action === 'attack') x -= 28 * attackPulse;
+    if (action === 'hit') x += (Math.random() - 0.5) * 14;
+    var isDragon = id === 'dragon';
+    var h = isDragon ? Math.min(310, canvas.height * 0.68) : Math.min(230, canvas.height * 0.54);
+    var w = h * (img.width / img.height);
 
     ctx.save();
-    ctx.translate(x, y - h / 2);
-    if (state.monster.templateId === 'slime') {
-      ctx.scale(1 + Math.sin(now / 170) * 0.045, 1 - Math.sin(now / 170) * 0.05);
-    } else if (state.monster.templateId === 'skeleton') {
-      ctx.rotate((attack ? -0.05 * attackPulse : 0) + Math.sin(now / 360) * 0.01);
-    } else if (isDragon) {
-      ctx.scale(1 + Math.sin(now / 210) * 0.02, 1 - Math.sin(now / 210) * 0.015);
+    if (isDragon) {
+      var rg = ctx.createRadialGradient(x, y - h * 0.45, 10, x, y - h * 0.45, w * 0.62);
+      rg.addColorStop(0, 'rgba(255,158,72,.20)'); rg.addColorStop(1, 'rgba(255,158,72,0)');
+      ctx.fillStyle = rg; ctx.fillRect(x - w, y - h - 60, w * 2, h * 1.4);
     }
-    if (img && img.complete) ctx.drawImage(img, -w / 2, -h / 2, w, h);
-
-    if (state.monster.templateId === 'skeleton' && attack) {
+    ctx.drawImage(img, x - w / 2, y - h, w, h);
+    if (id === 'skeleton' && action === 'attack') {
       ctx.strokeStyle = '#d8f0ff'; ctx.lineWidth = 5; ctx.shadowColor = '#d8f0ff'; ctx.shadowBlur = 16;
-      ctx.beginPath(); ctx.arc(-10, -10, w * 0.24, -1.0, 0.5); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x - 10, y - h * 0.48, w * 0.16, -1.1, 0.5); ctx.stroke();
     }
-    if (isDragon && attack) {
-      ctx.strokeStyle = '#ffb25e'; ctx.shadowColor = '#ffb25e'; ctx.shadowBlur = 18; ctx.lineWidth = 6;
-      ctx.beginPath(); ctx.moveTo(-w * 0.05, -h * 0.10); ctx.bezierCurveTo(w * 0.05, -h * 0.18, w * 0.18, -h * 0.05, w * 0.32, -h * 0.18); ctx.stroke();
+    if (id === 'dragon') {
+      ctx.strokeStyle = 'rgba(255,176,96,.75)'; ctx.shadowColor = 'rgba(255,176,96,.75)'; ctx.shadowBlur = 18;
+      ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x + w * 0.12, y - h * 0.56); ctx.lineTo(x + w * 0.32 + Math.sin(now/180)*10, y - h * 0.64); ctx.stroke();
     }
     ctx.restore();
-
     if (state.monster.special && state.monster.special.active) {
-      ctx.save(); ctx.strokeStyle = 'rgba(180,140,255,.85)'; ctx.lineWidth = 6; ctx.shadowColor = 'rgba(180,140,255,.65)'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.ellipse(x, y - h / 2, w * 0.34, h * 0.43, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.strokeStyle = 'rgba(180,140,255,.85)'; ctx.lineWidth = 6; ctx.shadowColor = 'rgba(180,140,255,.65)'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.ellipse(x, y - h * 0.54, w * 0.30, h * 0.38, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
     }
-    if (hit) spawnParticles(x, y - h * 0.30, '#ff9090', 3);
-    drawNameplate(state.monster.nome + ' [Nv. ' + state.monster.nivel + ']', x, Math.max(22, y - h - 12), '#eaf0ff', 'rgba(255,255,255,.16)');
+    if (action === 'hit') spawnParticles(x, y - h * 0.42, '#ff9090', 3);
+    drawNameplate(state.monster.nome + ' [Nv. ' + state.monster.nivel + ']', x, Math.max(22, y - h - 8), '#eaf0ff', 'rgba(255,255,255,.16)');
   }
 
   function drawNameplate(text, x, y, fill, stroke) {
@@ -568,7 +628,7 @@
       var x = e.x, y = e.y, c = e.color;
       var fx = e.fromX + (e.toX - e.fromX) * p;
       var fy = e.fromY + (e.toY - e.fromY) * p;
-      ctx.save(); ctx.globalAlpha = Math.max(0, 1 - p * 0.4); ctx.strokeStyle = c; ctx.fillStyle = c; ctx.lineWidth = 4; ctx.shadowColor = c; ctx.shadowBlur = 20;
+      ctx.save(); ctx.globalAlpha = Math.max(0, 1 - p * 0.35); ctx.strokeStyle = c; ctx.fillStyle = c; ctx.lineWidth = 4; ctx.shadowColor = c; ctx.shadowBlur = 20;
       if (e.type === 'slash') {
         var cx = e.toX, cy = e.toY;
         for (var i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(cx - 60 + i * 18, cy + 45); ctx.lineTo(cx + 40 + i * 18, cy - 45); ctx.stroke(); }
@@ -590,6 +650,11 @@
         for (var m = 0; m < 12; m++) { var ox = -110 + m * 20; ctx.beginPath(); ctx.moveTo(e.toX + ox, e.toY - 120 + p * 35); ctx.lineTo(e.toX + ox - 18, e.toY - 55 + p * 55); ctx.stroke(); }
       }
       else if (e.type === 'prismBurst') { ctx.beginPath(); ctx.moveTo(e.toX, e.toY - 70); ctx.lineTo(e.toX - 65, e.toY + 45); ctx.lineTo(e.toX + 65, e.toY + 45); ctx.closePath(); ctx.stroke(); ctx.beginPath(); ctx.arc(e.toX, e.toY, 22 + p * 52, 0, Math.PI * 2); ctx.stroke(); }
+      else if (e.type === 'impactBurst') {
+        var rays = 9;
+        for (var r = 0; r < rays; r++) { var ang2 = (Math.PI * 2 / rays) * r + p * 0.8; ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x + Math.cos(ang2) * (22 + p * 32) * (e.scale || 1), e.y + Math.sin(ang2) * (22 + p * 32) * (e.scale || 1)); ctx.stroke(); }
+        ctx.beginPath(); ctx.arc(e.x, e.y, (12 + p * 18) * (e.scale || 1), 0, Math.PI * 2); ctx.stroke();
+      }
       else { ctx.beginPath(); ctx.arc(e.toX, e.toY, 20 + p * 100, 0, Math.PI * 2); ctx.stroke(); }
       ctx.restore();
     });
@@ -761,8 +826,8 @@
   socket.on('gameState', function (list) { (list || []).forEach(function (p) { state.players[p.id] = p; if (p.id === state.meId) state.me = p; }); updateHUD(); });
   socket.on('enemyUpdate', function (monster) { state.monster = monster; updateEnemyHUD(); });
   socket.on('combatTick', function (data) { if (data.monster) { state.monster = data.monster; updateEnemyHUD(); }
-    (data.attacks || []).forEach(function (attack) { var color = attack.isCrit ? '#ffe69b' : '#ff9090'; state.anim.playerAttackUntil = performance.now() + (attack.type === 'ability' ? 520 : 280); state.anim.monsterHitUntil = performance.now() + 360; pushFloating((attack.isCrit ? 'CRIT ' : '-') + attack.damage, color, canvas.width * 0.72 + (Math.random() - 0.5) * 90, canvas.height * 0.38 + (Math.random() - 0.5) * 60, attack.isCrit); playSound(attack.type === 'ability' ? 'skill' : 'hit'); if (attack.result && attack.result.specialTriggered) { if (attack.result.specialTriggered.type === 'bossShield') { addLog('🛡️ O Dragão Elemental ativou o Escudo Elemental! Use habilidades para quebrar.'); pushFloating('ESCUDO!', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.28, true); playSound('boss'); } else if (attack.result.specialTriggered.type === 'shieldBroken') { addLog('💥 O Escudo Elemental foi quebrado!'); pushFloating('QUEBRADO!', '#ffffff', canvas.width * 0.72, canvas.height * 0.28, true); playSound('loot'); } } if (attack.result && attack.result.resisted) pushFloating('RESIST', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.45, false); });
-    (data.monsterAttacks || []).forEach(function (ma) { state.anim.monsterAttackUntil = performance.now() + 360; if (ma.playerId === state.meId) { state.anim.playerHitUntil = performance.now() + 420; pushFloating('-' + ma.damage + ' HP', '#ffb0b0', canvas.width * 0.28, canvas.height * 0.42, ma.died); playSound(ma.died ? 'death' : 'hit'); } });
+    (data.attacks || []).forEach(function (attack) { var color = attack.isCrit ? '#ffe69b' : '#ff9090'; state.anim.playerAttackUntil = performance.now() + (attack.type === 'ability' ? 520 : 280); state.anim.monsterHitUntil = performance.now() + 360; var fxX = canvas.width * 0.72 + (Math.random() - 0.5) * 90; var fxY = canvas.height * 0.38 + (Math.random() - 0.5) * 60; pushFloating((attack.isCrit ? 'CRIT ' : '-') + attack.damage, color, fxX, fxY, attack.isCrit); spawnImpactBurst(fxX, fxY, color, attack.isCrit ? 1.35 : 1); playSound(attack.type === 'ability' ? 'skill' : 'hit'); if (attack.result && attack.result.specialTriggered) { if (attack.result.specialTriggered.type === 'bossShield') { addLog('🛡️ O Dragão Elemental ativou o Escudo Elemental! Use habilidades para quebrar.'); pushFloating('ESCUDO!', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.28, true); playSound('boss'); } else if (attack.result.specialTriggered.type === 'shieldBroken') { addLog('💥 O Escudo Elemental foi quebrado!'); pushFloating('QUEBRADO!', '#ffffff', canvas.width * 0.72, canvas.height * 0.28, true); playSound('loot'); } } if (attack.result && attack.result.resisted) pushFloating('RESIST', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.45, false); });
+    (data.monsterAttacks || []).forEach(function (ma) { state.anim.monsterAttackUntil = performance.now() + 360; if (ma.playerId === state.meId) { state.anim.playerHitUntil = performance.now() + 420; var hx = canvas.width * 0.28; var hy = canvas.height * 0.42; pushFloating('-' + ma.damage + ' HP', '#ffb0b0', hx, hy, ma.died); spawnImpactBurst(hx, hy, '#ff9b9b', ma.died ? 1.4 : 1); playSound(ma.died ? 'death' : 'hit'); } });
   });
   socket.on('enemyDied', function (data) { addLog('⚔️ ' + data.killerName + ' derrotou ' + data.deadMonster.nome + ' e ganhou +' + data.xpReward + ' XP e +' + data.goldGained + ' ouro.'); if (data.loot) { state.lootRecente.unshift(data.loot); state.lootRecente = state.lootRecente.slice(0, 8); addLog((data.loot.exclusivoBoss ? '🐉 Loot exclusivo: ' : '🎁 Loot obtido: ') + data.loot.icon + ' ' + data.loot.nome + ' [' + data.loot.raridade + ']'); playSound(data.loot.exclusivoBoss ? 'boss' : 'loot'); } if (data.progress && data.progress.leveledUp) addLog('✨ Level up! Agora você está no Nv. ' + data.progress.currentLevel + '.'); if (data.player && data.player.id === state.meId) state.me = data.player; if (data.nextMonster) { state.monster = data.nextMonster; updateEnemyHUD(); } updateHUD(); });
   socket.on('abilityUsed', function (evt) {
@@ -782,7 +847,7 @@
       state.anim.monsterHitUntil = performance.now() + 420;
       startCooldownVisual(evt.habilidadeId, evt.cooldown);
     }
-    playSound('skill');
+    spawnImpactBurst(canvas.width * 0.72, canvas.height * 0.40, color, 1.1); playSound('skill');
   });
   socket.on('inventoryAction', function (info) { if (info.type === 'equip') { addLog('🧰 Item equipado: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'unequip') { addLog('🎒 Item retornou para a bolsa: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'sell') { addLog('🪙 Item vendido por +' + info.gold + ' ouro: ' + info.item.nome + '.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'sellAll') { addLog('🪙 ' + info.sold + ' itens vendidos por +' + info.gold + ' ouro.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'equipBest') { addLog('⚡ Melhor equipamento aplicado: ' + ((info.equippedItems || []).length) + ' item(ns).'); playSound('equip'); } if (info.type === 'gem') { addLog('💎 Gema inserida: ' + info.gem.nome + ' em ' + info.item.nome + '.'); playSound('equip'); } });
   socket.on('playerDied', function (data) { if (data.playerId === state.meId) { addLog('💀 Você foi derrotado por ' + data.monsterName + '. Ressurreição automática em 5s.'); state.anim.playerHitUntil = performance.now() + 900; playSound('death'); } });
