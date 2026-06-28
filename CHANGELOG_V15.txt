@@ -1,0 +1,20 @@
+Legend Of Indle RPG V1 - V15 Progressive Drops, Pets e Base SQL/Python
+
+Implementado no jogo atual:
+- Drop de Combate Progressivo com raridade, qualidade de rolagem e afixos variáveis.
+- Itens agora possuem fixedStats, variableStats, affixes e rollQuality.
+- Auto-equip suggestion: quando cair item melhor, o jogo mostra card para equipar imediatamente.
+- Comparação por PowerScore no mesmo slot.
+- Pets/companheiros com bônus e sinergia elemental.
+- Loja agora pode vender ovos/contratos de pets.
+- UI mostra pets ativos e sinergias.
+- Combate usa bônus de pets no cálculo de dano/crítico.
+- Mantida a V14 com poses reais de ataque/hit/idle.
+
+Incluído para migração Python/SQL Server:
+- docs/sql/01_inventory_drops_schema.sql
+- docs/python/drop_system.py
+- docs/python/skill_queue.py
+- docs/python/pet_manager.py
+- docs/python/offline_rewards.py
+- docs/design/V15_SYSTEM_DESIGN.md

@@ -1,0 +1,17 @@
+Legend Of Indle RPG V1 - V14 Real Pose Animation
+
+Melhoria principal desta versão:
+- substituição da animação do herói baseada em recortes por um sistema de poses ilustradas reais
+- cada classe agora possui poses próprias para: idle, attack e hit
+- o palco usa a pose correta conforme a ação em combate
+- movimentação do personagem combinada com pose dinâmica, inclinação, avanço e recuo
+- refinamento do posicionamento do herói no palco
+- manutenção dos efeitos, impactos e itens visuais equipados
+
+Classes com novas poses dedicadas:
+- Guerreiro
+- Mago Arcanjo
+- Arqueiro
+
+Observação:
+Esta versão foi focada especificamente em remover a sensação de “PNG cortado” do herói durante a batalha.

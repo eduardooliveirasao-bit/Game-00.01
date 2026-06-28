@@ -8,6 +8,7 @@ const CombatManager = require('./server/managers/CombatManager');
 const LootManager = require('./server/managers/LootManager');
 const SaveManager = require('./server/managers/SaveManager');
 const AccountManager = require('./server/managers/AccountManager');
+const PetManager = require('./server/managers/PetManager');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE_MS = 1000;
@@ -77,10 +78,11 @@ function createPlayer(socket) {
     achievements: [],
     bestiary: {},
     stats: { damageDealt: 0, damageTaken: 0, goldEarned: 0, bossKills: 0, deaths: 0, itemsSold: 0 },
-    daily: { lastClaimDay: null, streak: 0 }
+    daily: { lastClaimDay: null, streak: 0 },
+    pets: { owned: [{ id: 'fogo_fenix', level: 1 }, { id: 'luz_serafim', level: 1 }], equipped: ['fogo_fenix', 'luz_serafim'] }
   };
   LevelManager.syncProgressFields(player);
-  player.power = LootManager.calculatePower(player);
+  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player);
   return player;
 }
 
@@ -127,7 +129,8 @@ function publicPlayer(player) {
     achievements: player.achievements || [],
     bestiary: player.bestiary || {},
     stats: player.stats || {},
-    daily: player.daily || { lastClaimDay: null, streak: 0 }
+    daily: player.daily || { lastClaimDay: null, streak: 0 },
+    pets: PetManager.publicPets(player)
   };
 }
 
@@ -161,7 +164,7 @@ function emitEnemyUpdate() { io.emit('enemyUpdate', monsterManager.getPublicMons
 
 function syncPlayerPower(player) {
   LevelManager.syncProgressFields(player);
-  player.power = LootManager.calculatePower(player);
+  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player);
 }
 
 function savePlayer(player, force = false) {
@@ -209,6 +212,7 @@ function rewardIfEnemyDied(player, combatEvent) {
     xpReward: combatEvent.result.xpReward,
     goldGained: loot.gold,
     loot: loot.item,
+    autoEquipSuggestion: loot.autoEquipSuggestion,
     achievements: unlocked,
     progress,
     deadMonster: dead,
@@ -319,6 +323,9 @@ function buyShopItem(player, itemId) {
     if (item.id === 'montaria_dragao') player.mount.id = 'dragao_mirim';
     player.mount.level = Math.max(player.mount.level || 1, item.id === 'montaria_dragao' ? 8 : 4);
     granted = { tipo: 'mount', mount: LootManager.getMount(player) };
+  } else if (item.tipo === 'pet') {
+    const petResult = PetManager.acquire(player, item.petId);
+    granted = { tipo: 'pet', pet: petResult.pet, pets: PetManager.publicPets(player) };
   }
   syncPlayerPower(player);
   return { ok: true, shopItem: item, granted };
@@ -459,7 +466,7 @@ io.on('connection', (socket) => {
     LevelManager.syncProgressFields(player);
     player.hp = player.maxHp;
     player.mana = player.maxMana;
-    player.power = LootManager.calculatePower(player);
+    player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player);
     updateAchievements(player);
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
@@ -500,6 +507,16 @@ io.on('connection', (socket) => {
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
     socket.emit('inventoryAction', { type: 'equip', item: LootManager.enrichItem(result.item), achievements: unlocked });
+  });
+
+  socket.on('acceptEquipSuggestion', (data = {}) => {
+    const result = LootManager.equipItem(player, data.itemId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    const unlocked = updateAchievements(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('inventoryAction', { type: 'equipSuggestion', item: LootManager.enrichItem(result.item), achievements: unlocked });
   });
 
   socket.on('unequipItem', (data = {}) => {
@@ -587,6 +604,26 @@ io.on('connection', (socket) => {
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
     socket.emit('mountUpdated', { mount: result.mount, cost: result.cost });
+  });
+
+  socket.on('upgradePet', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = PetManager.levelUp(player, data.petId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('petUpdated', result);
+  });
+
+  socket.on('acquirePet', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = PetManager.acquire(player, data.petId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('petUpdated', result);
   });
 
   socket.on('buyShopItem', (data = {}) => {

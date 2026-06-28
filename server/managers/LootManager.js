@@ -3,6 +3,67 @@ const { ITEM_CATALOG, GAME_CLASSES, GEM_TYPES, MOUNTS } = require('../../shared/
 const SLOT_ORDER = ['arma', 'anel', 'colar', 'ornamento'];
 const RARITY_COLORS = { comum:'#d9dde7', raro:'#55c7ff', 'épico':'#b07cff', 'lendário':'#ffcf5b', 'mítico':'#ff7fbb', boss:'#ff8f3d' };
 const RARITY_RANK = ['comum','raro','épico','lendário','mítico','boss'];
+
+const STAT_KEYS = ['ataque','defesa','critico','hp','mana'];
+const DROP_RARITY_WEIGHTS = [
+  { rarity:'comum', weight:560 },
+  { rarity:'raro', weight:280 },
+  { rarity:'épico', weight:115 },
+  { rarity:'lendário', weight:38 },
+  { rarity:'mítico', weight:7 }
+];
+const DROP_AFFIX_POOL = {
+  ataque: ['Feroz','Cruel','Glorioso','Dracônico'],
+  defesa: ['Sólido','Guardião','Imutável','Ancestral'],
+  critico: ['Preciso','Letal','Sombrio','Celestial'],
+  hp: ['Vital','Titânico','Imortal','Colossal'],
+  mana: ['Arcano','Sereno','Estelar','Prismático']
+};
+function randInt(min,max){ return Math.floor(min + Math.random() * (max-min+1)); }
+function weightedPick(rows){
+  const total = rows.reduce((s,r)=>s+r.weight,0);
+  let roll = Math.random()*total;
+  for(const row of rows){ roll-=row.weight; if(roll<=0) return row; }
+  return rows[rows.length-1];
+}
+function rollRarity(monster){
+  const lvl = Math.max(1, (monster && monster.nivel) || 1);
+  const bossBoost = monster && monster.isBoss ? 2.2 : 1;
+  const rows = DROP_RARITY_WEIGHTS.map(r => ({
+    rarity: r.rarity,
+    weight: Math.max(1, Math.floor(r.weight * (rarityRank(r.rarity) <= 1 ? 1 : bossBoost + lvl/120)))
+  }));
+  return weightedPick(rows).rarity;
+}
+function rollQuality(rarity, monsterLevel){
+  const rank = rarityRank(rarity);
+  return Math.min(100, Math.max(1, Math.floor(randInt(45 + rank*7, 82 + rank*5) + Math.min(15, monsterLevel/6))));
+}
+function rollVariableStats(slot, rarity, monsterLevel){
+  const rank = Math.max(0, rarityRank(rarity));
+  const quality = rollQuality(rarity, monsterLevel);
+  const keysBySlot = {
+    arma: ['ataque','critico'],
+    anel: ['critico','ataque','mana'],
+    colar: ['hp','defesa','mana'],
+    ornamento: ['defesa','hp','critico','mana']
+  };
+  const keys = keysBySlot[slot] || STAT_KEYS;
+  const rolls = 1 + Math.min(3, Math.floor((rank + 1) / 2));
+  const variableStats = { ataque:0, defesa:0, critico:0, hp:0, mana:0 };
+  const affixes = [];
+  for(let i=0;i<rolls;i++){
+    const key = keys[randInt(0, keys.length-1)];
+    const scale = (rank+1) * (quality/100) * (1 + monsterLevel/18);
+    let value = key === 'hp' ? randInt(14, 30) : key === 'mana' ? randInt(8, 22) : randInt(2, 8);
+    value = Math.max(1, Math.floor(value * scale));
+    variableStats[key] += value;
+    const names = DROP_AFFIX_POOL[key] || ['Aprimorado'];
+    affixes.push({ stat:key, value, nome:names[Math.min(names.length-1, rank)] });
+  }
+  return { quality, variableStats, affixes };
+}
+
 const BOSS_EXCLUSIVE = {
   guerreiro: [
     { nome:'Espada do Dragão Elemental', slot:'arma', icon:'🐉', stats:{ ataque:82, defesa:12, critico:8, hp:90, mana:0 } },
@@ -27,18 +88,60 @@ function rarityRank(r){ const n=RARITY_RANK.indexOf(r); return n < 0 ? 0 : n; }
 function gemStats(item){ const total={ataque:0,defesa:0,critico:0,hp:0,mana:0}; for(const gemId of (item.gems||[])){ const g=GEM_TYPES[gemId]; if(!g) continue; for(const k of Object.keys(total)) total[k]+=g.stats[k]||0; } return total; }
 function totalStats(item){
   const base=item.stats||{};
+  const fixed=item.fixedStats||{};
+  const variable=item.variableStats||{};
   const g=gemStats(item);
   const up=Math.max(0, Math.floor(item.upgradeLevel||0));
   const mul=1 + up * 0.08;
+  const merged={};
+  for(const k of STAT_KEYS){
+    merged[k]=(base[k]||0)+(fixed[k]||0)+(variable[k]||0)+(g[k]||0);
+  }
   return {
-    ataque:Math.floor(((base.ataque||0)+g.ataque)*mul + up*2),
-    defesa:Math.floor(((base.defesa||0)+g.defesa)*mul + up),
-    critico:Math.floor(((base.critico||0)+g.critico)*mul + Math.floor(up/2)),
-    hp:Math.floor(((base.hp||0)+g.hp)*mul + up*18),
-    mana:Math.floor(((base.mana||0)+g.mana)*mul + up*10)
+    ataque:Math.floor((merged.ataque||0)*mul + up*2),
+    defesa:Math.floor((merged.defesa||0)*mul + up),
+    critico:Math.floor((merged.critico||0)*mul + Math.floor(up/2)),
+    hp:Math.floor((merged.hp||0)*mul + up*18),
+    mana:Math.floor((merged.mana||0)*mul + up*10)
   };
 }
-function cloneItem(base, monsterLevel){ const rarity=base.raridade||'comum'; const sockets=base.sockets || Math.max(1, Math.min(3, 1 + Math.floor(rarityRank(rarity)/2))); return { id:base.id+'_'+Date.now()+'_'+Math.random().toString(16).slice(2), baseId:base.id, classeId:base.classeId, nome:base.nome, slot:base.slot, raridade:rarity, cor:base.cor, icon:base.icon, asset:base.asset || `assets/items/${base.slot}_${rarity}.png`, requiredLevel:base.requiredLevel, exclusivoBoss:false, sockets, gems:[], upgradeLevel:0, locked:false, visual:base.visual||{}, equipped:false, equippedSlot:null, stats:{ ataque:(base.stats.ataque||0)+Math.floor(monsterLevel*.6), defesa:(base.stats.defesa||0)+Math.floor(monsterLevel*.4), critico:(base.stats.critico||0)+Math.floor(monsterLevel*.15), hp:(base.stats.hp||0)+Math.floor(monsterLevel*1.8), mana:(base.stats.mana||0)+Math.floor(monsterLevel*1.2) } }; }
+function cloneItem(base, monsterLevel, forcedRarity){
+  const rarity=forcedRarity || base.raridade || 'comum';
+  const roll=rollVariableStats(base.slot, rarity, monsterLevel);
+  const sockets=base.sockets || Math.max(1, Math.min(3, 1 + Math.floor(rarityRank(rarity)/2)));
+  const fixedStats={
+    ataque:(base.stats.ataque||0)+Math.floor(monsterLevel*.6),
+    defesa:(base.stats.defesa||0)+Math.floor(monsterLevel*.4),
+    critico:(base.stats.critico||0)+Math.floor(monsterLevel*.15),
+    hp:(base.stats.hp||0)+Math.floor(monsterLevel*1.8),
+    mana:(base.stats.mana||0)+Math.floor(monsterLevel*1.2)
+  };
+  return {
+    id:base.id+'_'+Date.now()+'_'+Math.random().toString(16).slice(2),
+    baseId:base.id,
+    classeId:base.classeId,
+    nome:base.nome,
+    slot:base.slot,
+    raridade:rarity,
+    cor:base.cor,
+    icon:base.icon,
+    asset:base.asset ? base.asset.replace(/_(comum|raro|épico|lendário|mítico)\.png$/, '_'+rarity+'.png') : `assets/items/${base.slot}_${rarity}.png`,
+    requiredLevel:Math.max(1, Math.min(base.requiredLevel||1, Math.floor(monsterLevel*0.85)+1)),
+    exclusivoBoss:false,
+    sockets,
+    gems:[],
+    upgradeLevel:0,
+    locked:false,
+    visual:base.visual||{},
+    equipped:false,
+    equippedSlot:null,
+    rollQuality:roll.quality,
+    affixes:roll.affixes,
+    fixedStats,
+    variableStats:roll.variableStats,
+    stats:{} 
+  };
+}
 function cloneBossItem(player, monster){ const list=BOSS_EXCLUSIVE[player.classeId]||BOSS_EXCLUSIVE.mago; const base=list[Math.floor(Math.random()*list.length)]; const level=Math.max(1, monster.nivel||player.nivel||1); return { id:'boss_'+player.classeId+'_'+base.slot+'_'+Date.now()+'_'+Math.random().toString(16).slice(2), baseId:'boss_'+base.slot, classeId:player.classeId, nome:base.nome, slot:base.slot, raridade:'boss', cor:'#ff8f3d', icon:base.icon, asset:`assets/items/${base.slot}_boss.png`, requiredLevel:Math.max(1,Math.floor(level*.65)), exclusivoBoss:true, sockets:3, gems:[], upgradeLevel:0, locked:false, equipped:false, equippedSlot:null, wingVisual:base.wingVisual||null, visual:{glow:'#ff8f3d', wing:!!base.wingVisual, tier:6}, stats:{ ataque:base.stats.ataque+Math.floor(level*1.25), defesa:base.stats.defesa+Math.floor(level*.7), critico:base.stats.critico+Math.floor(level*.16), hp:base.stats.hp+Math.floor(level*3.5), mana:base.stats.mana+Math.floor(level*2.6) } }; }
 
 class LootManager {
@@ -47,6 +150,10 @@ class LootManager {
     item.rarityColor=RARITY_COLORS[item.raridade]||'#fff';
     if(!item.asset) item.asset=`assets/items/${item.slot}_${item.raridade}.png`;
     item.gems=item.gems||[];
+    item.affixes=item.affixes||[];
+    item.fixedStats=item.fixedStats||{};
+    item.variableStats=item.variableStats||{};
+    item.rollQuality=item.rollQuality||50;
     item.upgradeLevel=Math.max(0, Math.floor(item.upgradeLevel||0));
     item.locked=!!item.locked;
     item.sockets=item.sockets||Math.max(1,Math.min(3,1+Math.floor(rarityRank(item.raridade)/2)));
@@ -87,9 +194,54 @@ class LootManager {
   static getCritBonus(player){ return this.getEquippedList(player).reduce((s,i)=>s+(totalStats(i).critico||0),0); }
   static getHpBonus(player){ return this.getEquippedList(player).reduce((s,i)=>s+(totalStats(i).hp||0),0)+this.getMountBonus(player).hp; }
   static getManaBonus(player){ return this.getEquippedList(player).reduce((s,i)=>s+(totalStats(i).mana||0),0); }
-  static chooseDrop(player, monster){ const catalog=ITEM_CATALOG[player.classeId]||[]; if(!catalog.length) return null; const maxLevel=Math.max(1,(monster&&monster.nivel)||player.nivel||1)+6; const eligible=catalog.filter(i=>i.requiredLevel<=maxLevel); const pool=eligible.length?eligible:catalog; return this.enrichItem(cloneItem(pool[Math.floor(Math.random()*pool.length)],maxLevel)); }
+  static chooseDrop(player, monster){
+    const catalog=ITEM_CATALOG[player.classeId]||[];
+    if(!catalog.length) return null;
+    const maxLevel=Math.max(1,(monster&&monster.nivel)||player.nivel||1)+6;
+    const eligible=catalog.filter(i=>i.requiredLevel<=maxLevel);
+    const pool=eligible.length?eligible:catalog;
+    const base=pool[Math.floor(Math.random()*pool.length)];
+    const rarity=rollRarity(monster);
+    return this.enrichItem(cloneItem(base,maxLevel,rarity));
+  }
+  static compareWithEquipped(player,item){
+    if(!item) return null;
+    this.syncInventoryFlags(player);
+    const enriched=this.enrichItem({...item});
+    const current=player.equipados && player.equipados[enriched.slot] ? this.enrichItem({...player.equipados[enriched.slot]}) : null;
+    const currentPower=current ? this.scoreItem(current) : 0;
+    const newPower=this.scoreItem(enriched);
+    return {
+      slot: enriched.slot,
+      itemId: enriched.id,
+      item: enriched,
+      current,
+      currentPower,
+      newPower,
+      delta: newPower-currentPower,
+      isBetter: newPower > currentPower
+    };
+  }
   static maybeDropItem(player, monster){ if(monster.isBoss && Math.random()<.72) return this.enrichItem(cloneBossItem(player,monster)); const rate=monster.isBoss?1:(monster.templateId==='skeleton'? .68:.43); if(Math.random()>rate) return null; return this.chooseDrop(player,monster); }
-  static grantKillLoot(player, monster){ const gold=Math.floor(((monster&&monster.goldBase)||10)+(monster.nivel||1)*4+(monster.isBoss?100:0)); const item=this.maybeDropItem(player,monster); player.ouro=(player.ouro||0)+gold; if(monster.isBoss) player.gemas=(player.gemas||0)+Math.max(1,Math.floor((monster.nivel||1)/10)); player.kills=(player.kills||0)+1; player.horda=monster&&monster.horda?monster.horda+1:((player.horda||1)+1); player.inventario=player.inventario||[]; if(item){ player.inventario.unshift(item); player.inventario=player.inventario.slice(0,100); } this.syncInventoryFlags(player); player.equipadosList=this.getEquippedList(player); player.power=this.calculatePower(player); return {gold,item,power:player.power}; }
+  static grantKillLoot(player, monster){
+    const gold=Math.floor(((monster&&monster.goldBase)||10)+(monster.nivel||1)*4+(monster.isBoss?100:0));
+    const item=this.maybeDropItem(player,monster);
+    let autoEquipSuggestion=null;
+    player.ouro=(player.ouro||0)+gold;
+    if(monster.isBoss) player.gemas=(player.gemas||0)+Math.max(1,Math.floor((monster.nivel||1)/10));
+    player.kills=(player.kills||0)+1;
+    player.horda=monster&&monster.horda?monster.horda+1:((player.horda||1)+1);
+    player.inventario=player.inventario||[];
+    if(item){
+      player.inventario.unshift(item);
+      player.inventario=player.inventario.slice(0,100);
+      autoEquipSuggestion=this.compareWithEquipped(player,item);
+    }
+    this.syncInventoryFlags(player);
+    player.equipadosList=this.getEquippedList(player);
+    player.power=this.calculatePower(player);
+    return {gold,item,power:player.power,autoEquipSuggestion};
+  }
   static equipItem(player,itemId){
     this.syncInventoryFlags(player);
     const idx=player.inventario.findIndex(i=>i.id===itemId);

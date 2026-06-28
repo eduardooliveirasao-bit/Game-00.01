@@ -71,3 +71,19 @@
 #claim-daily-btn:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.7)}
 .paper-slot.filled{box-shadow:0 0 20px rgba(120,207,255,.14), inset 0 0 18px rgba(255,255,255,.04)}
 .paper-slot em{display:block;font-style:normal;font-size:10px;margin-top:2px}
+
+.roll-line{margin:6px 0 10px;color:#9fd8ff;font-size:12px;font-weight:700}
+.equip-suggestion-toast{position:fixed;right:24px;bottom:92px;z-index:120;width:340px;background:linear-gradient(180deg,rgba(21,34,78,.98),rgba(6,10,24,.98));border:1px solid rgba(125,214,255,.45);border-radius:20px;padding:14px;box-shadow:0 22px 60px rgba(0,0,0,.45),0 0 28px rgba(85,199,255,.16)}
+.suggestion-head{font-family:Cinzel,serif;color:var(--gold);font-weight:900;margin-bottom:10px}
+.suggestion-body{display:flex;gap:12px;align-items:center}
+.suggestion-body img{width:58px;height:58px;border-radius:14px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04)}
+.suggestion-body strong{display:block}.suggestion-body small{display:block;color:#b9c7f3;margin-top:4px}
+.suggestion-actions{display:flex;gap:10px;margin-top:12px}
+.suggestion-actions button{flex:1;border:1px solid rgba(255,255,255,.14);background:#122459;color:#fff;padding:10px;border-radius:12px;cursor:pointer;font-weight:900}
+.suggestion-actions button:first-child{background:linear-gradient(135deg,#246bff,#54caff)}
+
+.pet-list{display:flex;flex-direction:column;gap:8px}
+.pet-item{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(4,7,18,.42)}
+.pet-item img{width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.12)}
+.pet-item strong{font-size:12px;display:block}.pet-item small{font-size:11px;color:#aebbef}.pet-item button{margin-left:auto;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#122459;color:#fff;padding:6px 8px;cursor:pointer;font-size:11px;font-weight:800}
+.pet-synergy{padding:8px;border-radius:12px;background:rgba(120,207,255,.08);border:1px solid rgba(120,207,255,.18);color:#9fd8ff;font-size:12px}

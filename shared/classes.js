@@ -169,6 +169,15 @@
 
 
 
+
+  var PETS = {
+    fogo_fenix: { id:'fogo_fenix', nome:'Fênix Jovem', elemento:'fogo', asset:'assets/pets/fenix.png', icon:'🔥', bonus:{ ataquePct:0.06, critico:4 }, skill:{ nome:'Chama Viva', trigger:'onKill', danoPct:0.18 } },
+    fogo_draco: { id:'fogo_draco', nome:'Draco de Brasa', elemento:'fogo', asset:'assets/pets/draco.png', icon:'🐉', bonus:{ ataquePct:0.05, hpPct:0.04 }, skill:{ nome:'Sopro Curto', trigger:'onAttack', danoPct:0.08 } },
+    luz_serafim: { id:'luz_serafim', nome:'Serafim Mini', elemento:'luz', asset:'assets/pets/serafim.png', icon:'✨', bonus:{ manaPct:0.08, critico:3 }, skill:{ nome:'Bênção', trigger:'onCooldown', healPct:0.05 } },
+    natureza_treant: { id:'natureza_treant', nome:'Broto Guardião', elemento:'natureza', asset:'assets/pets/treant.png', icon:'🌿', bonus:{ hpPct:0.08, defesaPct:0.05 }, skill:{ nome:'Casca Viva', trigger:'passive', defesaPct:0.04 } },
+    sombra_corvo: { id:'sombra_corvo', nome:'Corvo Sombrio', elemento:'sombra', asset:'assets/pets/corvo.png', icon:'🪶', bonus:{ critico:6, evasao:3 }, skill:{ nome:'Marca Sombria', trigger:'onCrit', danoPct:0.12 } }
+  };
+
   var SHOP_ITEMS = {
     pocao_vida: { id: 'pocao_vida', nome: 'Poção de Vida', tipo: 'potion', asset: 'assets/items/colar_comum.png', icon: '🧪', priceGems: 3, desc: 'Restaura 60% do HP máximo.', effect: { hpPercent: 60 } },
     pocao_mana: { id: 'pocao_mana', nome: 'Poção de Mana', tipo: 'potion', asset: 'assets/gems/safira.png', icon: '🔮', priceGems: 3, desc: 'Restaura 70% da mana máxima.', effect: { manaPercent: 70 } },
@@ -177,10 +186,13 @@
     bau_lendario: { id: 'bau_lendario', nome: 'Baú Lendário', tipo: 'chest', asset: 'assets/items/arma_lendário.png', icon: '👑', priceGems: 45, desc: 'Gera um item lendário/mítico da sua classe.', rarityMin: 'lendário' },
     ticket_boss: { id: 'ticket_boss', nome: 'Invocar Dragão', tipo: 'boss', asset: 'assets/items/ornamento_boss.png', icon: '🐉', priceGems: 30, desc: 'Leva a horda atual para o próximo Dragão Elemental.' },
     montaria_grifo: { id: 'montaria_grifo', nome: 'Contrato do Grifo', tipo: 'mount', asset: 'assets/mounts/grifo_dourado.png', icon: '🦅', priceGems: 60, desc: 'Equipa o Grifo Dourado.' },
-    montaria_dragao: { id: 'montaria_dragao', nome: 'Contrato do Dragão Mirim', tipo: 'mount', asset: 'assets/mounts/dragao_mirim.png', icon: '🐲', priceGems: 150, desc: 'Equipa o Dragão Mirim Elemental.' }
+    montaria_dragao: { id: 'montaria_dragao', nome: 'Contrato do Dragão Mirim', tipo: 'mount', asset: 'assets/mounts/dragao_mirim.png', icon: '🐲', priceGems: 150, desc: 'Equipa o Dragão Mirim Elemental.' },
+    pet_fenix: { id:'pet_fenix', nome:'Ovo da Fênix Jovem', tipo:'pet', petId:'fogo_fenix', asset:'assets/pets/fenix.png', icon:'🔥', priceGems:75, desc:'Adquire ou evolui a Fênix Jovem.' },
+    pet_draco: { id:'pet_draco', nome:'Ovo do Draco de Brasa', tipo:'pet', petId:'fogo_draco', asset:'assets/pets/draco.png', icon:'🐉', priceGems:95, desc:'Adquire ou evolui o Draco de Brasa.' },
+    pet_corvo: { id:'pet_corvo', nome:'Ovo do Corvo Sombrio', tipo:'pet', petId:'sombra_corvo', asset:'assets/pets/corvo.png', icon:'🪶', priceGems:85, desc:'Adquire ou evolui o Corvo Sombrio.' }
   };
 
-  var EXPORTS = { LEVEL_CAP: LEVEL_CAP, XP_TABLE: XP_TABLE, GAME_CLASSES: GAME_CLASSES, ITEM_CATALOG: ITEM_CATALOG, MONSTERS: MONSTERS, WING_LEVELS: WING_LEVELS, GEM_TYPES: GEM_TYPES, MOUNTS: MOUNTS, SHOP_ITEMS: SHOP_ITEMS };
+  var EXPORTS = { LEVEL_CAP: LEVEL_CAP, XP_TABLE: XP_TABLE, GAME_CLASSES: GAME_CLASSES, ITEM_CATALOG: ITEM_CATALOG, MONSTERS: MONSTERS, WING_LEVELS: WING_LEVELS, GEM_TYPES: GEM_TYPES, MOUNTS: MOUNTS, SHOP_ITEMS: SHOP_ITEMS, PETS: PETS };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = EXPORTS;
   else {
@@ -193,5 +205,6 @@
     window.GEM_TYPES = GEM_TYPES;
     window.MOUNTS = MOUNTS;
     window.SHOP_ITEMS = SHOP_ITEMS;
+    window.PETS = PETS;
   }
 })();
