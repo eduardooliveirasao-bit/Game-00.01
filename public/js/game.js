@@ -28,6 +28,7 @@
   var LEVEL_CAP = window.LEVEL_CAP || 80;
   var GEM_TYPES = window.GEM_TYPES || {};
   var MOUNTS = window.MOUNTS || {};
+  var SHOP_ITEMS = window.SHOP_ITEMS || {};
 
   var state = {
     meId: null,
@@ -40,6 +41,7 @@
     logs: [],
     lootRecente: [],
     selectedItemId: null,
+    isAuthenticated: false,
     ranking: null,
     anim: {
       playerAttackUntil: 0,
@@ -77,6 +79,18 @@
   var mountModal = byId('mount-modal');
   var mountClose = byId('mount-close');
   var mountCard = byId('mount-card');
+  var authModal = byId('auth-modal');
+  var authError = byId('auth-error');
+  var loginBtn = byId('login-btn');
+  var registerBtn = byId('register-btn');
+  var menuShop = byId('menu-shop');
+  var shopModal = byId('shop-modal');
+  var shopClose = byId('shop-close');
+  var shopList = byId('shop-list');
+  var shopInfo = byId('shop-info');
+  var gmMenu = byId('menu-gm');
+  var gmModal = byId('gm-modal');
+  var gmClose = byId('gm-close');
 
   var audioCtx = null;
   function ensureAudio() {
@@ -215,7 +229,9 @@
     byId('stage-subtitle').textContent = isDead ? 'Herói derrotado' : (p.autoFarm ? 'Auto batalha ativa' : 'Auto batalha desativada');
     byId('hero-status-line').textContent = isDead ? 'Ressurreição automática em instantes' : 'Herói em combate';
 
-    renderEquipment(); renderPaperDoll(); renderBag(); updateLoot(); renderAchievements();
+    if (gmMenu) gmMenu.classList.toggle('hidden', !p.isGM);
+    if (authModal) authModal.classList.toggle('hidden', !!p.isAuthenticated);
+    renderEquipment(); renderPaperDoll(); renderBag(); updateLoot(); renderAchievements(); renderShop();
   }
 
   function renderEquipment() {
@@ -277,10 +293,11 @@
       return;
     }
     items.forEach(function (item) {
+      var equippedBadge = item.equipped ? '<span class="bag-item-badge">Equipado</span>' : '';
       var el = document.createElement('div');
-      el.className = 'bag-item' + (state.selectedItemId === item.id ? ' active' : '');
+      el.className = 'bag-item' + (state.selectedItemId === item.id ? ' active' : '') + (item.equipped ? ' is-equipped' : '');
       el.style.borderColor = item.rarityColor || item.cor || 'rgba(255,255,255,.08)';
-      el.innerHTML = '<div class="bag-item-top"><img class="bag-item-img" src="' + (item.asset || '') + '" alt=""><div class="bag-item-text"><strong style="color:' + (item.rarityColor || '#fff') + '">' + item.icon + ' ' + escapeHtml(item.nome) + '</strong>' +
+      el.innerHTML = '<div class="bag-item-top"><div class="bag-item-image-wrap"><img class="bag-item-img" src="' + (item.asset || '') + '" alt="">' + equippedBadge + '</div><div class="bag-item-text"><strong style="color:' + (item.rarityColor || '#fff') + '">' + item.icon + ' ' + escapeHtml(item.nome) + '</strong>' +
         '<small>' + escapeHtml(item.slot) + ' · ' + escapeHtml(item.raridade) + ' · Nv.' + (item.requiredLevel || 1) + '</small></div></div>' +
         '<div class="bag-item-bottom"><span>Poder ' + (item.powerScore || 0) + '</span><span>Venda ' + (item.sellValue || 0) + ' ouro</span></div>';
       el.onclick = function () { state.selectedItemId = item.id; renderBag(); renderBagDetail(item); };
@@ -293,6 +310,7 @@
   function renderBagDetail(item) {
     if (!item) { bagDetail.innerHTML = 'Selecione um item da bolsa.'; return; }
     var equipped = state.me && state.me.equipados ? state.me.equipados[item.slot] : null;
+    var isEquipped = !!item.equipped;
     var gems = item.gems || [];
     var sockets = item.sockets || 1;
     var socketHtml = '<div class="gem-sockets"><strong>Encaixes de gema</strong><div class="socket-row">';
@@ -309,19 +327,23 @@
     socketHtml += '</div><small>Cada gema inserida consome 1 💎 e aumenta os atributos do item.</small></div>';
 
     var equippedHtml = equipped ? '<div class="compare-item"><img class="compare-item-img" src="' + (equipped.asset || '') + '" alt=""><div><span style="color:' + (equipped.rarityColor || '#fff') + '">' + equipped.icon + ' ' + escapeHtml(equipped.nome) + '</span><small>' + escapeHtml(equipped.raridade) + ' · Poder ' + (equipped.powerScore || 0) + '</small></div></div>' : 'Nada equipado';
+    var equippedState = isEquipped ? '<div class="bag-detail-equipped">✅ Este item está equipado neste momento.</div>' : '';
+    var actionLabel = isEquipped ? 'Desequipar item' : 'Equipar item';
+    var compareLabel = isEquipped ? 'Item atualmente equipado no slot:' : 'Equipado no slot:';
 
     bagDetail.innerHTML = '<h3 style="color:' + (item.rarityColor || '#fff') + '"><img class="detail-item-img" src="' + (item.asset || '') + '" alt=""> ' + item.icon + ' ' + escapeHtml(item.nome) + '</h3>' +
       '<div class="rarity ' + rarityClass(item.raridade) + '">' + escapeHtml(String(item.raridade).toUpperCase()) + ' · Slot ' + escapeHtml(item.slot) + ' · Requer Nv. ' + (item.requiredLevel || 1) + '</div>' +
+      equippedState +
       '<p>Venda por <strong>' + (item.sellValue || 0) + ' ouro</strong> ou equipe para alterar os atributos e o visual do herói.</p>' +
       '<div class="detail-stats">' +
         diffHtml(item, equipped, 'ataque', 'ATQ') + diffHtml(item, equipped, 'defesa', 'DEF') + diffHtml(item, equipped, 'critico', 'CRIT') + diffHtml(item, equipped, 'hp', 'HP') + diffHtml(item, equipped, 'mana', 'MANA') + '<div>PODER<br><strong>' + (item.powerScore || 0) + '</strong></div>' +
       '</div>' +
-      '<div class="compare-box"><strong>Equipado no slot:</strong><br>' + equippedHtml + '</div>' +
+      '<div class="compare-box"><strong>' + compareLabel + '</strong><br>' + equippedHtml + '</div>' +
       socketHtml +
-      '<button id="equip-selected-btn">Equipar item</button><button id="sell-selected-btn">Vender item</button>';
+      '<button id="equip-selected-btn">' + actionLabel + '</button><button id="sell-selected-btn">Vender item</button>';
     var equipBtn = byId('equip-selected-btn');
     var sellBtn = byId('sell-selected-btn');
-    if (equipBtn) equipBtn.onclick = function () { ensureAudio(); socket.emit('equipItem', { itemId: item.id }); };
+    if (equipBtn) equipBtn.onclick = function () { ensureAudio(); if (isEquipped) socket.emit('unequipItem', { slot: item.slot }); else socket.emit('equipItem', { itemId: item.id }); };
     if (sellBtn) sellBtn.onclick = function () { ensureAudio(); socket.emit('sellItem', { itemId: item.id }); };
     Array.prototype.forEach.call(bagDetail.querySelectorAll('[data-gem]'), function (btn) {
       btn.onclick = function () { ensureAudio(); socket.emit('insertGem', { itemId: item.id, gemId: btn.getAttribute('data-gem') }); };
@@ -353,9 +375,21 @@
     ctx.beginPath(); ctx.ellipse(canvas.width * 0.72, canvas.height * 0.88, 150, 32, 0, 0, Math.PI * 2); ctx.fill();
   }
 
+  function drawSegment(img, sw, sh, srcY0, srcY1, dx, dy, dw, dh, rot, sx, sy) {
+    ctx.save();
+    ctx.translate(dx, dy);
+    ctx.rotate(rot || 0);
+    ctx.scale(sx || 1, sy || 1);
+    var sliceY = sh * srcY0;
+    var sliceH = sh * (srcY1 - srcY0);
+    ctx.drawImage(img, 0, sliceY, sw, sliceH, -dw / 2, -dh / 2, dw, dh);
+    ctx.restore();
+  }
+
   function drawPlayer(now) {
     if (!state.me || !state.me.classeId) return;
     var img = characterImages[state.me.classeId];
+    if (!img || !img.complete) return;
     var mods = state.me.visualMods || {};
     var mount = state.me.mount || (mods && mods.mount);
     var mountImg = mount && mountImages[mount.id];
@@ -364,114 +398,104 @@
     var attack = now < state.anim.playerAttackUntil;
     var dead = !!state.me.isDead;
     var t = now / 1000;
-    var bob = Math.sin(now / 230) * 4;
+    var bob = Math.sin(now / 240) * 4;
     var x = canvas.width * 0.28;
     var y = canvas.height * 0.88 + bob;
     var progress = attack ? 1 - Math.max(0, (state.anim.playerAttackUntil - now) / 520) : 0;
     var swing = attack ? Math.sin(progress * Math.PI) : 0;
-    if (attack) { x += swing * 80; y -= swing * 22; }
-    if (hit) x -= 18 + Math.random() * 8;
+    if (attack) { x += swing * 60; y -= swing * 18; }
+    if (hit) { x -= 10 + Math.random() * 5; }
 
-    var charH = Math.min(256, Math.max(176, canvas.height * 0.60));
-    var charW = clsId === 'mago' ? charH * 1.02 : charH * 0.78;
+    var charH = Math.min(262, Math.max(184, canvas.height * 0.62));
+    var charW = clsId === 'mago' ? charH * 0.96 : charH * 0.82;
     var mountH = mount ? Math.min(138, charH * 0.50) : 0;
     var heroAnchorY = y - mountH;
-    var breathScale = 1 + Math.sin(now / 220) * 0.015;
-    var tilt = (hit ? -0.08 : 0) + (attack ? (clsId === 'arqueiro' ? 0.08 : -0.06) * swing : 0);
+    var breath = Math.sin(now / 190) * 0.018;
+    var torsoTilt = (attack ? -0.14 * swing : 0) + (hit ? -0.07 : 0) + Math.sin(now / 450) * 0.015;
+    var upperY = heroAnchorY - charH * 0.62;
+    var midY = heroAnchorY - charH * 0.34;
+    var lowerY = heroAnchorY - charH * 0.12;
+    var lowerBounce = Math.sin(now / (state.me.autoFarm ? 110 : 180)) * (state.me.autoFarm ? 8 : 4);
+    var headNod = Math.sin(now / 220) * 0.05 + (attack ? 0.08 * swing : 0);
+    var armArc = attack ? 0.45 * swing : Math.sin(now / 260) * 0.06;
 
     ctx.save();
     if (dead) { ctx.globalAlpha = 0.58; ctx.filter = 'grayscale(1)'; }
 
     if (mountImg && mountImg.complete) {
-      var mountW = mountH * 1.55;
-      var trot = Math.sin(now / 135) * (state.me.autoFarm ? 2.8 : 1.2);
+      var mountW = mountH * 1.58;
+      var trot = Math.sin(now / 110) * (state.me.autoFarm ? 4 : 2);
       ctx.save();
-      ctx.translate(x - 6, y + trot * 0.35);
-      ctx.rotate((attack ? -0.03 * swing : 0) + Math.sin(now / 260) * 0.012);
-      ctx.scale(1 + Math.sin(now / 210) * 0.02, 1 - Math.sin(now / 210) * 0.015);
+      ctx.translate(x - 4, y + trot * 0.25);
+      ctx.rotate((attack ? -0.02 * swing : 0) + Math.sin(now / 250) * 0.01);
+      ctx.scale(1 + Math.sin(now / 150) * 0.03, 1 - Math.sin(now / 150) * 0.02);
       ctx.drawImage(mountImg, -mountW / 2, -mountH, mountW, mountH);
-      ctx.strokeStyle = 'rgba(255,255,255,.20)';
-      ctx.lineWidth = 3;
-      for (var lm = -1; lm <= 1; lm += 2) {
-        ctx.beginPath();
-        ctx.moveTo(lm * mountW * 0.12, -mountH * 0.08);
-        ctx.lineTo(lm * mountW * 0.08 + Math.sin(now / 120 + lm) * 6, mountH * 0.18);
-        ctx.stroke();
-      }
       ctx.restore();
-      if (state.me.autoFarm) spawnParticles(x - 20, y + 2, 'rgba(160,220,255,.55)', 1);
     }
 
     var wing = mods.wing || null;
     if (wing || clsId === 'mago') {
       var wingColor = wing ? wing.color : '#d7ebff';
       var scale = wing ? (wing.size || 1.15) : 1.0;
-      var flap = Math.sin(now / 150) * 0.18;
+      var flap = Math.sin(now / 120) * 0.22 + (attack ? 0.10 * swing : 0);
       ctx.save();
-      ctx.globalAlpha = 0.62;
+      ctx.globalAlpha = 0.58;
       ctx.fillStyle = wingColor;
       ctx.shadowColor = wingColor;
-      ctx.shadowBlur = 26;
+      ctx.shadowBlur = 28;
       ctx.translate(x, heroAnchorY - charH * 0.56);
-      ctx.rotate(-0.18 + flap);
-      ctx.beginPath(); ctx.ellipse(-charW * 0.42, 0, charW * 0.34 * scale, charH * 0.22 * scale, -0.48, 0, Math.PI * 2); ctx.fill();
-      ctx.rotate(0.36 - flap * 2);
-      ctx.beginPath(); ctx.ellipse(charW * 0.42, 0, charW * 0.34 * scale, charH * 0.22 * scale, 0.48, 0, Math.PI * 2); ctx.fill();
+      ctx.rotate(-0.2 + flap);
+      ctx.beginPath(); ctx.ellipse(-charW * 0.43, 0, charW * 0.34 * scale, charH * 0.23 * scale, -0.55, 0, Math.PI * 2); ctx.fill();
+      ctx.rotate(0.4 - flap * 2);
+      ctx.beginPath(); ctx.ellipse(charW * 0.43, 0, charW * 0.34 * scale, charH * 0.23 * scale, 0.55, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
 
     if (mods.aura) {
-      ctx.save(); ctx.globalAlpha = 0.35; ctx.strokeStyle = mods.aura; ctx.shadowColor = mods.aura; ctx.shadowBlur = 24; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.ellipse(x, heroAnchorY - charH * 0.46, charW * 0.58, charH * 0.50, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.save(); ctx.globalAlpha = 0.30; ctx.strokeStyle = mods.aura; ctx.shadowColor = mods.aura; ctx.shadowBlur = 24; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(x, heroAnchorY - charH * 0.44, charW * 0.6, charH * 0.52, 0, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
     }
 
-    ctx.save();
-    ctx.translate(x, heroAnchorY - charH / 2);
-    ctx.rotate(tilt);
-    ctx.scale((attack ? 1 + 0.03 * swing : 1) * breathScale, (hit ? 0.97 : 1) * breathScale);
-    if (img && img.complete) ctx.drawImage(img, -charW / 2, -charH / 2, charW, charH);
+    var sw = img.naturalWidth || img.width;
+    var sh = img.naturalHeight || img.height;
 
+    // pernas/base
+    drawSegment(img, sw, sh, 0.60, 1.00, x, lowerY + lowerBounce * 0.35, charW, charH * 0.40, attack ? 0.04 * swing : 0, 1 + breath, 1 - breath * 0.5);
+    // tronco
+    drawSegment(img, sw, sh, 0.26, 0.70, x, midY, charW * (1 + (attack ? 0.02 * swing : 0)), charH * 0.44, torsoTilt, 1 + breath, 1 - breath * 0.4);
+    // cabeça/ombro superior
+    drawSegment(img, sw, sh, 0.00, 0.30, x + (hit ? -4 : 0), upperY + (attack ? -5 * swing : 0), charW * 0.88, charH * 0.30, headNod, 1 + breath * 0.6, 1 + breath * 0.2);
+
+    // braço/arma extra por classe para dar sensação de ataque real
+    ctx.save();
+    ctx.translate(x, heroAnchorY - charH * 0.42);
+    ctx.rotate(armArc + torsoTilt * 0.6);
     if (mods.weaponGlow) {
-      ctx.save(); ctx.strokeStyle = mods.weaponGlow; ctx.shadowColor = mods.weaponGlow; ctx.shadowBlur = 18; ctx.lineWidth = 5;
-      if (clsId === 'guerreiro') {
-        ctx.beginPath(); ctx.arc(charW * 0.10, -charH * 0.10, charW * 0.32, -1.1, 0.5); ctx.stroke();
-      } else if (clsId === 'arqueiro') {
-        ctx.beginPath(); ctx.arc(charW * 0.16, -charH * 0.12, charW * 0.16, -1.25, 1.25); ctx.stroke();
-      } else {
-        ctx.beginPath(); ctx.moveTo(charW * 0.18, -charH * 0.10); ctx.lineTo(charW * 0.42, -charH * 0.48); ctx.stroke();
-      }
-      ctx.restore();
+      ctx.strokeStyle = mods.weaponGlow; ctx.shadowColor = mods.weaponGlow; ctx.shadowBlur = 18; ctx.lineWidth = 5;
+    } else {
+      ctx.strokeStyle = '#d9f0ff'; ctx.lineWidth = 4;
     }
-    if (mods.ringGlow) {
-      ctx.save(); ctx.fillStyle = mods.ringGlow; ctx.shadowColor = mods.ringGlow; ctx.shadowBlur = 14; ctx.beginPath(); ctx.arc(-charW * 0.18, -charH * 0.02, 6 + Math.sin(now / 160) * 1.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    }
-
-    // animação própria por classe
-    ctx.save();
-    if (clsId === 'guerreiro' && attack) {
-      ctx.strokeStyle = mods.weaponGlow || '#ffb179'; ctx.lineWidth = 6; ctx.shadowColor = mods.weaponGlow || '#ffb179'; ctx.shadowBlur = 16;
-      ctx.beginPath(); ctx.arc(charW * 0.06, -charH * 0.16, charW * 0.40, -1.3 + swing * 0.4, 0.7 + swing * 0.5); ctx.stroke();
+    if (clsId === 'guerreiro') {
+      ctx.beginPath(); ctx.moveTo(charW * 0.10, -charH * 0.05); ctx.lineTo(charW * 0.42, -charH * 0.36); ctx.stroke();
+      if (attack) { ctx.beginPath(); ctx.arc(charW * 0.14, -charH * 0.08, charW * 0.42, -1.2, 0.55 + swing * 0.5); ctx.stroke(); }
     } else if (clsId === 'arqueiro') {
-      var drawBack = attack ? 12 * swing : 4 + Math.sin(now / 180) * 2;
-      ctx.strokeStyle = '#9ef0c8'; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(charW * 0.18, -charH * 0.10, charW * 0.15, -1.2, 1.2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(charW * 0.15, -charH * 0.24); ctx.lineTo(charW * 0.15 - drawBack, -charH * 0.02); ctx.lineTo(charW * 0.15, charH * 0.10); ctx.stroke();
-    } else if (clsId === 'mago') {
-      ctx.strokeStyle = '#7fd6ff'; ctx.lineWidth = 3; ctx.shadowColor = '#7fd6ff'; ctx.shadowBlur = 12;
-      var orbR = charW * 0.28;
+      ctx.beginPath(); ctx.arc(charW * 0.18, -charH * 0.08, charW * 0.16, -1.2, 1.2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(charW * 0.16, -charH * 0.22); ctx.lineTo(charW * 0.38 + swing * 16, -charH * 0.08); ctx.lineTo(charW * 0.16, charH * 0.08); ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.moveTo(charW * 0.16, -charH * 0.06); ctx.lineTo(charW * 0.38, -charH * 0.42); ctx.stroke();
       for (var o = 0; o < 3; o++) {
-        var ang = t * 2.2 + o * 2.09;
-        ctx.beginPath(); ctx.arc(Math.cos(ang) * orbR, -charH * 0.12 + Math.sin(ang) * 12, 5, 0, Math.PI * 2); ctx.stroke();
+        var ang = t * 2.4 + o * 2.09;
+        ctx.beginPath(); ctx.arc(Math.cos(ang) * charW * 0.22, -charH * 0.05 + Math.sin(ang) * 12, 5, 0, Math.PI * 2); ctx.stroke();
       }
-      ctx.beginPath(); ctx.moveTo(charW * 0.18, -charH * 0.05); ctx.lineTo(charW * 0.38, -charH * 0.48); ctx.stroke();
     }
     ctx.restore();
-    ctx.restore();
-    ctx.restore();
+
+    if (mods.ringGlow) { ctx.save(); ctx.fillStyle = mods.ringGlow; ctx.shadowColor = mods.ringGlow; ctx.shadowBlur = 14; ctx.beginPath(); ctx.arc(x - charW * 0.16, heroAnchorY - charH * 0.38, 5 + Math.sin(now / 160) * 1.5, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
 
     if (hit) spawnParticles(x, heroAnchorY - charH * 0.35, '#ff7b7b', 2);
-    drawNameplate(state.me.nome + ' [Nv. ' + state.me.nivel + ']', x, Math.max(22, heroAnchorY - charH - 16), dead ? '#ffb3b3' : '#ffe69b', 'rgba(255,230,155,.4)');
+    drawNameplate(state.me.nome + ' [Nv. ' + state.me.nivel + ']', x, Math.max(22, heroAnchorY - charH - 18), dead ? '#ffb3b3' : '#ffe69b', 'rgba(255,230,155,.4)');
+    ctx.restore();
   }
 
   function drawMonster(now) {
@@ -606,6 +630,73 @@
     if (btn) btn.onclick = function () { ensureAudio(); socket.emit('upgradeMount'); };
   }
 
+
+  function setAuthError(msg) {
+    if (authError) authError.textContent = msg || '';
+  }
+
+  function renderShop() {
+    if (!shopList) return;
+    var entries = Object.keys(SHOP_ITEMS).map(function (id) { return SHOP_ITEMS[id]; });
+    if (!entries.length) {
+      shopList.innerHTML = '<div class="shop-card">Loja sem itens.</div>';
+      return;
+    }
+    shopList.innerHTML = entries.map(function (item) {
+      return '<div class="shop-card">' +
+        '<img src="' + (item.asset || '') + '" alt="' + escapeHtml(item.nome) + '">' +
+        '<div><strong>' + item.icon + ' ' + escapeHtml(item.nome) + '</strong><small>' + escapeHtml(item.desc || '') + '</small><small>Preço: 💎 ' + (item.priceGems || 0) + '</small></div>' +
+        '<button data-buy="' + item.id + '">Comprar</button>' +
+      '</div>';
+    }).join('');
+    Array.prototype.forEach.call(shopList.querySelectorAll('[data-buy]'), function (btn) {
+      btn.onclick = function () {
+        ensureAudio();
+        socket.emit('buyShopItem', { itemId: btn.getAttribute('data-buy') });
+      };
+    });
+    if (shopInfo && state.me) shopInfo.innerHTML = 'Saldo atual: <strong>💎 ' + formatNumber(state.me.gemas || 0) + '</strong><br>Poções: Vida ' + ((state.me.pocoes && state.me.pocoes.vida) || 0) + ' · Mana ' + ((state.me.pocoes && state.me.pocoes.mana) || 0);
+  }
+
+  function openShop() {
+    if (!state.me || !state.me.isAuthenticated) { setAuthError('Faça login para abrir a loja.'); if (authModal) authModal.classList.remove('hidden'); return; }
+    shopModal.classList.remove('hidden');
+    renderShop();
+  }
+
+  function closeShop() {
+    shopModal.classList.add('hidden');
+  }
+
+  function openGM() {
+    if (!state.me || !state.me.isGM) return;
+    gmModal.classList.remove('hidden');
+  }
+
+  function closeGM() {
+    gmModal.classList.add('hidden');
+  }
+
+
+  if (loginBtn) loginBtn.onclick = function () {
+    ensureAudio();
+    setAuthError('');
+    socket.emit('loginAccount', {
+      login: byId('login-user').value,
+      password: byId('login-pass').value
+    });
+  };
+  if (registerBtn) registerBtn.onclick = function () {
+    ensureAudio();
+    setAuthError('');
+    socket.emit('registerAccount', {
+      login: byId('reg-user').value,
+      password: byId('reg-pass').value,
+      nick: byId('reg-nick').value,
+      classeId: byId('reg-class').value
+    });
+  };
+
   autoFarmBtn.onclick = function () { ensureAudio(); if (!state.me) return; socket.emit('toggleAutoFarm', { enabled: !state.me.autoFarm }); };
   menuBag.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuBag.classList.add('active'); openBag(); };
   bagClose.onclick = closeBag;
@@ -615,15 +706,58 @@
   if (menuMount) menuMount.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuMount.classList.add('active'); openMount(); };
   if (mountClose) mountClose.onclick = closeMount;
   if (mountModal) mountModal.addEventListener('click', function (e) { if (e.target === mountModal) closeMount(); });
+
+  if (menuShop) menuShop.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuShop.classList.add('active'); openShop(); };
+  if (shopClose) shopClose.onclick = closeShop;
+  if (shopModal) shopModal.addEventListener('click', function (e) { if (e.target === shopModal) closeShop(); });
+  var hpPotionBtn = byId('use-hp-potion');
+  var mpPotionBtn = byId('use-mp-potion');
+  if (hpPotionBtn) hpPotionBtn.onclick = function () { ensureAudio(); socket.emit('usePotion', { type: 'vida' }); };
+  if (mpPotionBtn) mpPotionBtn.onclick = function () { ensureAudio(); socket.emit('usePotion', { type: 'mana' }); };
+  if (gmMenu) gmMenu.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); gmMenu.classList.add('active'); openGM(); };
+  if (gmClose) gmClose.onclick = closeGM;
+  if (gmModal) {
+    gmModal.addEventListener('click', function (e) { if (e.target === gmModal) closeGM(); });
+    Array.prototype.forEach.call(gmModal.querySelectorAll('[data-gm]'), function (btn) {
+      btn.onclick = function () {
+        ensureAudio();
+        var cmd = btn.getAttribute('data-gm');
+        var amount = cmd === 'addLevel' ? 5 : (cmd === 'addGems' ? 10000 : 100000);
+        socket.emit('gmCommand', { cmd: cmd, amount: amount });
+      };
+    });
+  }
+
   bagModal.addEventListener('click', function (e) { if (e.target === bagModal) closeBag(); });
   sellAllBtn.onclick = function () { ensureAudio(); socket.emit('sellAllItems'); };
   if (equipBestBtn) equipBestBtn.onclick = function () { ensureAudio(); socket.emit('equipBestItems'); };
   equipmentGrid.addEventListener('click', function (e) { var slot = e.target && e.target.getAttribute('data-unequip'); if (slot) { ensureAudio(); socket.emit('unequipItem', { slot: slot }); } });
 
   socket.on('connect_error', function (err) { fatal('Falha ao conectar: ' + err.message); });
-  socket.on('init', function (data) { state.meId = data.you.id; state.me = data.you; state.monster = data.monster; state.players = {}; (data.players || []).forEach(function (p) { state.players[p.id] = p; }); var savedId = localStorage.getItem('legend_of_indle_save_id'); if (savedId) socket.emit('loadSave', { saveId: savedId }); else if (data.you.saveId) { localStorage.setItem('legend_of_indle_save_id', data.you.saveId); if (byId('hud-save-status')) byId('hud-save-status').textContent = 'Save criado'; } if (!state.me.classeId) { mountClassSelect(); classSelect.classList.remove('hidden'); } else { classSelect.classList.add('hidden'); mountAbilities(state.me.classeId); } updateHUD(); updateEnemyHUD(); });
+  socket.on('init', function (data) {
+    state.meId = data.you.id;
+    state.me = data.you;
+    state.monster = data.monster;
+    state.players = {};
+    (data.players || []).forEach(function (p) { state.players[p.id] = p; });
+    if (authModal) authModal.classList.remove('hidden');
+    classSelect.classList.add('hidden');
+    mountClassSelect();
+    updateHUD();
+    updateEnemyHUD();
+    renderShop();
+  });
   socket.on('playerJoined', function (p) { state.players[p.id] = p; }); socket.on('playerLeft', function (d) { delete state.players[d.id]; }); socket.on('onlineCount', function (n) { byId('hud-online-count').textContent = n; });
-  socket.on('playerUpdated', function (player) { state.players[player.id] = player; if (player.id === state.meId) { state.me = player; if (player.classeId) { classSelect.classList.add('hidden'); mountAbilities(player.classeId); } } updateHUD(); });
+  socket.on('playerUpdated', function (player) {
+    state.players[player.id] = player;
+    if (player.id === state.meId) {
+      state.me = player;
+      if (player.isAuthenticated && authModal) authModal.classList.add('hidden');
+      if (player.classeId) { classSelect.classList.add('hidden'); mountAbilities(player.classeId); }
+      else if (player.isAuthenticated) { mountClassSelect(); classSelect.classList.remove('hidden'); }
+    }
+    updateHUD();
+  });
   socket.on('gameState', function (list) { (list || []).forEach(function (p) { state.players[p.id] = p; if (p.id === state.meId) state.me = p; }); updateHUD(); });
   socket.on('enemyUpdate', function (monster) { state.monster = monster; updateEnemyHUD(); });
   socket.on('combatTick', function (data) { if (data.monster) { state.monster = data.monster; updateEnemyHUD(); }
@@ -658,6 +792,45 @@
   socket.on('achievementsUnlocked', function (list) { (list || []).forEach(function (a) { addLog('🏆 Conquista: ' + a.nome + ' +' + (a.reward.ouro || 0) + ' ouro +' + (a.reward.gemas || 0) + ' gemas.'); playSound('loot'); }); });
   socket.on('rankingUpdate', function (data) { renderRanking(data); });
   socket.on('mountUpdated', function (data) { addLog('🐺 Montaria treinada: ' + data.mount.nome + ' Nv. ' + data.mount.level + '.'); playSound('equip'); renderMount(); });
+
+
+  socket.on('authSuccess', function (data) {
+    state.me = data.player;
+    localStorage.setItem('legend_of_indle_account_login', data.account.login);
+    if (authModal) authModal.classList.add('hidden');
+    if (byId('hud-save-status')) byId('hud-save-status').textContent = data.account.isGM ? 'GM conectado' : 'Conta conectada';
+    addLog('🔐 Login realizado: ' + data.account.nick + (data.account.isGM ? ' [GM]' : '') + '.');
+    if (state.me.classeId) { classSelect.classList.add('hidden'); mountAbilities(state.me.classeId); }
+    updateHUD();
+  });
+
+  socket.on('authError', function (msg) {
+    setAuthError(msg || 'Falha ao autenticar.');
+  });
+
+  socket.on('shopAction', function (data) {
+    if (data.player) state.me = data.player;
+    if (data.type === 'buy') {
+      var name = data.item ? data.item.nome : 'item';
+      addLog('🛒 Compra realizada: ' + name + '.');
+      if (data.granted && data.granted.item) addLog('🎁 Loja entregou: ' + data.granted.item.nome + '.');
+      if (data.granted && data.granted.ouro) addLog('🪙 Loja entregou +' + data.granted.ouro + ' ouro.');
+      if (data.granted && data.granted.mount) addLog('🐺 Montaria equipada: ' + data.granted.mount.nome + '.');
+      playSound('loot');
+    } else if (data.type === 'usePotion') {
+      addLog('🧪 Poção usada: ' + data.potionType + '.');
+      playSound('equip');
+    }
+    updateHUD();
+    renderShop();
+  });
+
+  socket.on('gmResult', function (data) {
+    if (data.player) state.me = data.player;
+    addLog('🛠️ Comando GM executado: ' + data.cmd + '.');
+    playSound('boss');
+    updateHUD();
+  });
 
   socket.on('cooldownRejected', function (info) { addLog('⏳ Habilidade em recarga: ' + Math.ceil(info.restanteMs / 1000) + 's.'); });
   socket.on('errorMsg', function (msg) { addLog('⚠️ ' + msg); });

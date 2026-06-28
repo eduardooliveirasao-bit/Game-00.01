@@ -1,12 +1,13 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const { GAME_CLASSES, LEVEL_CAP } = require('./shared/classes.js');
+const { GAME_CLASSES, LEVEL_CAP, SHOP_ITEMS } = require('./shared/classes.js');
 const LevelManager = require('./server/managers/LevelManager');
 const MonsterManager = require('./server/managers/MonsterManager');
 const CombatManager = require('./server/managers/CombatManager');
 const LootManager = require('./server/managers/LootManager');
 const SaveManager = require('./server/managers/SaveManager');
+const AccountManager = require('./server/managers/AccountManager');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE_MS = 1000;
@@ -22,6 +23,7 @@ app.use('/shared', express.static('shared'));
 
 const players = {};
 const monsterManager = new MonsterManager();
+AccountManager.ensureDefaultGM(SaveManager, createPlayer);
 
 const ACHIEVEMENTS = [
   { id: 'primeiro_sangue', nome: 'Primeiro Sangue', desc: 'Derrote seu primeiro monstro.', check: (p) => (p.kills || 0) >= 1, reward: { ouro: 80, gemas: 1 } },
@@ -39,6 +41,9 @@ function createPlayer(socket) {
   const player = {
     id: socket.id,
     saveId: SaveManager.createId(),
+    accountLogin: null,
+    isAuthenticated: false,
+    isGM: false,
     nome: 'Aventureiro-' + randomSuffix(),
     classeId: null,
     nivel: 1,
@@ -54,6 +59,8 @@ function createPlayer(socket) {
     asaNome: 'Asas Iniciais',
     ouro: 0,
     gemas: 0,
+    cashGems: 0,
+    pocoes: { vida: 0, mana: 0 },
     power: 0,
     kills: 0,
     horda: 1,
@@ -77,6 +84,7 @@ function createPlayer(socket) {
 }
 
 function publicPlayer(player) {
+  LootManager.syncInventoryFlags(player);
   const inventario = (player.inventario || []).map((item) => LootManager.enrichItem({ ...item }));
   const equipados = {};
   Object.keys(player.equipados || {}).forEach((slot) => {
@@ -85,6 +93,9 @@ function publicPlayer(player) {
   return {
     id: player.id,
     saveId: player.saveId,
+    accountLogin: player.accountLogin || null,
+    isAuthenticated: !!player.isAuthenticated,
+    isGM: !!player.isGM,
     nome: player.nome,
     classeId: player.classeId,
     nivel: player.nivel,
@@ -100,6 +111,8 @@ function publicPlayer(player) {
     asaNome: player.asaNome,
     ouro: player.ouro,
     gemas: player.gemas || 0,
+    cashGems: player.cashGems != null ? player.cashGems : (player.gemas || 0),
+    pocoes: player.pocoes || { vida: 0, mana: 0 },
     power: player.power,
     kills: player.kills,
     horda: player.horda,
@@ -240,14 +253,135 @@ function tryResurrect(player, now) {
   return true;
 }
 
+
+function applyAccountToPlayer(player, accountResult) {
+  const save = SaveManager.load(accountResult.saveId);
+  if (save) SaveManager.apply(player, save);
+  player.saveId = accountResult.saveId;
+  player.accountLogin = accountResult.account.login;
+  player.isAuthenticated = true;
+  player.isGM = !!accountResult.account.isGM;
+  player.nome = accountResult.account.nick || player.nome;
+  if (player.isGM) {
+    player.ouro = Math.max(player.ouro || 0, 500000);
+    player.gemas = Math.max(player.gemas || 0, 50000);
+    player.cashGems = Math.max(player.cashGems || 0, 50000);
+  } else {
+    player.cashGems = player.cashGems != null ? player.cashGems : (player.gemas || 0);
+  }
+  syncPlayerPower(player);
+  savePlayer(player, true);
+  return player;
+}
+
+function requireAuth(socket, player) {
+  if (!player.isAuthenticated) {
+    socket.emit('errorMsg', 'Faça login ou crie uma conta antes de jogar.');
+    return false;
+  }
+  return true;
+}
+
+function buyShopItem(player, itemId) {
+  const item = SHOP_ITEMS[itemId];
+  if (!item) return { ok: false, reason: 'Item da loja inválido.' };
+  const price = item.priceGems || 0;
+  if ((player.gemas || 0) < price) return { ok: false, reason: 'Gemas insuficientes.' };
+  player.gemas -= price;
+  player.cashGems = player.gemas;
+
+  let granted = null;
+  if (item.tipo === 'potion') {
+    player.pocoes = player.pocoes || { vida: 0, mana: 0 };
+    if (item.effect && item.effect.hpPercent) player.pocoes.vida = (player.pocoes.vida || 0) + 1;
+    if (item.effect && item.effect.manaPercent) player.pocoes.mana = (player.pocoes.mana || 0) + 1;
+    granted = { tipo: 'potion', pocoes: player.pocoes };
+  } else if (item.tipo === 'currency') {
+    const gold = (item.effect && item.effect.ouro) || 0;
+    player.ouro = (player.ouro || 0) + gold;
+    granted = { tipo: 'currency', ouro: gold };
+  } else if (item.tipo === 'chest') {
+    const drop = LootManager.createShopDrop(player, item.rarityMin || 'raro');
+    if (drop) {
+      player.inventario = player.inventario || [];
+      player.inventario.unshift(drop);
+    }
+    granted = { tipo: 'chest', item: drop };
+  } else if (item.tipo === 'boss') {
+    monsterManager.horda = Math.ceil((monsterManager.horda || 1) / 10) * 10;
+    monsterManager.currentMonster = monsterManager.generateMonster(player.nivel || 1);
+    granted = { tipo: 'boss', monster: monsterManager.getPublicMonster() };
+  } else if (item.tipo === 'mount') {
+    player.mount = player.mount || { id: 'lobo_cristalino', level: 1 };
+    if (item.id === 'montaria_grifo') player.mount.id = 'grifo_dourado';
+    if (item.id === 'montaria_dragao') player.mount.id = 'dragao_mirim';
+    player.mount.level = Math.max(player.mount.level || 1, item.id === 'montaria_dragao' ? 8 : 4);
+    granted = { tipo: 'mount', mount: LootManager.getMount(player) };
+  }
+  syncPlayerPower(player);
+  return { ok: true, shopItem: item, granted };
+}
+
+function usePotion(player, type) {
+  player.pocoes = player.pocoes || { vida: 0, mana: 0 };
+  if (type === 'vida') {
+    if ((player.pocoes.vida || 0) <= 0) return { ok: false, reason: 'Você não tem poção de vida.' };
+    player.pocoes.vida -= 1;
+    player.hp = Math.min(player.maxHp || 1, (player.hp || 0) + Math.floor((player.maxHp || 1) * 0.6));
+    return { ok: true, type };
+  }
+  if (type === 'mana') {
+    if ((player.pocoes.mana || 0) <= 0) return { ok: false, reason: 'Você não tem poção de mana.' };
+    player.pocoes.mana -= 1;
+    player.mana = Math.min(player.maxMana || 0, (player.mana || 0) + Math.floor((player.maxMana || 0) * 0.7));
+    return { ok: true, type };
+  }
+  return { ok: false, reason: 'Poção inválida.' };
+}
+
 io.on('connection', (socket) => {
   const player = createPlayer(socket);
   players[socket.id] = player;
 
-  socket.emit('init', { you: publicPlayer(player), players: publicPlayersList(), monster: monsterManager.getPublicMonster(), levelCap: LEVEL_CAP });
+  socket.emit('init', { you: publicPlayer(player), players: publicPlayersList(), monster: monsterManager.getPublicMonster(), levelCap: LEVEL_CAP, shopItems: SHOP_ITEMS, authRequired: true });
   socket.broadcast.emit('playerJoined', publicPlayer(player));
   io.emit('onlineCount', Object.keys(players).length);
   emitEnemyUpdate();
+
+  socket.on('registerAccount', (data = {}) => {
+    const result = AccountManager.create({
+      login: data.login,
+      password: data.password,
+      nick: data.nick,
+      classeId: data.classeId,
+      SaveManager,
+      createPlayer
+    });
+    if (!result.ok) return socket.emit('authError', result.reason);
+    applyAccountToPlayer(player, result);
+    socket.emit('authSuccess', { mode: 'register', account: result.account, player: publicPlayer(player), gmPasswordHint: result.account.isGM ? 'GM123' : null });
+    io.emit('playerUpdated', publicPlayer(player));
+    io.emit('rankingUpdate', buildRanking());
+  });
+
+  socket.on('loginAccount', (data = {}) => {
+    const result = AccountManager.login(data.login, data.password);
+    if (!result.ok) return socket.emit('authError', result.reason);
+    applyAccountToPlayer(player, result);
+    socket.emit('authSuccess', { mode: 'login', account: result.account, player: publicPlayer(player) });
+    io.emit('playerUpdated', publicPlayer(player));
+    io.emit('rankingUpdate', buildRanking());
+  });
+
+  socket.on('changeNick', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = AccountManager.changeNick(player.accountLogin, data.nick);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    player.nome = result.account.nick;
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('inventoryAction', { type: 'nick', nick: player.nome });
+  });
 
   socket.on('loadSave', (data = {}) => {
     const save = SaveManager.load(data.saveId);
@@ -285,10 +419,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('selectClass', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
     const classe = GAME_CLASSES[data.classeId];
     if (!classe) return socket.emit('errorMsg', 'Classe inválida.');
     player.classeId = data.classeId;
-    player.nome = classe.nome;
+    // Mantém o nick escolhido na conta; troca apenas a classe.
     player.inventario = [];
     player.equipados = { arma: null, anel: null, colar: null, ornamento: null };
     player.mount = player.mount || { id: 'lobo_cristalino', level: 1 };
@@ -392,12 +527,71 @@ io.on('connection', (socket) => {
   });
 
   socket.on('upgradeMount', () => {
+    if (!requireAuth(socket, player)) return;
     const result = LootManager.upgradeMount(player);
     if (!result.ok) return socket.emit('errorMsg', result.reason);
     syncPlayerPower(player);
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
     socket.emit('mountUpdated', { mount: result.mount, cost: result.cost });
+  });
+
+  socket.on('buyShopItem', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = buyShopItem(player, data.itemId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('shopAction', { type: 'buy', item: result.shopItem, granted: result.granted, player: publicPlayer(player) });
+    if (result.granted && result.granted.monster) emitEnemyUpdate();
+  });
+
+  socket.on('usePotion', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = usePotion(player, data.type);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('shopAction', { type: 'usePotion', potionType: result.type, player: publicPlayer(player) });
+  });
+
+  socket.on('gmCommand', (data = {}) => {
+    if (!player.isGM) return socket.emit('errorMsg', 'Comando GM negado.');
+    const cmd = data.cmd;
+    if (cmd === 'addGold') player.ouro = (player.ouro || 0) + Math.max(0, Math.floor(data.amount || 100000));
+    else if (cmd === 'addGems') {
+      player.gemas = (player.gemas || 0) + Math.max(0, Math.floor(data.amount || 10000));
+      player.cashGems = player.gemas;
+    } else if (cmd === 'addLevel') {
+      player.nivel = Math.min(LEVEL_CAP, (player.nivel || 1) + Math.max(1, Math.floor(data.amount || 1)));
+      player.level = player.nivel;
+      LevelManager.syncProgressFields(player);
+      player.hp = player.maxHp;
+      player.mana = player.maxMana;
+    } else if (cmd === 'boss') {
+      monsterManager.horda = Math.ceil((monsterManager.horda || 1) / 10) * 10;
+      monsterManager.currentMonster = monsterManager.generateMonster(player.nivel || 1);
+      emitEnemyUpdate();
+    } else if (cmd === 'bossItem') {
+      const drop = LootManager.createShopDrop(player, 'lendário');
+      if (drop) {
+        drop.raridade = 'boss';
+        drop.exclusivoBoss = true;
+        drop.asset = `assets/items/${drop.slot}_boss.png`;
+        drop.rarityColor = '#ff8f3d';
+        player.inventario = player.inventario || [];
+        player.inventario.unshift(drop);
+      }
+    } else if (cmd === 'heal') {
+      player.hp = player.maxHp;
+      player.mana = player.maxMana;
+      player.isDead = false;
+      player.autoFarm = true;
+    }
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('gmResult', { ok: true, cmd, player: publicPlayer(player) });
   });
 
   socket.on('requestRanking', () => {

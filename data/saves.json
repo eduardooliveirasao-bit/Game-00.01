@@ -1,147 +1,77 @@
 {
-  "4631e213fdeaf8c1fc5cc29769f8163d": {
-    "saveId": "4631e213fdeaf8c1fc5cc29769f8163d",
-    "nome": "Elyon, o Arcano Azul",
+  "fe9ebd80befe44548e8b0d512f79c5be": {
+    "saveId": "fe9ebd80befe44548e8b0d512f79c5be",
+    "nome": "GM-Eduardo",
     "classeId": "mago",
-    "nivel": 10,
-    "level": 10,
-    "xp": 81,
-    "hp": 602,
-    "maxHp": 698,
-    "mana": 736,
-    "maxMana": 736,
-    "ouro": 18116,
-    "gemas": 29,
-    "kills": 42,
-    "horda": 43,
+    "nivel": 80,
+    "level": 80,
+    "xp": 8858,
+    "hp": 388,
+    "maxHp": 3318,
+    "mana": 1825,
+    "maxMana": 1825,
+    "ouro": 553526,
+    "gemas": 50040,
+    "cashGems": 50000,
+    "pocoes": {
+      "vida": 0,
+      "mana": 0
+    },
+    "accountLogin": "GM",
+    "isGM": true,
+    "kills": 39,
+    "horda": 47,
     "autoFarm": false,
     "inventario": [
       {
-        "id": "mago_colar_1_1782657604920_b347803d0de93",
-        "baseId": "mago_colar_1",
+        "id": "mago_anel_5_1782658435576_961d51149dc378",
+        "baseId": "mago_anel_5",
         "classeId": "mago",
-        "nome": "Colar da Luz Serena",
-        "slot": "colar",
-        "raridade": "comum",
-        "cor": "#5da9ff",
-        "icon": "📿",
-        "asset": "assets/items/colar_comum.png",
-        "requiredLevel": 1,
-        "exclusivoBoss": false,
-        "sockets": 1,
-        "gems": [],
-        "visual": {
-          "glow": "#5da9ff",
-          "wing": false,
-          "tier": 1
-        },
-        "stats": {
-          "ataque": 33,
-          "defesa": 26,
-          "critico": 8,
-          "hp": 137,
-          "mana": 79
-        },
-        "rarityColor": "#d9dde7",
-        "totalStats": {
-          "ataque": 33,
-          "defesa": 26,
-          "critico": 8,
-          "hp": 137,
-          "mana": 79
-        },
-        "powerScore": 457,
-        "sellValue": 388
-      },
-      {
-        "id": "boss_mago_ornamento_1782657602905_857f2f9a2f494",
-        "baseId": "boss_ornamento",
-        "classeId": "mago",
-        "nome": "Asa Dracônica do Arcanjo",
-        "slot": "ornamento",
-        "raridade": "boss",
-        "cor": "#ff8f3d",
-        "icon": "🪽",
-        "asset": "assets/items/ornamento_boss.png",
-        "requiredLevel": 31,
-        "exclusivoBoss": true,
-        "sockets": 3,
-        "gems": [],
-        "wingVisual": {
-          "name": "Asas Dracônicas do Arcanjo",
-          "color": "#78cfff",
-          "size": 1.45
-        },
-        "visual": {
-          "glow": "#ff8f3d",
-          "wing": true,
-          "tier": 6
-        },
-        "stats": {
-          "ataque": 88,
-          "defesa": 51,
-          "critico": 17,
-          "hp": 288,
-          "mana": 264
-        },
-        "rarityColor": "#ff8f3d",
-        "totalStats": {
-          "ataque": 88,
-          "defesa": 51,
-          "critico": 17,
-          "hp": 288,
-          "mana": 264
-        },
-        "powerScore": 1273,
-        "sellValue": 1257
-      },
-      {
-        "id": "mago_ornamento_5_1782657530298_5cf50f8e4dab",
-        "baseId": "mago_ornamento_5",
-        "classeId": "mago",
-        "nome": "Sigilo do Arcanjo",
-        "slot": "ornamento",
+        "nome": "Anel do Firmamento Azul",
+        "slot": "anel",
         "raridade": "mítico",
         "cor": "#5da9ff",
-        "icon": "✨",
-        "asset": "assets/items/ornamento_mítico.png",
+        "icon": "💍",
+        "asset": "assets/items/anel_mítico.png",
         "requiredLevel": 33,
         "exclusivoBoss": false,
         "sockets": 3,
         "gems": [],
         "visual": {
           "glow": "#5da9ff",
-          "wing": true,
+          "wing": false,
           "tier": 5
         },
+        "equipped": false,
+        "equippedSlot": null,
         "stats": {
-          "ataque": 30,
-          "defesa": 45,
-          "critico": 9,
-          "hp": 181,
-          "mana": 86
+          "ataque": 90,
+          "defesa": 52,
+          "critico": 32,
+          "hp": 235,
+          "mana": 191
         },
         "rarityColor": "#ff7fbb",
         "totalStats": {
-          "ataque": 30,
-          "defesa": 45,
-          "critico": 9,
-          "hp": 181,
-          "mana": 86
+          "ataque": 90,
+          "defesa": 52,
+          "critico": 32,
+          "hp": 235,
+          "mana": 191
         },
-        "powerScore": 628,
-        "sellValue": 673
+        "powerScore": 1238,
+        "sellValue": 1192
       },
       {
-        "id": "mago_colar_4_1782657527282_2bf3e76018c6f",
-        "baseId": "mago_colar_4",
+        "id": "mago_arma_4_1782658432546_3d5ff29bad294",
+        "baseId": "mago_arma_4",
         "classeId": "mago",
-        "nome": "Colar do Santuário",
-        "slot": "colar",
+        "nome": "Cajado da Constelação",
+        "slot": "arma",
         "raridade": "lendário",
         "cor": "#5da9ff",
-        "icon": "📿",
-        "asset": "assets/items/colar_lendário.png",
+        "icon": "⚔️",
+        "asset": "assets/items/arma_lendário.png",
         "requiredLevel": 25,
         "exclusivoBoss": false,
         "sockets": 2,
@@ -151,26 +81,67 @@
           "wing": false,
           "tier": 4
         },
+        "equipped": false,
+        "equippedSlot": null,
         "stats": {
-          "ataque": 29,
-          "defesa": 29,
-          "critico": 7,
-          "hp": 186,
-          "mana": 86
+          "ataque": 115,
+          "defesa": 52,
+          "critico": 23,
+          "hp": 234,
+          "mana": 180
         },
         "rarityColor": "#ffcf5b",
         "totalStats": {
-          "ataque": 29,
-          "defesa": 29,
-          "critico": 7,
-          "hp": 186,
-          "mana": 86
+          "ataque": 115,
+          "defesa": 52,
+          "critico": 23,
+          "hp": 234,
+          "mana": 180
         },
-        "powerScore": 527,
-        "sellValue": 552
+        "powerScore": 1301,
+        "sellValue": 1210
       },
       {
-        "id": "mago_colar_5_1782657523244_952d145210eeb8",
+        "id": "mago_arma_1_1782658431532_af808fe3aa67c",
+        "baseId": "mago_arma_1",
+        "classeId": "mago",
+        "nome": "Cajado da Faísca Azul",
+        "slot": "arma",
+        "raridade": "comum",
+        "cor": "#5da9ff",
+        "icon": "⚔️",
+        "asset": "assets/items/arma_comum.png",
+        "requiredLevel": 1,
+        "exclusivoBoss": false,
+        "sockets": 1,
+        "gems": [],
+        "visual": {
+          "glow": "#5da9ff",
+          "wing": false,
+          "tier": 1
+        },
+        "equipped": false,
+        "equippedSlot": null,
+        "stats": {
+          "ataque": 93,
+          "defesa": 51,
+          "critico": 20,
+          "hp": 232,
+          "mana": 160
+        },
+        "rarityColor": "#d9dde7",
+        "totalStats": {
+          "ataque": 93,
+          "defesa": 51,
+          "critico": 20,
+          "hp": 232,
+          "mana": 160
+        },
+        "powerScore": 1077,
+        "sellValue": 915
+      },
+      {
+        "id": "mago_colar_5_1782658427498_19d3b47266b0f",
         "baseId": "mago_colar_5",
         "classeId": "mago",
         "nome": "Colar do Juízo Celestial",
@@ -188,40 +159,203 @@
           "wing": false,
           "tier": 5
         },
+        "equipped": true,
+        "equippedSlot": "colar",
         "stats": {
-          "ataque": 28,
-          "defesa": 31,
-          "critico": 7,
-          "hp": 204,
-          "mana": 90
+          "ataque": 76,
+          "defesa": 62,
+          "critico": 19,
+          "hp": 346,
+          "mana": 185
         },
         "rarityColor": "#ff7fbb",
         "totalStats": {
-          "ataque": 28,
-          "defesa": 31,
-          "critico": 7,
-          "hp": 204,
-          "mana": 90
+          "ataque": 76,
+          "defesa": 62,
+          "critico": 19,
+          "hp": 346,
+          "mana": 185
         },
-        "powerScore": 560,
-        "sellValue": 616
-      }
-    ],
-    "equipados": {
-      "arma": {
-        "id": "boss_mago_arma_1782657165153_bc6321217cad28",
-        "baseId": "boss_arma",
+        "powerScore": 1162,
+        "sellValue": 1127
+      },
+      {
+        "id": "boss_mago_ornamento_1782658423481_09c9aae402407",
+        "baseId": "boss_ornamento",
         "classeId": "mago",
-        "nome": "Cajado do Dragão Elemental",
-        "slot": "arma",
+        "nome": "Asa Dracônica do Arcanjo",
+        "slot": "ornamento",
         "raridade": "boss",
         "cor": "#ff8f3d",
-        "icon": "🐉",
-        "asset": "assets/items/arma_boss.png",
-        "requiredLevel": 7,
+        "icon": "🪽",
+        "asset": "assets/items/ornamento_boss.png",
+        "requiredLevel": 77,
         "exclusivoBoss": true,
         "sockets": 3,
         "gems": [],
+        "equipped": true,
+        "equippedSlot": "ornamento",
+        "wingVisual": {
+          "name": "Asas Dracônicas do Arcanjo",
+          "color": "#78cfff",
+          "size": 1.45
+        },
+        "visual": {
+          "glow": "#ff8f3d",
+          "wing": true,
+          "tier": 6
+        },
+        "stats": {
+          "ataque": 176,
+          "defesa": 101,
+          "critico": 29,
+          "hp": 536,
+          "mana": 449
+        },
+        "rarityColor": "#ff8f3d",
+        "totalStats": {
+          "ataque": 176,
+          "defesa": 101,
+          "critico": 29,
+          "hp": 536,
+          "mana": 449
+        },
+        "powerScore": 2277,
+        "sellValue": 2110
+      },
+      {
+        "id": "mago_arma_5_1782658415090_959c9501ab818",
+        "baseId": "mago_arma_5",
+        "classeId": "mago",
+        "nome": "Cajado do Arcanjo Azul",
+        "slot": "arma",
+        "raridade": "boss",
+        "cor": "#5da9ff",
+        "icon": "⚔️",
+        "asset": "assets/items/arma_boss.png",
+        "requiredLevel": 33,
+        "exclusivoBoss": true,
+        "sockets": 3,
+        "gems": [],
+        "visual": {
+          "glow": "#5da9ff",
+          "wing": false,
+          "tier": 5
+        },
+        "equipped": true,
+        "equippedSlot": "arma",
+        "stats": {
+          "ataque": 96,
+          "defesa": 35,
+          "critico": 18,
+          "hp": 158,
+          "mana": 135
+        },
+        "rarityColor": "#ff8f3d",
+        "totalStats": {
+          "ataque": 96,
+          "defesa": 35,
+          "critico": 18,
+          "hp": 158,
+          "mana": 135
+        },
+        "powerScore": 1154,
+        "sellValue": 1155
+      },
+      {
+        "id": "mago_colar_5_1782658404397_b577a22bfe05e",
+        "baseId": "mago_colar_5",
+        "classeId": "mago",
+        "nome": "Colar do Juízo Celestial",
+        "slot": "colar",
+        "raridade": "mítico",
+        "cor": "#5da9ff",
+        "icon": "📿",
+        "asset": "assets/items/colar_mítico.png",
+        "requiredLevel": 33,
+        "exclusivoBoss": false,
+        "sockets": 3,
+        "gems": [],
+        "visual": {
+          "glow": "#5da9ff",
+          "wing": false,
+          "tier": 5
+        },
+        "equipped": false,
+        "equippedSlot": null,
+        "stats": {
+          "ataque": 73,
+          "defesa": 60,
+          "critico": 18,
+          "hp": 337,
+          "mana": 179
+        },
+        "rarityColor": "#ff7fbb",
+        "totalStats": {
+          "ataque": 73,
+          "defesa": 60,
+          "critico": 18,
+          "hp": 337,
+          "mana": 179
+        },
+        "powerScore": 1123,
+        "sellValue": 1094
+      },
+      {
+        "id": "mago_ornamento_5_1782658396694_d37c8c265291f8",
+        "baseId": "mago_ornamento_5",
+        "classeId": "mago",
+        "nome": "Sigilo do Arcanjo",
+        "slot": "ornamento",
+        "raridade": "boss",
+        "cor": "#5da9ff",
+        "icon": "✨",
+        "asset": "assets/items/ornamento_boss.png",
+        "requiredLevel": 33,
+        "exclusivoBoss": true,
+        "sockets": 3,
+        "gems": [],
+        "visual": {
+          "glow": "#5da9ff",
+          "wing": true,
+          "tier": 5
+        },
+        "equipped": false,
+        "equippedSlot": null,
+        "stats": {
+          "ataque": 52,
+          "defesa": 60,
+          "critico": 15,
+          "hp": 249,
+          "mana": 131
+        },
+        "rarityColor": "#ff8f3d",
+        "totalStats": {
+          "ataque": 52,
+          "defesa": 60,
+          "critico": 15,
+          "hp": 249,
+          "mana": 131
+        },
+        "powerScore": 1018,
+        "sellValue": 1040
+      },
+      {
+        "id": "boss_mago_anel_1782658390317_507df4a0ad75e8",
+        "baseId": "boss_anel",
+        "classeId": "mago",
+        "nome": "Anel do Núcleo Arcano",
+        "slot": "anel",
+        "raridade": "boss",
+        "cor": "#ff8f3d",
+        "icon": "💍",
+        "asset": "assets/items/anel_boss.png",
+        "requiredLevel": 31,
+        "exclusivoBoss": true,
+        "sockets": 3,
+        "gems": [],
+        "equipped": true,
+        "equippedSlot": "anel",
         "wingVisual": null,
         "visual": {
           "glow": "#ff8f3d",
@@ -229,160 +363,260 @@
           "tier": 6
         },
         "stats": {
-          "ataque": 105,
-          "defesa": 14,
-          "critico": 13,
-          "hp": 97,
-          "mana": 181
+          "ataque": 97,
+          "defesa": 40,
+          "critico": 29,
+          "hp": 236,
+          "mana": 242
         },
         "rarityColor": "#ff8f3d",
         "totalStats": {
-          "ataque": 105,
-          "defesa": 14,
-          "critico": 13,
-          "hp": 97,
-          "mana": 181
+          "ataque": 97,
+          "defesa": 40,
+          "critico": 29,
+          "hp": 236,
+          "mana": 242
         },
-        "powerScore": 1069,
-        "sellValue": 1083
+        "powerScore": 1332,
+        "sellValue": 1307
+      }
+    ],
+    "equipados": {
+      "arma": {
+        "id": "mago_arma_5_1782658415090_959c9501ab818",
+        "baseId": "mago_arma_5",
+        "classeId": "mago",
+        "nome": "Cajado do Arcanjo Azul",
+        "slot": "arma",
+        "raridade": "boss",
+        "cor": "#5da9ff",
+        "icon": "⚔️",
+        "asset": "assets/items/arma_boss.png",
+        "requiredLevel": 33,
+        "exclusivoBoss": true,
+        "sockets": 3,
+        "gems": [],
+        "visual": {
+          "glow": "#5da9ff",
+          "wing": false,
+          "tier": 5
+        },
+        "equipped": true,
+        "equippedSlot": "arma",
+        "stats": {
+          "ataque": 96,
+          "defesa": 35,
+          "critico": 18,
+          "hp": 158,
+          "mana": 135
+        },
+        "rarityColor": "#ff8f3d",
+        "totalStats": {
+          "ataque": 96,
+          "defesa": 35,
+          "critico": 18,
+          "hp": 158,
+          "mana": 135
+        },
+        "powerScore": 1154,
+        "sellValue": 1155
       },
       "anel": {
-        "id": "mago_anel_1_1782657104623_fb3dc3fcbfed18",
-        "baseId": "mago_anel_1",
+        "id": "boss_mago_anel_1782658390317_507df4a0ad75e8",
+        "baseId": "boss_anel",
         "classeId": "mago",
-        "nome": "Anel do Mana Puro",
+        "nome": "Anel do Núcleo Arcano",
         "slot": "anel",
-        "raridade": "comum",
-        "cor": "#5da9ff",
+        "raridade": "boss",
+        "cor": "#ff8f3d",
         "icon": "💍",
-        "asset": "assets/items/anel_comum.png",
-        "requiredLevel": 1,
-        "exclusivoBoss": false,
-        "sockets": 1,
+        "asset": "assets/items/anel_boss.png",
+        "requiredLevel": 31,
+        "exclusivoBoss": true,
+        "sockets": 3,
         "gems": [],
+        "equipped": true,
+        "equippedSlot": "anel",
+        "wingVisual": null,
         "visual": {
-          "glow": "#5da9ff",
+          "glow": "#ff8f3d",
           "wing": false,
-          "tier": 1
+          "tier": 6
         },
         "stats": {
-          "ataque": 8,
-          "defesa": 3,
-          "critico": 6,
-          "hp": 14,
-          "mana": 19
+          "ataque": 97,
+          "defesa": 40,
+          "critico": 29,
+          "hp": 236,
+          "mana": 242
         },
-        "rarityColor": "#d9dde7",
+        "rarityColor": "#ff8f3d",
         "totalStats": {
-          "ataque": 8,
-          "defesa": 3,
-          "critico": 6,
-          "hp": 14,
-          "mana": 19
+          "ataque": 97,
+          "defesa": 40,
+          "critico": 29,
+          "hp": 236,
+          "mana": 242
         },
-        "powerScore": 115,
-        "sellValue": 97
+        "powerScore": 1332,
+        "sellValue": 1307
       },
       "colar": {
-        "id": "mago_colar_2_1782657514144_e40d501a0f8338",
-        "baseId": "mago_colar_2",
+        "id": "mago_colar_5_1782658427498_19d3b47266b0f",
+        "baseId": "mago_colar_5",
         "classeId": "mago",
-        "nome": "Colar da Estrela Guia",
+        "nome": "Colar do Juízo Celestial",
         "slot": "colar",
-        "raridade": "raro",
+        "raridade": "mítico",
         "cor": "#5da9ff",
         "icon": "📿",
-        "asset": "assets/items/colar_raro.png",
-        "requiredLevel": 9,
+        "asset": "assets/items/colar_mítico.png",
+        "requiredLevel": 33,
         "exclusivoBoss": false,
-        "sockets": 1,
+        "sockets": 3,
         "gems": [],
         "visual": {
           "glow": "#5da9ff",
           "wing": false,
-          "tier": 2
+          "tier": 5
         },
+        "equipped": true,
+        "equippedSlot": "colar",
         "stats": {
-          "ataque": 27,
-          "defesa": 24,
-          "critico": 6,
-          "hp": 139,
-          "mana": 72
+          "ataque": 76,
+          "defesa": 62,
+          "critico": 19,
+          "hp": 346,
+          "mana": 185
         },
-        "rarityColor": "#55c7ff",
+        "rarityColor": "#ff7fbb",
         "totalStats": {
-          "ataque": 27,
-          "defesa": 24,
-          "critico": 6,
-          "hp": 139,
-          "mana": 72
+          "ataque": 76,
+          "defesa": 62,
+          "critico": 19,
+          "hp": 346,
+          "mana": 185
         },
-        "powerScore": 418,
-        "sellValue": 390
+        "powerScore": 1162,
+        "sellValue": 1127
       },
       "ornamento": {
-        "id": "mago_ornamento_2_1782657519188_b54810dd3896f",
-        "baseId": "mago_ornamento_2",
+        "id": "boss_mago_ornamento_1782658423481_09c9aae402407",
+        "baseId": "boss_ornamento",
         "classeId": "mago",
-        "nome": "Relicário Azul",
+        "nome": "Asa Dracônica do Arcanjo",
         "slot": "ornamento",
-        "raridade": "raro",
-        "cor": "#5da9ff",
-        "icon": "✨",
-        "asset": "assets/items/ornamento_raro.png",
-        "requiredLevel": 9,
-        "exclusivoBoss": false,
-        "sockets": 1,
+        "raridade": "boss",
+        "cor": "#ff8f3d",
+        "icon": "🪽",
+        "asset": "assets/items/ornamento_boss.png",
+        "requiredLevel": 77,
+        "exclusivoBoss": true,
+        "sockets": 3,
         "gems": [],
+        "equipped": true,
+        "equippedSlot": "ornamento",
+        "wingVisual": {
+          "name": "Asas Dracônicas do Arcanjo",
+          "color": "#78cfff",
+          "size": 1.45
+        },
         "visual": {
-          "glow": "#5da9ff",
-          "wing": false,
-          "tier": 2
+          "glow": "#ff8f3d",
+          "wing": true,
+          "tier": 6
         },
         "stats": {
-          "ataque": 28,
-          "defesa": 31,
-          "critico": 8,
-          "hp": 130,
-          "mana": 70
+          "ataque": 176,
+          "defesa": 101,
+          "critico": 29,
+          "hp": 536,
+          "mana": 449
         },
-        "rarityColor": "#55c7ff",
+        "rarityColor": "#ff8f3d",
         "totalStats": {
-          "ataque": 28,
-          "defesa": 31,
-          "critico": 8,
-          "hp": 130,
-          "mana": 70
+          "ataque": 176,
+          "defesa": 101,
+          "critico": 29,
+          "hp": 536,
+          "mana": 449
         },
-        "powerScore": 460,
-        "sellValue": 426
+        "powerScore": 2277,
+        "sellValue": 2110
       }
     },
     "achievements": [
       "primeiro_sangue",
+      "nivel_5",
+      "poder_1000",
       "cacador_10",
       "matador_dragao",
-      "reliquia_boss",
-      "nivel_5",
-      "poder_1000"
+      "reliquia_boss"
     ],
     "bestiary": {
-      "slime": 21,
-      "skeleton": 17,
+      "slime": 19,
+      "skeleton": 16,
       "dragon": 4
     },
     "stats": {
-      "damageDealt": 47441,
-      "damageTaken": 9759,
-      "goldEarned": 9210,
+      "damageDealt": 95341,
+      "damageTaken": 9192,
+      "goldEarned": 19173,
       "bossKills": 4,
-      "deaths": 25,
-      "itemsSold": 17
+      "deaths": 3,
+      "itemsSold": 41,
+      "gmSeed": true
+    },
+    "mount": {
+      "id": "dragao_mirim",
+      "level": 10
+    },
+    "updatedAt": 1782658637198
+  },
+  "b30524e7f0729ad1e4099dfb0e6291a9": {
+    "saveId": "b30524e7f0729ad1e4099dfb0e6291a9",
+    "nome": "Aventureiro-c64h",
+    "classeId": null,
+    "nivel": 1,
+    "level": 1,
+    "xp": 0,
+    "hp": 100,
+    "maxHp": 100,
+    "mana": 0,
+    "maxMana": 0,
+    "ouro": 0,
+    "gemas": 0,
+    "cashGems": 0,
+    "pocoes": {
+      "vida": 0,
+      "mana": 0
+    },
+    "accountLogin": null,
+    "isGM": false,
+    "kills": 0,
+    "horda": 1,
+    "autoFarm": true,
+    "inventario": [],
+    "equipados": {
+      "arma": null,
+      "anel": null,
+      "colar": null,
+      "ornamento": null
+    },
+    "achievements": [],
+    "bestiary": {},
+    "stats": {
+      "damageDealt": 0,
+      "damageTaken": 0,
+      "goldEarned": 0,
+      "bossKills": 0,
+      "deaths": 0,
+      "itemsSold": 0
     },
     "mount": {
       "id": "lobo_cristalino",
       "level": 1
     },
-    "updatedAt": 1782657653198
+    "updatedAt": 1782658270771
   }
 }

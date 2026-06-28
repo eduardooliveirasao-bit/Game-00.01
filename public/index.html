@@ -42,6 +42,40 @@
       <div id="hud-save-status" class="save-status">Salvando...</div>
     </header>
 
+
+    <section id="auth-modal" class="modal auth-modal">
+      <div class="modal-card auth-card">
+        <div class="modal-header">
+          <div>
+            <h2>Entrar no Legend Of Indle RPG V1</h2>
+            <p>Crie sua conta com nick único ou entre com seu login para carregar nível, mochila, itens, gemas e progresso.</p>
+          </div>
+        </div>
+        <div class="modal-body auth-body">
+          <div class="auth-box">
+            <h3>Login</h3>
+            <input id="login-user" placeholder="Login" autocomplete="username">
+            <input id="login-pass" placeholder="Senha" type="password" autocomplete="current-password">
+            <button id="login-btn">Entrar</button>
+            <small>Conta GM padrão: login <b>GM</b> / senha <b>GM123</b></small>
+          </div>
+          <div class="auth-box">
+            <h3>Criar conta</h3>
+            <input id="reg-user" placeholder="Login único">
+            <input id="reg-pass" placeholder="Senha" type="password">
+            <input id="reg-nick" placeholder="Nick do personagem">
+            <select id="reg-class">
+              <option value="mago">Mago Arcanjo</option>
+              <option value="guerreiro">Guerreiro</option>
+              <option value="arqueiro">Arqueira</option>
+            </select>
+            <button id="register-btn">Criar personagem</button>
+          </div>
+        </div>
+        <div id="auth-error" class="auth-error"></div>
+      </div>
+    </section>
+
     <section id="class-select">
       <div class="select-card">
         <p class="eyebrow">Legend Of Indle RPG V1</p>
@@ -125,7 +159,7 @@
       <button>🪽 Asas</button>
       <button id="menu-mount">🐺 Montaria</button>
       <button id="menu-ranking">🏆 Ranking</button>
-      <button>🛒 Loja</button>
+      <button id="menu-shop">🛒 Loja</button><button id="menu-gm" class="hidden">🛠️ GM</button>
     </nav>
 
     <section id="bag-modal" class="modal hidden">
@@ -171,6 +205,42 @@
         <div class="modal-header"><div><h2>Montaria</h2><p>Treine sua montaria para ganhar poder, ataque e HP. Ela aparece no palco junto do herói.</p></div><button id="mount-close" class="modal-close">✕</button></div>
         <div class="modal-body mount-body">
           <div id="mount-card" class="mount-card"></div>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="shop-modal" class="modal hidden">
+      <div class="modal-card compact-modal">
+        <div class="modal-header">
+          <div><h2>Loja de Gemas</h2><p>Use 💎 gemas cash para comprar poções, baús, ouro e contratos de montaria.</p></div>
+          <button id="shop-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body shop-body">
+          <div id="shop-list" class="shop-list"></div>
+          <div class="shop-side">
+            <div class="bag-title">Poções</div>
+            <button id="use-hp-potion">Usar Poção de Vida</button>
+            <button id="use-mp-potion">Usar Poção de Mana</button>
+            <div id="shop-info" class="shop-info">Selecione um item para comprar.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gm-modal" class="modal hidden">
+      <div class="modal-card compact-modal">
+        <div class="modal-header">
+          <div><h2>Painel GM</h2><p>Ferramentas de teste para o administrador do servidor.</p></div>
+          <button id="gm-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body gm-body">
+          <button data-gm="addGold">Adicionar 100.000 ouro</button>
+          <button data-gm="addGems">Adicionar 10.000 gemas</button>
+          <button data-gm="addLevel">Adicionar 5 níveis</button>
+          <button data-gm="boss">Invocar Dragão Elemental</button>
+          <button data-gm="bossItem">Gerar item especial</button>
+          <button data-gm="heal">Curar/Ressuscitar</button>
         </div>
       </div>
     </section>

@@ -46,3 +46,32 @@ Corrigido o erro `RangeError: Maximum call stack size exceeded` no `LootManager`
 Causa: `enrichItem()` chamava `sellValue()`, e `sellValue()` chamava `enrichItem()` novamente, criando recursão infinita.
 
 Correção: `sellValue()` agora calcula o valor de venda diretamente com `scoreItem()` sem chamar `enrichItem()`.
+
+
+## V10 — Sistema de Contas, Nick Único, GM e Loja
+
+Novidades:
+- Tela de login e criação de conta.
+- Nick único por jogador.
+- Dados persistidos em `data/accounts.json` e `data/saves.json`.
+- Senhas salvas com hash PBKDF2 + salt, não em texto puro.
+- Conta GM padrão para testes:
+  - Login: `GM`
+  - Senha: `GM123`
+- Painel GM com comandos de teste:
+  - adicionar ouro
+  - adicionar gemas
+  - adicionar nível
+  - invocar boss
+  - gerar item especial
+  - curar/ressuscitar
+- Loja de gemas cash:
+  - poção de vida
+  - poção de mana
+  - pacote de ouro
+  - baús de itens
+  - invocação de boss
+  - contratos de montaria
+- Poções utilizáveis pela loja.
+- Gemas/cash salvas na conta.
+- Mochila, itens, classe, montaria, nível e progresso salvos por login.

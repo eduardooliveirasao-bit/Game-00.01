@@ -167,7 +167,20 @@
     dragao_mirim: { id: 'dragao_mirim', nome: 'Dragão Mirim Elemental', asset: 'assets/mounts/dragao_mirim.png', unlockLevel: 25, bonus: { power: 520, speed: 1.28, ataque: 28, hp: 260 } }
   };
 
-  var EXPORTS = { LEVEL_CAP: LEVEL_CAP, XP_TABLE: XP_TABLE, GAME_CLASSES: GAME_CLASSES, ITEM_CATALOG: ITEM_CATALOG, MONSTERS: MONSTERS, WING_LEVELS: WING_LEVELS, GEM_TYPES: GEM_TYPES, MOUNTS: MOUNTS };
+
+
+  var SHOP_ITEMS = {
+    pocao_vida: { id: 'pocao_vida', nome: 'Poção de Vida', tipo: 'potion', asset: 'assets/items/colar_comum.png', icon: '🧪', priceGems: 3, desc: 'Restaura 60% do HP máximo.', effect: { hpPercent: 60 } },
+    pocao_mana: { id: 'pocao_mana', nome: 'Poção de Mana', tipo: 'potion', asset: 'assets/gems/safira.png', icon: '🔮', priceGems: 3, desc: 'Restaura 70% da mana máxima.', effect: { manaPercent: 70 } },
+    pacote_ouro: { id: 'pacote_ouro', nome: 'Pacote de Ouro', tipo: 'currency', asset: 'assets/items/anel_lendário.png', icon: '🪙', priceGems: 8, desc: 'Receba 2.500 de ouro.', effect: { ouro: 2500 } },
+    bau_raro: { id: 'bau_raro', nome: 'Baú Raro', tipo: 'chest', asset: 'assets/items/arma_raro.png', icon: '🎁', priceGems: 15, desc: 'Gera um item raro/épico da sua classe.', rarityMin: 'raro' },
+    bau_lendario: { id: 'bau_lendario', nome: 'Baú Lendário', tipo: 'chest', asset: 'assets/items/arma_lendário.png', icon: '👑', priceGems: 45, desc: 'Gera um item lendário/mítico da sua classe.', rarityMin: 'lendário' },
+    ticket_boss: { id: 'ticket_boss', nome: 'Invocar Dragão', tipo: 'boss', asset: 'assets/items/ornamento_boss.png', icon: '🐉', priceGems: 30, desc: 'Leva a horda atual para o próximo Dragão Elemental.' },
+    montaria_grifo: { id: 'montaria_grifo', nome: 'Contrato do Grifo', tipo: 'mount', asset: 'assets/mounts/grifo_dourado.png', icon: '🦅', priceGems: 60, desc: 'Equipa o Grifo Dourado.' },
+    montaria_dragao: { id: 'montaria_dragao', nome: 'Contrato do Dragão Mirim', tipo: 'mount', asset: 'assets/mounts/dragao_mirim.png', icon: '🐲', priceGems: 150, desc: 'Equipa o Dragão Mirim Elemental.' }
+  };
+
+  var EXPORTS = { LEVEL_CAP: LEVEL_CAP, XP_TABLE: XP_TABLE, GAME_CLASSES: GAME_CLASSES, ITEM_CATALOG: ITEM_CATALOG, MONSTERS: MONSTERS, WING_LEVELS: WING_LEVELS, GEM_TYPES: GEM_TYPES, MOUNTS: MOUNTS, SHOP_ITEMS: SHOP_ITEMS };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = EXPORTS;
   else {
@@ -179,5 +192,6 @@
     window.WING_LEVELS = WING_LEVELS;
     window.GEM_TYPES = GEM_TYPES;
     window.MOUNTS = MOUNTS;
+    window.SHOP_ITEMS = SHOP_ITEMS;
   }
 })();
