@@ -1,0 +1,14 @@
+Legend Of Indle RPG V1 - V41 Game Feel & Entry Redesign
+
+Implementado:
+- novo módulo public/js/vfx-manager.js
+- dash & return por easing para simular ataque usando 1 PNG por personagem
+- hit flinch com recuo e flash branco/vermelho
+- slashes, impactos e explosões arcanas desenhados no Canvas
+- screen shake independente para críticos e ataques fortes
+- integração com socket.on('abilityUsed') e socket.on('combatTick')
+- tela de entrada/login redesenhada com visual premium, hero panel, orbs, estrelas, cards e glassmorphism
+- polimento visual geral no HUD, stage e side panels
+
+Objetivo:
+Melhorar o game feel sem exigir sprite sheets, usando tweening, filtros, partículas e desenhos geométricos no Canvas.

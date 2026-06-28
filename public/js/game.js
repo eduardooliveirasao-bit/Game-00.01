@@ -61,6 +61,7 @@
 
   var canvas = byId('game-canvas');
   var ctx = canvas.getContext('2d');
+  var vfx = window.VFXManager ? new window.VFXManager(ctx, canvas) : null;
   var classSelect = byId('class-select');
   var classCards = byId('class-cards');
   var abilityBar = byId('ability-bar');
@@ -675,7 +676,10 @@
     var idleBob = Math.sin(now / 170) * 4;
     var x = baseX + hitShake + (action === 'attack' ? attackSwing * 46 : 0);
     var y = baseY + idleBob - (action === 'attack' ? attackSwing * 12 : 0);
-    var torsoRot = Math.sin(now / 340) * 0.03 + (action === 'attack' ? (clsId === 'arqueiro' ? -0.20 : 0.16) * attackSwing : 0) - hitProg * 0.08;
+    var vfxPlayer = vfx ? vfx.getTransform('player', { x: x, y: y }) : { x: x, y: y, rot: 0, sx: 1, sy: 1, flash: null };
+    x = vfxPlayer.x;
+    y = vfxPlayer.y;
+    var torsoRot = Math.sin(now / 340) * 0.03 + (action === 'attack' ? (clsId === 'arqueiro' ? -0.20 : 0.16) * attackSwing : 0) - hitProg * 0.08 + (vfxPlayer.rot || 0);
     var headRot = Math.sin(now / 290) * 0.05 + (action === 'attack' ? 0.08 * attackSwing : 0) - hitProg * 0.10;
     var legRot = Math.sin(now / 190) * 0.03 + (action === 'attack' ? -0.06 * attackSwing : 0);
     var shadowW = Math.max(76, w * 0.26);
@@ -705,11 +709,17 @@
       ctx.restore();
     }
 
-    if (state.me.isDead) { ctx.save(); ctx.globalAlpha = 0.55; ctx.filter = 'grayscale(1)'; }
-    drawSegment(img, sw, sh, 0.58, 1.00, x, y - h * 0.18, w * 0.98, h * 0.42, legRot, 1, 1 + Math.sin(now / 150) * 0.02, state.me.isDead ? 0.55 : 1);
-    drawSegment(img, sw, sh, 0.20, 0.68, x + (action === 'attack' ? 10 * attackSwing : 0), y - h * 0.50, w, h * 0.48, torsoRot, 1 + attackSwing * 0.02, 1, state.me.isDead ? 0.55 : 1);
-    drawSegment(img, sw, sh, 0.00, 0.24, x + (action === 'hit' ? -4 : 0), y - h * 0.86, w * 0.88, h * 0.24, headRot, 1, 1, state.me.isDead ? 0.55 : 1);
-    if (state.me.isDead) ctx.restore();
+    var playerSegSx = vfxPlayer.sx || 1;
+    var playerSegSy = vfxPlayer.sy || 1;
+    if (state.me.isDead || vfxPlayer.flash) {
+      ctx.save();
+      if (state.me.isDead) { ctx.globalAlpha = 0.55; ctx.filter = 'grayscale(1)'; }
+      if (vfxPlayer.flash) ctx.filter = vfxPlayer.flash === 'red' ? 'brightness(1.8) sepia(1) saturate(6) hue-rotate(-35deg)' : 'brightness(2.6) saturate(0.2)';
+    }
+    drawSegment(img, sw, sh, 0.58, 1.00, x, y - h * 0.18, w * 0.98, h * 0.42, legRot, playerSegSx, (1 + Math.sin(now / 150) * 0.02) * playerSegSy, state.me.isDead ? 0.55 : 1);
+    drawSegment(img, sw, sh, 0.20, 0.68, x + (action === 'attack' ? 10 * attackSwing : 0), y - h * 0.50, w, h * 0.48, torsoRot, (1 + attackSwing * 0.02) * playerSegSx, playerSegSy, state.me.isDead ? 0.55 : 1);
+    drawSegment(img, sw, sh, 0.00, 0.24, x + (action === 'hit' ? -4 : 0), y - h * 0.86, w * 0.88, h * 0.24, headRot, playerSegSx, playerSegSy, state.me.isDead ? 0.55 : 1);
+    if (state.me.isDead || vfxPlayer.flash) ctx.restore();
 
     var weap = eq.arma, ring = eq.anel, neck = eq.colar, orn = eq.ornamento;
     var wxBase = x + w * (clsId === 'arqueiro' ? 0.10 : 0.18) + (action === 'attack' ? 14 * attackSwing : 0);
@@ -748,6 +758,9 @@
     var hitProg = action === 'hit' ? 1 - Math.max(0, (state.anim.monsterHitUntil - now) / 420) : 0;
     if (action === 'attack') x -= 34 * attackPulse;
     if (action === 'hit') x += (Math.random() - 0.5) * 12;
+    var vfxMonster = vfx ? vfx.getTransform('monster', { x: x, y: y }) : { x: x, y: y, rot: 0, sx: 1, sy: 1, flash: null };
+    x = vfxMonster.x;
+    y = vfxMonster.y;
     var isDragon = id === 'dragon';
     var h = isDragon ? Math.min(312, canvas.height * 0.68) : Math.min(232, canvas.height * 0.54);
     var w = h * (sw / sh);
@@ -757,6 +770,7 @@
     ctx.beginPath(); ctx.ellipse(x, y + 8, (isDragon ? 112 : 86) * (1 + attackPulse * 0.08), isDragon ? 28 : 22, 0, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 
+    if (vfxMonster.flash) { ctx.save(); ctx.filter = vfxMonster.flash === 'red' ? 'brightness(1.8) sepia(1) saturate(6) hue-rotate(-35deg)' : 'brightness(2.6) saturate(0.2)'; }
     if (id === 'slime') {
       var sx = 1 + Math.sin(now / 180) * 0.04 + attackPulse * 0.10 - hitProg * 0.06;
       var sy = 1 - Math.sin(now / 180) * 0.04 - attackPulse * 0.08 + hitProg * 0.05;
@@ -780,6 +794,7 @@
       ctx.save(); ctx.strokeStyle = 'rgba(255,176,96,.75)'; ctx.shadowColor = 'rgba(255,176,96,.75)'; ctx.shadowBlur = 18; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x + w * 0.12, y - h * 0.56); ctx.lineTo(x + w * 0.32 + Math.sin(now / 180) * 10, y - h * 0.64); ctx.stroke(); ctx.restore();
     }
 
+    if (vfxMonster.flash) ctx.restore();
     if (state.monster.special && state.monster.special.active) {
       ctx.save(); ctx.strokeStyle = 'rgba(180,140,255,.85)'; ctx.lineWidth = 6; ctx.shadowColor = 'rgba(180,140,255,.65)'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.ellipse(x, y - h * 0.54, w * 0.30, h * 0.38, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
     }
@@ -847,7 +862,7 @@
   }
   function drawParticles() { state.particles = state.particles.filter(function (p) { return p.life > 0; }); state.particles.forEach(function (p) { p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.life -= 0.04; ctx.save(); ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 2.4, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }); }
   function drawFloating() { state.floating = state.floating.filter(function (f) { return f.life > 0; }); state.floating.forEach(function (f) { f.y += f.vy; f.life -= 0.02; ctx.save(); ctx.globalAlpha = f.life; ctx.font = f.isCrit ? '900 30px Inter' : '900 20px Inter'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.78)'; ctx.fillStyle = f.color; ctx.strokeText(f.text, f.x, f.y); ctx.fillText(f.text, f.x, f.y); ctx.restore(); }); }
-  function render() { resizeCanvas(); var now = performance.now(); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save(); if (now < state.anim.shakeUntil) { var amp = Math.max(1, (state.anim.shakeUntil - now) / 28); ctx.translate((Math.random() - 0.5) * amp, (Math.random() - 0.5) * amp); } drawBackground(); drawPlayer(now); drawMonster(now); drawEffects(); drawParticles(); drawFloating(); ctx.restore(); requestAnimationFrame(render); }
+  function render() { resizeCanvas(); var now = performance.now(); ctx.clearRect(0, 0, canvas.width, canvas.height); if (vfx) vfx.beginFrame(); else ctx.save(); if (now < state.anim.shakeUntil) { var amp = Math.max(1, (state.anim.shakeUntil - now) / 28); ctx.translate((Math.random() - 0.5) * amp, (Math.random() - 0.5) * amp); } drawBackground(); drawPlayer(now); drawMonster(now); drawEffects(); if (vfx) vfx.updateAndDraw(); drawParticles(); drawFloating(); if (vfx) vfx.endFrame(); else ctx.restore(); requestAnimationFrame(render); }
 
 
 
@@ -1275,8 +1290,8 @@
   socket.on('gameState', function (list) { (list || []).forEach(function (p) { state.players[p.id] = p; if (p.id === state.meId) state.me = p; }); updateHUD(); renderV30(); });
   socket.on('enemyUpdate', function (monster) { state.monster = monster; updateEnemyHUD(); });
   socket.on('combatTick', function (data) { if (data.monster) { state.monster = data.monster; updateEnemyHUD(); }
-    (data.attacks || []).forEach(function (attack) { var color = attack.isCrit ? '#ffe69b' : '#ff9090'; state.anim.playerAttackUntil = performance.now() + (attack.type === 'ability' ? 520 : 280); state.anim.monsterHitUntil = performance.now() + 360; state.anim.shakeUntil = performance.now() + 120; var fxX = canvas.width * 0.72 + (Math.random() - 0.5) * 90; var fxY = canvas.height * 0.38 + (Math.random() - 0.5) * 60; pushFloating((attack.isCrit ? 'CRIT ' : '-') + attack.damage, color, fxX, fxY, attack.isCrit); spawnImpactBurst(fxX, fxY, color, attack.isCrit ? 1.35 : 1); playSound(attack.type === 'ability' ? 'skill' : 'hit'); if (attack.result && attack.result.specialTriggered) { if (attack.result.specialTriggered.type === 'bossShield') { addLog('🛡️ O Dragão Elemental ativou o Escudo Elemental! Use habilidades para quebrar.'); pushFloating('ESCUDO!', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.28, true); playSound('boss'); } else if (attack.result.specialTriggered.type === 'shieldBroken') { addLog('💥 O Escudo Elemental foi quebrado!'); pushFloating('QUEBRADO!', '#ffffff', canvas.width * 0.72, canvas.height * 0.28, true); playSound('loot'); } } if (attack.result && attack.result.resisted) pushFloating('RESIST', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.45, false); });
-    (data.monsterAttacks || []).forEach(function (ma) { state.anim.monsterAttackUntil = performance.now() + 360; if (ma.playerId === state.meId) { state.anim.playerHitUntil = performance.now() + 420; state.anim.shakeUntil = performance.now() + 160; var hx = canvas.width * 0.28; var hy = canvas.height * 0.42; pushFloating('-' + ma.damage + ' HP', '#ffb0b0', hx, hy, ma.died); spawnImpactBurst(hx, hy, '#ff9b9b', ma.died ? 1.4 : 1); playSound(ma.died ? 'death' : 'hit'); } });
+    (data.attacks || []).forEach(function (attack) { var color = attack.isCrit ? '#ffe69b' : '#ff9090'; state.anim.playerAttackUntil = performance.now() + (attack.type === 'ability' ? 520 : 280); state.anim.monsterHitUntil = performance.now() + 360; state.anim.shakeUntil = performance.now() + 120; var fxX = canvas.width * 0.72 + (Math.random() - 0.5) * 90; var fxY = canvas.height * 0.38 + (Math.random() - 0.5) * 60; if (vfx) { vfx.dashAndReturn('player', {x: canvas.width * 0.28, y: canvas.height * 0.90}, {x: canvas.width * 0.52, y: canvas.height * 0.82}, {duration: attack.type === 'ability' ? 520 : 340, color: color}); vfx.hitFlinch('monster', {x: 1, y: 0}, {distance: attack.isCrit ? 34 : 22, color: attack.isCrit ? 'white' : 'red'}); if (attack.type === 'ability') vfx.arcaneBurst(fxX, fxY, {color: color, size: attack.isCrit ? 110 : 86}); else vfx.slash(fxX, fxY, {color: color, size: attack.isCrit ? 104 : 78}); if (attack.isCrit) vfx.screenShake(16, 220); } pushFloating((attack.isCrit ? 'CRIT ' : '-') + attack.damage, color, fxX, fxY, attack.isCrit); spawnImpactBurst(fxX, fxY, color, attack.isCrit ? 1.35 : 1); playSound(attack.type === 'ability' ? 'skill' : 'hit'); if (attack.result && attack.result.specialTriggered) { if (attack.result.specialTriggered.type === 'bossShield') { addLog('🛡️ O Dragão Elemental ativou o Escudo Elemental! Use habilidades para quebrar.'); pushFloating('ESCUDO!', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.28, true); playSound('boss'); } else if (attack.result.specialTriggered.type === 'shieldBroken') { addLog('💥 O Escudo Elemental foi quebrado!'); pushFloating('QUEBRADO!', '#ffffff', canvas.width * 0.72, canvas.height * 0.28, true); playSound('loot'); } } if (attack.result && attack.result.resisted) pushFloating('RESIST', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.45, false); });
+    (data.monsterAttacks || []).forEach(function (ma) { state.anim.monsterAttackUntil = performance.now() + 360; if (vfx) vfx.dashAndReturn('monster', {x: canvas.width * 0.72, y: canvas.height * 0.90}, {x: canvas.width * 0.48, y: canvas.height * 0.84}, {duration: 400, color: '#ff9b9b', lift: -10}); if (ma.playerId === state.meId) { state.anim.playerHitUntil = performance.now() + 420; state.anim.shakeUntil = performance.now() + 160; var hx = canvas.width * 0.28; var hy = canvas.height * 0.42; if (vfx) { vfx.hitFlinch('player', {x: -1, y: 0}, {distance: ma.died ? 42 : 28, color: 'red'}); vfx.impact(hx, hy, {color: '#ff9b9b', size: ma.died ? 110 : 82, crit: ma.died}); vfx.screenShake(ma.died ? 18 : 10, ma.died ? 260 : 180); } pushFloating('-' + ma.damage + ' HP', '#ffb0b0', hx, hy, ma.died); spawnImpactBurst(hx, hy, '#ff9b9b', ma.died ? 1.4 : 1); playSound(ma.died ? 'death' : 'hit'); } });
   });
   socket.on('enemyDied', function (data) { addLog('⚔️ ' + data.killerName + ' derrotou ' + data.deadMonster.nome + ' e ganhou +' + data.xpReward + ' XP e +' + data.goldGained + ' ouro.'); if (data.loot) { state.lootRecente.unshift(data.loot); state.lootRecente = state.lootRecente.slice(0, 8); addLog((data.loot.exclusivoBoss ? '🐉 Loot exclusivo: ' : '🎁 Loot obtido: ') + data.loot.icon + ' ' + data.loot.nome + ' [' + data.loot.raridade + ']'); playSound(data.loot.exclusivoBoss ? 'boss' : 'loot'); } if (data.autoEquipSuggestion && data.killerId === state.meId) { showEquipSuggestion(data.autoEquipSuggestion); } if (data.progress && data.progress.leveledUp) addLog('✨ Level up! Agora você está no Nv. ' + data.progress.currentLevel + '.'); if (data.player && data.player.id === state.meId) state.me = data.player; if (data.meta && state.me) state.me.meta = data.meta; if (data.nextMonster) { state.monster = data.nextMonster; updateEnemyHUD(); } updateHUD(); });
   socket.on('abilityUsed', function (evt) {
@@ -1296,6 +1311,7 @@
       state.anim.monsterHitUntil = performance.now() + 420;
       startCooldownVisual(evt.habilidadeId, evt.cooldown);
     }
+    if (vfx) { vfx.dashAndReturn('player', {x: canvas.width * 0.28, y: canvas.height * 0.90}, {x: canvas.width * 0.50, y: canvas.height * 0.82}, {duration: 560, color: color, lift: -24}); vfx.hitFlinch('monster', {x: 1, y: 0}, {distance: 26, color: 'white'}); vfx.arcaneBurst(canvas.width * 0.72, canvas.height * 0.40, {color: color, size: 104}); vfx.screenShake(10, 160); }
     spawnImpactBurst(canvas.width * 0.72, canvas.height * 0.40, color, 1.1); playSound('skill');
   });
   socket.on('inventoryAction', function (info) { if (info.type === 'equip') { addLog('🧰 Item equipado: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'unequip') { addLog('🎒 Item retornou para a bolsa: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'sell') { addLog('🪙 Item vendido por +' + info.gold + ' ouro: ' + info.item.nome + '.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'sellAll') { addLog('🪙 ' + info.sold + ' itens vendidos por +' + info.gold + ' ouro.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'equipBest') { addLog('⚡ Melhor equipamento aplicado: ' + ((info.equippedItems || []).length) + ' item(ns).'); playSound('equip'); } if (info.type === 'gem') { addLog('💎 Gema inserida: ' + info.gem.nome + ' em ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'upgradeItem') { addLog('🔥 Forja: ' + info.item.nome + ' melhorado para +' + (info.item.upgradeLevel || 0) + '.'); playSound('equip'); } if (info.type === 'lockItem') { addLog((info.item.locked ? '🔒 Item protegido: ' : '🔓 Item desbloqueado: ') + info.item.nome + '.'); playSound('equip'); } });

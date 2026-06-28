@@ -44,35 +44,51 @@
 
 
     <section id="auth-modal" class="modal auth-modal">
-      <div class="modal-card auth-card">
-        <div class="modal-header">
-          <div>
-            <h2>Entrar no Legend Of Indle RPG V1</h2>
-            <p>Crie sua conta com nick único ou entre com seu login para carregar nível, mochila, itens, gemas e progresso.</p>
+      <div class="auth-bg-orb orb-a"></div>
+      <div class="auth-bg-orb orb-b"></div>
+      <div class="auth-stars"></div>
+      <div class="modal-card auth-card auth-card-modern">
+        <div class="auth-hero-panel">
+          <div class="auth-version-badge">ONLINE BUILD • RENDER READY</div>
+          <h1>Legend Of<br><span>Indle RPG V1</span></h1>
+          <p>Progressão idle, combate dinâmico, pets, montarias acumulativas, ranking, talentos e endgame meta em um RPG mobile-first.</p>
+          <div class="auth-feature-grid">
+            <div><strong>⚔️</strong><span>Auto Battle</span></div>
+            <div><strong>🎒</strong><span>Loot Progressivo</span></div>
+            <div><strong>🌠</strong><span>Meta Systems</span></div>
+            <div><strong>🏆</strong><span>Ranking Global</span></div>
           </div>
         </div>
-        <div class="modal-body auth-body">
-          <div class="auth-box">
-            <h3>Login</h3>
-            <input id="login-user" placeholder="Login" autocomplete="username">
-            <input id="login-pass" placeholder="Senha" type="password" autocomplete="current-password">
-            <button id="login-btn">Entrar</button>
-            <small>Conta GM padrão: login <b>GM</b> / senha <b>GM123</b></small>
+        <div class="auth-form-panel">
+          <div class="modal-header modern-auth-header">
+            <div>
+              <h2>Entre na sua jornada</h2>
+              <p>Use seu login para carregar nível, mochila, itens, gemas e progresso salvo.</p>
+            </div>
           </div>
-          <div class="auth-box">
-            <h3>Criar conta</h3>
-            <input id="reg-user" placeholder="Login único">
-            <input id="reg-pass" placeholder="Senha" type="password">
-            <input id="reg-nick" placeholder="Nick do personagem">
-            <select id="reg-class">
-              <option value="mago">Mago Arcanjo</option>
-              <option value="guerreiro">Guerreiro</option>
-              <option value="arqueiro">Arqueira</option>
-            </select>
-            <button id="register-btn">Criar personagem</button>
+          <div class="modal-body auth-body">
+            <div class="auth-box auth-glass">
+              <h3>Login</h3>
+              <input id="login-user" placeholder="Login" autocomplete="username">
+              <input id="login-pass" placeholder="Senha" type="password" autocomplete="current-password">
+              <button id="login-btn">Entrar no jogo</button>
+              <small>Conta GM padrão: login <b>GM</b> / senha <b>GM123</b></small>
+            </div>
+            <div class="auth-box auth-glass">
+              <h3>Criar conta</h3>
+              <input id="reg-user" placeholder="Login único">
+              <input id="reg-pass" placeholder="Senha" type="password">
+              <input id="reg-nick" placeholder="Nick do personagem">
+              <select id="reg-class">
+                <option value="mago">Mago Arcanjo</option>
+                <option value="guerreiro">Guerreiro</option>
+                <option value="arqueiro">Arqueira</option>
+              </select>
+              <button id="register-btn">Criar personagem</button>
+            </div>
           </div>
+          <div id="auth-error" class="auth-error"></div>
         </div>
-        <div id="auth-error" class="auth-error"></div>
       </div>
     </section>
 
@@ -360,6 +376,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="shared/classes.js"></script>
+  <script src="js/vfx-manager.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>
