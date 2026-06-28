@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crystal Realms — MMORPG Idle</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <div id="app">
+
+    <!-- HUD superior -->
+    <header id="hud">
+      <div id="hud-player">
+        <span id="hud-nome">—</span>
+        <span id="hud-classe">—</span>
+      </div>
+      <div id="hud-asa">
+        🪽 Asa: <span id="hud-asa-nivel">1</span> — <span id="hud-asa-nome">Cristal Bruto</span>
+      </div>
+      <div id="hud-xp-bar">
+        <div id="hud-xp-fill"></div>
+      </div>
+      <div id="hud-online">Online: <span id="hud-online-count">0</span></div>
+    </header>
+
+    <!-- Tela de seleção de classe (escondida depois de escolher) -->
+    <section id="class-select">
+      <h1>Escolha sua Classe</h1>
+      <div id="class-cards"></div>
+    </section>
+
+    <!-- Palco do jogo -->
+    <main id="stage">
+      <canvas id="game-canvas"></canvas>
+    </main>
+
+    <!-- Barra de habilidades -->
+    <footer id="ability-bar"></footer>
+
+    <!-- Log de erros visível (em vez de tela branca silenciosa) -->
+    <div id="fatal-error" class="hidden"></div>
+
+  </div>
+
+  <!-- ===================================================================
+       ORDEM DOS SCRIPTS — ISTO É O QUE CORRIGE O ReferenceError: io is not defined
+       ===================================================================
+       Regra de ouro: scripts SEM "defer" e SEM "async" são executados na
+       ordem em que aparecem, e o navegador só passa pro próximo depois de
+       baixar E RODAR o anterior por completo. Colocando os três na mesma
+       sequência síncrona, no final do <body>, garantimos que:
+
+         1) socket.io.min.js roda primeiro e cria a variável global `io`
+         2) shared/classes.js roda depois e cria `window.GAME_CLASSES`
+         3) game.js roda por último, quando `io` e `GAME_CLASSES` já existem
+
+       NUNCA adicione defer/async em nenhum destes três. Se algum dia você
+       precisar de defer no game.js por algum motivo, ele teria que estar
+       numa fila de scripts TODOS deferred (senão a ordem relativa quebra).
+       Mais simples e à prova de erro: manter os três sem nenhum atributo,
+       no fim do body, como estão aqui.
+  -->
+  <script src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
+  <script src="shared/classes.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
