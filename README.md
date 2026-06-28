@@ -1,6 +1,6 @@
-# Crystal Realms — MMORPG Idle
+# Legend Of Indle RPG V1
 
-Versão transformada para uma base mais próxima de um idle RPG no estilo Legend of Mushroom.
+Versão V3 transformada para uma base mais próxima de um idle RPG no estilo Legend of Mushroom, agora com sprites ilustrados dos personagens e nome oficial do jogo.
 
 ## Como rodar
 
@@ -36,8 +36,9 @@ http://localhost:3000
 - Lista de loot recente.
 - Barra de habilidades.
 - Menu inferior inspirado em mobile idle RPG.
-- Personagens maiores no palco.
-- Mago com asas de arcanjo renderizadas no canvas.
+- Personagens maiores no palco usando imagens ilustradas.
+- Guerreiro, Mago Arcanjo e Arqueira com aparência semelhante às artes conceituais.
+- Mago com asas de arcanjo usando sprite próprio.
 - Dano flutuante e efeitos de habilidade.
 
 ### Loot e poder
@@ -61,6 +62,9 @@ shared/classes.js
 public/index.html
 public/css/style.css
 public/js/game.js
+public/assets/characters/guerreiro.png
+public/assets/characters/mago.png
+public/assets/characters/arqueiro.png
 ```
 
 ## Próximas melhorias recomendadas

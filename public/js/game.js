@@ -85,6 +85,16 @@
     var questFill = document.getElementById('quest-fill');
     var questProgress = document.getElementById('quest-progress');
     var questText = document.getElementById('quest-text');
+    var heroPortrait = document.getElementById('hero-portrait');
+
+    var characterImages = {};
+    Object.keys(GAME_CLASSES).forEach(function (classeId) {
+      var classe = GAME_CLASSES[classeId];
+      if (!classe.asset || !classe.asset.sprite) return;
+      var img = new Image();
+      img.src = classe.asset.sprite;
+      characterImages[classeId] = img;
+    });
 
     function ajustarCanvas() {
       var stage = document.getElementById('stage');
@@ -122,7 +132,11 @@
         var card = document.createElement('div');
         card.className = 'class-card';
         card.dataset.classe = classeId;
+        var portrait = classe.asset && classe.asset.portrait ? classe.asset.portrait : '';
         card.innerHTML =
+          '<div class="class-art-wrap">' +
+            (portrait ? '<img src="' + portrait + '" alt="' + escaparHtml(classe.nomeCurto) + '">' : '<div class="icone">' + classe.tipoIcone + '</div>') +
+          '</div>' +
           '<div class="icone">' + classe.tipoIcone + '</div>' +
           '<div class="nome">' + classe.nomeCurto + '</div>' +
           '<div class="desc">' + classe.idleDescricao + '</div>';
@@ -199,6 +213,16 @@
       if (heroPowerSide) heroPowerSide.textContent = formatarNumero(power);
       if (heroHpSide) heroHpSide.textContent = (p.hp || 0) + ' / ' + (p.maxHp || 0);
       if (heroGoldSide) heroGoldSide.textContent = formatarNumero(p.ouro || 0);
+
+      if (heroPortrait) {
+        if (classe && classe.asset && classe.asset.portrait) {
+          heroPortrait.classList.add('has-art');
+          heroPortrait.style.backgroundImage = 'linear-gradient(180deg, rgba(5,8,22,.08), rgba(5,8,22,.22)), url("' + classe.asset.portrait + '")';
+        } else {
+          heroPortrait.classList.remove('has-art');
+          heroPortrait.style.backgroundImage = '';
+        }
+      }
 
       atualizarEquipamentos(p);
       atualizarQuest(p);
@@ -364,101 +388,78 @@
       if (!classe) return;
 
       var souEu = player.id === state.meuId;
-      var x = souEu ? canvas.width * 0.28 : canvas.width * 0.16 + (index * 42);
-      var y = souEu ? canvas.height * 0.64 : canvas.height * 0.68 + (index % 2) * 24;
-      var escala = souEu ? 1.75 : 1.05;
+      var x = souEu ? canvas.width * 0.30 : canvas.width * 0.15 + (index * 46);
+      var y = souEu ? canvas.height * 0.88 : canvas.height * 0.82 + (index % 2) * 18;
       var t = performance.now() / 1000;
-      y += Math.sin(t * 1.75 + index) * 5;
+      var bob = Math.sin(t * 1.65 + index) * (souEu ? 6 : 3);
+      var img = characterImages[player.classeId];
+      var altura = souEu ? Math.min(canvas.height * 0.88, player.classeId === 'mago' ? 430 : 390) : 190;
 
-      var pulse = 1 + Math.sin(t * 2.2) * 0.025;
       ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(pulse, pulse);
+      ctx.translate(x, y + bob);
 
-      if (player.classeId === 'mago') {
-        desenharAsasArcanjo(0, -30 * escala, escala, player.asaNivel || 1);
-      } else {
-        desenharAsasCristal(0, -22 * escala, escala, player.asaNivel || 1, classe.corPrimaria);
-      }
+      // Sombra do herói no chão
+      ctx.fillStyle = 'rgba(0,0,0,.36)';
+      ctx.beginPath();
+      ctx.ellipse(0, 8, souEu ? 118 : 54, souEu ? 24 : 12, 0, 0, Math.PI * 2);
+      ctx.fill();
 
-      // aura
-      var aura = ctx.createRadialGradient(0, 0, 8, 0, 0, 74 * escala);
-      aura.addColorStop(0, classe.corPrimaria + '55');
+      // Aura de classe
+      var aura = ctx.createRadialGradient(0, -altura * 0.44, 8, 0, -altura * 0.44, altura * 0.46);
+      aura.addColorStop(0, classe.corPrimaria + '40');
+      aura.addColorStop(0.55, classe.corSecundaria + '1f');
       aura.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = aura;
       ctx.beginPath();
-      ctx.arc(0, 0, 74 * escala, 0, Math.PI * 2);
+      ctx.arc(0, -altura * 0.44, altura * 0.46, 0, Math.PI * 2);
       ctx.fill();
 
-      // corpo
-      ctx.fillStyle = classe.corPrimaria;
-      ctx.strokeStyle = classe.corSecundaria;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.roundRect(-20 * escala, -18 * escala, 40 * escala, 58 * escala, 12 * escala);
-      ctx.fill();
-      ctx.stroke();
-
-      // cabeça
-      ctx.fillStyle = '#f4d0a5';
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0, -36 * escala, 18 * escala, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // cabelo/capuz
-      ctx.fillStyle = player.classeId === 'arqueiro' ? '#2f5f3b' : (player.classeId === 'guerreiro' ? '#5a2a1c' : '#151a33');
-      ctx.beginPath();
-      ctx.ellipse(0, -45 * escala, 20 * escala, 12 * escala, 0, Math.PI, Math.PI * 2);
-      ctx.fill();
-
-      // armas por classe
-      if (player.classeId === 'guerreiro') {
-        ctx.strokeStyle = '#d8d8e8';
-        ctx.lineWidth = 5 * escala;
-        ctx.beginPath();
-        ctx.moveTo(30 * escala, 4 * escala);
-        ctx.lineTo(70 * escala, -54 * escala);
-        ctx.stroke();
-        ctx.fillStyle = '#d4af37';
-        ctx.fillRect(-42 * escala, -4 * escala, 18 * escala, 36 * escala);
-      } else if (player.classeId === 'arqueiro') {
-        ctx.strokeStyle = '#d4af37';
-        ctx.lineWidth = 3 * escala;
-        ctx.beginPath();
-        ctx.arc(42 * escala, -4 * escala, 34 * escala, -Math.PI / 2, Math.PI / 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(40 * escala, -36 * escala);
-        ctx.lineTo(40 * escala, 30 * escala);
-        ctx.stroke();
+      if (img && img.complete && img.naturalWidth > 0) {
+        var largura = altura * (img.naturalWidth / img.naturalHeight);
+        // O mago tem asas grandes; damos um leve destaque sem cortar o sprite.
+        if (player.classeId === 'mago' && souEu) largura *= 1.06;
+        ctx.save();
+        ctx.shadowColor = classe.corPrimaria;
+        ctx.shadowBlur = souEu ? 26 : 10;
+        ctx.drawImage(img, -largura / 2, -altura, largura, altura);
+        ctx.restore();
       } else {
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 4 * escala;
+        // Fallback simples caso a imagem ainda não tenha carregado.
+        ctx.fillStyle = classe.corPrimaria;
+        ctx.strokeStyle = classe.corSecundaria;
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(44 * escala, 26 * escala);
-        ctx.lineTo(44 * escala, -62 * escala);
-        ctx.stroke();
-        ctx.fillStyle = '#66c9ff';
-        ctx.beginPath();
-        ctx.arc(44 * escala, -72 * escala, 12 * escala, 0, Math.PI * 2);
+        ctx.roundRect(-22, -92, 44, 74, 14);
         ctx.fill();
         ctx.stroke();
+        ctx.fillStyle = '#f4d0a5';
+        ctx.beginPath();
+        ctx.arc(0, -116, 20, 0, Math.PI * 2);
+        ctx.fill();
       }
+
+      // Placa do nome
+      ctx.font = souEu ? '900 15px Inter' : '700 11px Inter';
+      ctx.textAlign = 'center';
+      var label = player.nome + ' [Nv. ' + player.nivel + ']';
+      var labelY = -altura - 10;
+      var measure = ctx.measureText(label).width + 22;
+      ctx.fillStyle = 'rgba(5,8,22,.72)';
+      ctx.strokeStyle = souEu ? 'rgba(255,230,155,.45)' : 'rgba(255,255,255,.12)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(-measure / 2, labelY - 20, measure, 25, 10);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = souEu ? '#ffe69b' : '#f2efff';
+      ctx.fillText(label, 0, labelY - 2);
 
       ctx.restore();
 
-      ctx.fillStyle = '#f2efff';
-      ctx.font = (souEu ? 'bold 15px Inter' : '12px Inter');
-      ctx.textAlign = 'center';
-      ctx.fillText(player.nome + ' [Nv. ' + player.nivel + ']', x, y - 112 * escala / 1.75);
-
-      if (Math.random() < 0.14) {
+      if (Math.random() < 0.16) {
         state.particulas.push({
-          x: x + (Math.random() - 0.5) * 90 * escala,
-          y: y + (Math.random() - 0.2) * 28,
+          x: x + (Math.random() - 0.5) * 90,
+          y: y - altura * 0.58 + (Math.random() - 0.5) * 85,
           vy: -0.55 - Math.random() * 0.45,
           vida: 1,
           cor: classe.corParticulaIdle

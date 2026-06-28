@@ -3,12 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Crystal Realms — MMORPG Idle</title>
+  <title>Legend Of Indle RPG V1</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <div id="app">
     <header id="hud">
+      <div id="game-brand">
+        <span class="brand-gem">◆</span>
+        <div>
+          <strong>Legend Of Indle RPG V1</strong>
+          <small>MMORPG Idle Fantasy</small>
+        </div>
+      </div>
+
       <div id="hud-player">
         <span id="hud-nome">—</span>
         <span id="hud-classe">—</span>
@@ -28,9 +36,9 @@
 
     <section id="class-select">
       <div class="select-card">
-        <p class="eyebrow">Crystal Realms</p>
-        <h1>Escolha sua Classe</h1>
-        <p class="select-desc">Comece sua jornada idle. O servidor valida dano, XP, loot e progressão.</p>
+        <p class="eyebrow">Legend Of Indle RPG V1</p>
+        <h1>Escolha seu Herói</h1>
+        <p class="select-desc">Escolha entre Guerreiro, Mago Arcanjo e Arqueira. O servidor valida dano, XP, loot e progressão.</p>
         <div id="class-cards"></div>
       </div>
     </section>
@@ -50,10 +58,7 @@
     <div id="game-shell">
       <aside id="hero-panel" class="side-panel">
         <div class="panel-title">Herói</div>
-        <div id="hero-portrait" class="hero-portrait">
-          <div class="portrait-wings">🪽</div>
-          <div class="portrait-avatar">✦</div>
-        </div>
+        <div id="hero-portrait" class="hero-portrait"></div>
         <div id="hero-name-side" class="side-name">—</div>
         <div id="hero-class-side" class="side-subtitle">Escolha uma classe</div>
 
@@ -107,7 +112,7 @@
     <div id="fatal-error" class="hidden"></div>
   </div>
 
-  <script src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="shared/classes.js"></script>
   <script src="js/game.js"></script>
 </body>

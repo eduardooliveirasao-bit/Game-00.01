@@ -49,7 +49,41 @@ html, body {
   z-index: 20;
 }
 
-#hud-player { min-width: 210px; display: flex; flex-direction: column; gap: 2px; }
+#game-brand {
+  min-width: 260px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 12px;
+  border-right: 1px solid rgba(255,255,255,.08);
+}
+.brand-gem {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #7fdcff;
+  font-size: 24px;
+  text-shadow: 0 0 16px rgba(102,201,255,.7);
+  filter: drop-shadow(0 0 10px rgba(255,230,155,.32));
+}
+#game-brand strong {
+  display: block;
+  font-family: Cinzel, serif;
+  color: var(--gold2);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+#game-brand small {
+  display: block;
+  color: #b7c0ff;
+  font-size: 11px;
+  margin-top: 1px;
+}
+#hud-player { min-width: 195px; display: flex; flex-direction: column; gap: 2px; }
 #hud-nome { font-family: Cinzel, serif; font-weight: 800; color: var(--gold2); letter-spacing: .02em; }
 #hud-classe { color: #b7c0ff; font-size: 13px; }
 #hud-asa, #hud-online { color: var(--muted); white-space: nowrap; }
@@ -110,18 +144,35 @@ html, body {
 .select-desc { margin: 0 auto 26px; max-width: 680px; color: var(--muted); }
 #class-cards { display: grid; grid-template-columns: repeat(3, minmax(190px, 1fr)); gap: 18px; }
 .class-card {
-  min-height: 220px;
-  padding: 22px;
+  min-height: 330px;
+  padding: 14px;
   cursor: pointer;
   border: 1px solid var(--edge);
   background: linear-gradient(180deg, rgba(32, 41, 88, .85), rgba(10, 14, 32, .88));
   transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
   clip-path: polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+  overflow: hidden;
 }
 .class-card:hover { transform: translateY(-8px) scale(1.02); border-color: var(--gold2); box-shadow: 0 18px 45px rgba(0,0,0,.4), 0 0 28px rgba(255,230,155,.18); }
-.class-card .icone { font-size: 54px; filter: drop-shadow(0 0 16px rgba(255,255,255,.2)); }
-.class-card .nome { margin: 12px 0 8px; font-family: Cinzel, serif; font-size: 22px; color: var(--gold2); }
-.class-card .desc { color: var(--muted); font-size: 13px; line-height: 1.45; }
+.class-card .class-art-wrap {
+  height: 190px;
+  margin-bottom: 12px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.08);
+  background: radial-gradient(circle at center, rgba(102,201,255,.18), rgba(5,8,22,.72));
+}
+.class-card .class-art-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 20px 28px rgba(0,0,0,.45));
+  transform: scale(1.08);
+}
+.class-card .icone { font-size: 22px; filter: drop-shadow(0 0 16px rgba(255,255,255,.2)); }
+.class-card .nome { margin: 10px 0 8px; font-family: Cinzel, serif; font-size: 22px; color: var(--gold2); }
+.class-card .desc { color: var(--muted); font-size: 12px; line-height: 1.38; }
 
 #enemy-panel {
   position: fixed;
@@ -166,9 +217,28 @@ html, body {
 .panel-title { font-size: 22px; margin-bottom: 14px; }
 .mini-title { font-size: 15px; margin: 16px 0 10px; color: #d8cdff; }
 
-.hero-portrait { height: 150px; position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; border: 1px solid rgba(255,255,255,.08); background: radial-gradient(circle, rgba(102,201,255,.22), rgba(8,11,28,.3) 60%); border-radius: 22px; }
-.portrait-wings { position: absolute; font-size: 86px; opacity: .85; filter: drop-shadow(0 0 18px rgba(255,255,255,.2)); }
-.portrait-avatar { position: relative; width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 34px; background: linear-gradient(180deg, #79d8ff, #7b4dff); border: 2px solid rgba(255,255,255,.6); box-shadow: 0 0 24px rgba(102,201,255,.36); }
+.hero-portrait {
+  height: 180px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: radial-gradient(circle, rgba(102,201,255,.22), rgba(8,11,28,.3) 60%);
+  background-size: cover;
+  background-position: center 18%;
+  border-radius: 22px;
+  box-shadow: inset 0 0 30px rgba(102,201,255,.08), 0 16px 34px rgba(0,0,0,.24);
+  overflow: hidden;
+}
+.hero-portrait.has-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 -42px 56px rgba(5,8,22,.42);
+  pointer-events: none;
+}
 .side-name { font-weight: 900; color: var(--gold2); text-align: center; }
 .side-subtitle { color: var(--muted); text-align: center; font-size: 13px; margin-top: 2px; }
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
@@ -240,6 +310,9 @@ html, body {
 .hidden { display: none !important; }
 
 @media (max-width: 1180px) {
+  #game-brand { min-width: 220px; }
+  #game-brand strong { font-size: 14px; }
+  #hud-player { min-width: 160px; }
   #game-shell { grid-template-columns: 240px 1fr 260px; }
   #enemy-panel { width: min(560px, calc(100vw - 560px)); min-width: 360px; }
 }
@@ -250,6 +323,9 @@ html, body {
   #game-shell { grid-template-columns: 1fr; padding: 92px 12px 12px; }
   #hero-panel, #right-panel { display: none; }
   #enemy-panel { width: calc(100vw - 24px); min-width: 0; top: 94px; }
+  #game-brand { min-width: 0; }
+  #game-brand small { display: none; }
+  #hud-player { display: none; }
   #class-cards { grid-template-columns: 1fr; }
   #bottom-menu { overflow-x: auto; justify-content: flex-start; }
 }

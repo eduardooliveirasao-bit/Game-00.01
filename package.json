@@ -1,8 +1,8 @@
 {
-  "name": "crystal-realms-idle",
-  "version": "0.1.0",
+  "name": "legend-of-indle-rpg-v1",
+  "version": "0.3.0",
   "private": true,
-  "description": "MMORPG Idle com Guerreiro, Arqueiro e Mago — Express + Socket.io",
+  "description": "Legend Of Indle RPG V1 — MMORPG Idle com sprites de Guerreiro, Mago Arcanjo e Arqueira",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

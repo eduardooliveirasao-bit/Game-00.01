@@ -18,6 +18,7 @@
       nome: 'Kael, Guardião de Ferro',
       nomeCurto: 'Guerreiro',
       tipoIcone: '⚔️',
+      asset: { sprite: 'assets/characters/guerreiro.png', portrait: 'assets/characters/guerreiro_portrait.png' },
       papel: 'Tank / DPS corpo a corpo',
       corPrimaria: '#C0392B',
       corSecundaria: '#D4AF37',
@@ -76,6 +77,7 @@
       nome: 'Lyra, Sombra Verde',
       nomeCurto: 'Arqueira',
       tipoIcone: '🏹',
+      asset: { sprite: 'assets/characters/arqueiro.png', portrait: 'assets/characters/arqueiro_portrait.png' },
       papel: 'DPS rápido / Crítico',
       corPrimaria: '#1E8449',
       corSecundaria: '#17A2B8',
@@ -133,9 +135,10 @@
 
     mago: {
       id: 'mago',
-      nome: 'Elyon, Arcanjo Arcano',
+      nome: 'Elyon, o Arcano Azul',
       nomeCurto: 'Mago Arcanjo',
       tipoIcone: '🪽',
+      asset: { sprite: 'assets/characters/mago.png', portrait: 'assets/characters/mago_portrait.png' },
       papel: 'DPS mágico / Controle / Suporte',
       corPrimaria: '#5DADE2',
       corSecundaria: '#8E44AD',

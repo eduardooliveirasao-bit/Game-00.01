@@ -137,6 +137,9 @@ io.on('connection', (socket) => {
     }
 
     player.classeId = classeId;
+    // Na V3, o jogador assume o herói visual/lore da classe escolhida.
+    // Isso deixa o jogo com identidade de personagens como no estilo Legend of Mushroom.
+    player.nome = classe.nome;
     player.hp = classe.baseStats.maxHp;
     player.maxHp = classe.baseStats.maxHp;
     LevelManager.syncProgressFields(player);
