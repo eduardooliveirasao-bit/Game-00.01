@@ -320,15 +320,35 @@
     if (!paperDoll || !state.me) return;
     var cls = GAME_CLASSES[state.me.classeId];
     var eq = state.me.equipados || {};
-    var mount = state.me.mount || (state.me.visualMods && state.me.visualMods.mount);
+    var attrs = state.me.attributes || {};
+    var mounts = state.me.mountCollection || [];
+    var mountBonus = state.me.mountBonus || {};
     function slotHtml(slot, label) {
       var item = eq[slot];
-      if (!item) return '<div class="paper-slot ' + slot + '"><span>' + label + '</span><strong>Vazio</strong></div>';
-      return '<div class="paper-slot ' + slot + ' filled" style="border-color:' + (item.rarityColor || '#fff') + '"><span>' + label + '</span><img src="' + (item.asset || '') + '" alt=""><strong>' + escapeHtml(item.nome) + '</strong><em style="color:' + (item.rarityColor || '#fff') + '">' + escapeHtml(item.raridade) + '</em></div>';
+      if (!item) return '<button class="paper-slot ' + slot + '"><span>' + label + '</span><strong>Vazio</strong></button>';
+      return '<button class="paper-slot ' + slot + ' filled" style="border-color:' + (item.rarityColor || '#fff') + '"><span>' + label + '</span><img src="' + (item.asset || '') + '" alt=""><strong>' + escapeHtml(item.nome) + '</strong><em style="color:' + (item.rarityColor || '#fff') + '">' + escapeHtml(item.raridade) + '</em></button>';
     }
-    paperDoll.innerHTML = (mount ? '<img class="paper-mount" src="' + mount.asset + '" alt="' + escapeHtml(mount.nome) + '">' : '') +
-      (cls ? '<img class="paper-hero" src="' + cls.asset.sprite + '" alt="' + escapeHtml(cls.nome) + '">' : '') +
-      slotHtml('arma','Arma') + slotHtml('anel','Anel') + slotHtml('colar','Colar') + slotHtml('ornamento','Asa/Orn.');
+    function attr(label, value, icon, clsName) {
+      return '<div class="paper-attr ' + (clsName || '') + '"><span>' + icon + ' ' + label + '</span><strong>' + formatNumber(value || 0) + '</strong></div>';
+    }
+    var mountRows = mounts.map(function(m){
+      var b = m.bonusCalculated || {};
+      return '<div class="mount-mini ' + (m.active ? 'active' : '') + '" data-mount-id="' + m.id + '"><img src="' + m.asset + '" alt=""><div><strong>' + escapeHtml(m.nome) + ' Nv.' + (m.level || 1) + '</strong><small>+' + formatNumber((b.power||0)) + ' poder · +' + (b.ataque||0) + ' ATK · +' + (b.hp||0) + ' HP</small></div><button data-activate-mount="' + m.id + '">' + (m.active ? 'Ativa' : 'Ativar') + '</button></div>';
+    }).join('') || '<div class="mount-mini empty">Nenhuma montaria.</div>';
+    paperDoll.innerHTML =
+      '<div class="paper-hero-card">' +
+        '<div class="paper-hero-frame">' + (cls ? '<img class="paper-hero" src="' + cls.asset.sprite + '" alt="' + escapeHtml(cls.nome) + '">' : '') + slotHtml('arma','Arma') + slotHtml('anel','Anel') + slotHtml('colar','Colar') + slotHtml('ornamento','Asa/Orn.') + '</div>' +
+        '<div class="paper-name"><strong>' + escapeHtml(state.me.nome || 'Herói') + '</strong><small>' + escapeHtml(cls ? cls.nome : 'Sem classe') + ' · Nv. ' + (state.me.nivel || 1) + '</small></div>' +
+      '</div>' +
+      '<div class="paper-stats-panel">' +
+        '<div class="paper-section-title">Atributos</div>' +
+        '<div class="paper-attr-grid">' +
+          attr('Poder', attrs.power || state.me.power, '⚔️', 'main') + attr('Ataque', attrs.attack, '🗡️') + attr('Defesa', attrs.defense, '🛡️') + attr('HP Máx.', attrs.maxHp || state.me.maxHp, '❤️') + attr('Mana Máx.', attrs.maxMana || state.me.maxMana, '🔷') + attr('Crítico', attrs.crit, '🎯') + attr('Velocidade', attrs.speed, '⚡') + attr('Evasão', attrs.evasion, '🌀') +
+        '</div>' +
+        '<div class="paper-section-title">Bônus acumulado de montarias</div>' +
+        '<div class="mount-bonus-line">+' + formatNumber(mountBonus.power || 0) + ' Poder · +' + (mountBonus.ataque || 0) + ' ATK · +' + (mountBonus.defesa || 0) + ' DEF · +' + (mountBonus.hp || 0) + ' HP</div>' +
+        '<div class="mount-collection-list">' + mountRows + '</div>' +
+      '</div>';
   }
 
   function openBag() { bagModal.classList.remove('hidden'); renderBag(); }
@@ -569,7 +589,6 @@
     var clsId = state.me.classeId;
     var mods = state.me.visualMods || {};
     var eq = state.me.equipados || {};
-    var mount = state.me.mount || mods.mount;
     var action = now < state.anim.playerHitUntil ? 'hit' : (now < state.anim.playerAttackUntil ? 'attack' : 'idle');
     var img = getCharacterPose(clsId, action) || characterImages[clsId];
     if (!img || !img.complete) return;
@@ -593,21 +612,6 @@
     ctx.fillStyle = 'rgba(0,0,0,.48)';
     ctx.beginPath(); ctx.ellipse(x, y + 8, Math.max(64, w * 0.24), 22, 0, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
-
-    if (mount) {
-      var mountAction = action === 'hit' ? 'hit' : (state.me.autoFarm ? 'run' : 'idle');
-      var mountFrame = getAnimatedImage('mount', mount.id, mountAction, now) || mountImages[mount.id];
-      if (mountFrame && mountFrame.complete) {
-        var mh = Math.min(148, h * 0.40);
-        var mw = mh * (mountFrame.width / mountFrame.height);
-        var mx = x - mw * 0.58;
-        var my = y - mh * 0.12 + Math.sin(now / 150) * 2;
-        ctx.save();
-        ctx.globalAlpha = state.me.isDead ? 0.55 : 1;
-        ctx.drawImage(mountFrame, mx, my, mw, mh);
-        ctx.restore();
-      }
-    }
 
     if (mods.aura) {
       ctx.save();
@@ -766,14 +770,22 @@
   function renderMount() {
     if (!state.me || !mountCard) return;
     var mount = state.me.mount || { id: 'lobo_cristalino', nome: 'Lobo Cristalino', level: 1, asset: 'assets/mounts/lobo_cristalino.png', bonus: { ataque: 4, hp: 40, power: 80 } };
+    var collection = state.me.mountCollection || [mount];
+    var bonus = state.me.mountBonus || {};
     var nextCost = 150 * (mount.level || 1);
-    mountCard.innerHTML = '<div class="mount-preview"><img src="' + mount.asset + '" alt="' + escapeHtml(mount.nome) + '"></div>' +
-      '<h3>' + escapeHtml(mount.nome) + ' <span>Nv. ' + (mount.level || 1) + '</span></h3>' +
-      '<p>Montaria com arte própria e animação no palco. Treinamentos aumentam poder, HP e ataque.</p>' +
-      '<div class="detail-stats"><div>PODER<br><strong>+' + (mount.bonus.power || 0) + '</strong></div><div>ATQ<br><strong>+' + (mount.bonus.ataque || 0) + '</strong></div><div>HP<br><strong>+' + (mount.bonus.hp || 0) + '</strong></div><div>CUSTO<br><strong>' + nextCost + ' ouro</strong></div></div>' +
-      '<button id="upgrade-mount-btn">Treinar montaria</button>';
+    var rows = collection.map(function(m){
+      var b = m.bonusCalculated || {};
+      return '<div class="mount-card-row ' + (m.active ? 'active' : '') + '"><img src="' + m.asset + '" alt=""><div><strong>' + escapeHtml(m.nome) + ' Nv. ' + (m.level || 1) + '</strong><small>Acumulado: +' + formatNumber(b.power||0) + ' poder · +' + (b.ataque||0) + ' ATK · +' + (b.defesa||0) + ' DEF · +' + (b.hp||0) + ' HP</small></div><button data-activate-mount="' + m.id + '">' + (m.active ? 'Ativa' : 'Ativar') + '</button></div>';
+    }).join('');
+    mountCard.innerHTML = '<div class="mount-summary"><div class="mount-preview"><img src="' + mount.asset + '" alt="' + escapeHtml(mount.nome) + '"></div><div><h3>' + escapeHtml(mount.nome) + ' <span>Nv. ' + (mount.level || 1) + '</span></h3><p>Montarias não aparecem mais na batalha. Cada montaria obtida soma atributos permanentes ao personagem, e a ativa define qual você treina.</p></div></div>' +
+      '<div class="detail-stats"><div>PODER<br><strong>+' + formatNumber(bonus.power || 0) + '</strong></div><div>ATQ<br><strong>+' + (bonus.ataque || 0) + '</strong></div><div>DEF<br><strong>+' + (bonus.defesa || 0) + '</strong></div><div>HP<br><strong>+' + (bonus.hp || 0) + '</strong></div><div>VEL<br><strong>+' + Math.floor((bonus.speed || 0) * 100) + '</strong></div><div>EVASÃO<br><strong>+' + (bonus.evasao || 0) + '</strong></div></div>' +
+      '<button id="upgrade-mount-btn">Treinar montaria ativa — ' + nextCost + ' ouro</button>' +
+      '<div class="mount-collection-list modal-list">' + rows + '</div>';
     var btn = byId('upgrade-mount-btn');
     if (btn) btn.onclick = function () { ensureAudio(); socket.emit('upgradeMount'); };
+    Array.prototype.forEach.call(mountCard.querySelectorAll('[data-activate-mount]'), function (button) {
+      button.onclick = function () { ensureAudio(); socket.emit('activateMount', { mountId: button.getAttribute('data-activate-mount') }); };
+    });
   }
 
 
@@ -946,7 +958,7 @@
   socket.on('saveStatus', function (info) { if (info.ok && byId('hud-save-status')) byId('hud-save-status').textContent = 'Salvo'; });
   socket.on('achievementsUnlocked', function (list) { (list || []).forEach(function (a) { addLog('🏆 Conquista: ' + a.nome + ' +' + (a.reward.ouro || 0) + ' ouro +' + (a.reward.gemas || 0) + ' gemas.'); playSound('loot'); }); });
   socket.on('rankingUpdate', function (data) { renderRanking(data); });
-  socket.on('mountUpdated', function (data) { addLog('🐺 Montaria treinada: ' + data.mount.nome + ' Nv. ' + data.mount.level + '.'); playSound('equip'); renderMount(); });
+  socket.on('mountUpdated', function (data) { if (state.me) { if (data.mount) state.me.mount = data.mount; if (data.collection) state.me.mountCollection = data.collection; if (data.bonus) state.me.mountBonus = data.bonus; } addLog('🐺 Montaria atualizada: ' + data.mount.nome + ' Nv. ' + data.mount.level + '.'); playSound('equip'); renderMount(); renderPaperDoll(); updateHUD(); });
   socket.on('petUpdated', function (data) { if (data.pets && state.me) state.me.pets = data.pets; addLog('🐾 Pet atualizado.'); playSound('equip'); updateHUD(); });
 
 

@@ -1,0 +1,19 @@
+Legend Of Indle RPG V1 - V18 Backpack + Mount Collection
+
+Implementado nesta versão:
+- Montarias não aparecem mais no campo de batalha.
+- Sistema de coleção de montarias: cada montaria obtida soma atributos permanentemente ao personagem.
+- Montaria ativa define qual montaria será treinada, mas o bônus total vem da coleção inteira.
+- Loja de contratos de montaria agora desbloqueia/adiciona montarias à coleção e ativa a nova montaria.
+- Salve atualizado para guardar mountCollection.
+- Contas antigas são migradas automaticamente para mountCollection com base na montaria que já existia no save.
+- Mochila redesenhada para ficar mais próxima de inventário mobile RPG:
+  - personagem com slots posicionados ao redor;
+  - atributos completos na mochila;
+  - poder, ataque, defesa, HP, mana, crítico, velocidade e evasão;
+  - lista de montarias dentro da mochila;
+  - bônus acumulado das montarias;
+  - botão de ativar montaria direto na mochila;
+  - visual mais detalhado e polido.
+- Painel de montaria atualizado para mostrar bônus acumulados.
+- Compatível com Render, mantendo render.yaml, health check e DATA_DIR.

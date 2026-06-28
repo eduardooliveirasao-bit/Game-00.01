@@ -167,10 +167,40 @@ class LootManager {
   static getEquippedList(player){ const e=player.equipados||{}; return SLOT_ORDER.map(s=>e[s]).filter(Boolean).map(i=>this.enrichItem({...i})); }
   static scoreItem(item){ const s=totalStats(item); return Math.floor((s.ataque||0)*6+(s.defesa||0)*4+(s.critico||0)*7+(s.hp||0)*.55+(s.mana||0)*.3+rarityRank(item.raridade)*20+(item.exclusivoBoss?85:0)); }
   static sellValue(item){ if(!item) return 0; const score = item.powerScore != null ? item.powerScore : this.scoreItem(item); return Math.max(10, Math.floor(score*.85 + rarityRank(item.raridade)*35 + (item.upgradeLevel||0)*45)); }
-  static getVisualMods(player){ const eq=player.equipados||{}; const mods={ weaponGlow:null, aura:null, ringGlow:null, wing:null, itemTier:0, mount:this.getMount(player) }; for(const slot of SLOT_ORDER){ const it=eq[slot]?this.enrichItem({...eq[slot]}):null; if(!it) continue; mods.itemTier=Math.max(mods.itemTier, rarityRank(it.raridade)); if(slot==='arma') mods.weaponGlow=it.rarityColor; if(slot==='anel') mods.ringGlow=it.rarityColor; if(slot==='colar') mods.aura=it.rarityColor; if(slot==='ornamento' && (it.wingVisual || (it.visual&&it.visual.wing))) mods.wing=it.wingVisual || {name:it.nome,color:it.rarityColor,size:1+rarityRank(it.raridade)*.08}; } return mods; }
-  static getMount(player){ const id=(player.mount&&player.mount.id)||'lobo_cristalino'; const base=MOUNTS[id]||MOUNTS.lobo_cristalino; return {...base, level:(player.mount&&player.mount.level)||1}; }
-  static getMountBonus(player){ const mount=this.getMount(player); const level=mount.level||1; return { ataque:Math.floor((mount.bonus.ataque||0)*(1+level*.12)), hp:Math.floor((mount.bonus.hp||0)*(1+level*.15)), power:(mount.bonus.power||0)+level*35 }; }
-  static calculatePower(player){ const classe=GAME_CLASSES[player.classeId]||{baseStats:{baseDano:10,defesa:5,critico:5,mana:0}}; const base=classe.baseStats; const gear=this.getEquippedList(player).reduce((s,i)=>s+this.scoreItem(i),0); const mount=this.getMountBonus(player); return Math.floor(120+player.nivel*52+base.baseDano*8+base.defesa*5+base.critico*5+Math.floor((base.mana||0)*.2)+gear+mount.power); }
+  static getVisualMods(player){ const eq=player.equipados||{}; const mods={ weaponGlow:null, aura:null, ringGlow:null, wing:null, itemTier:0 }; for(const slot of SLOT_ORDER){ const it=eq[slot]?this.enrichItem({...eq[slot]}):null; if(!it) continue; mods.itemTier=Math.max(mods.itemTier, rarityRank(it.raridade)); if(slot==='arma') mods.weaponGlow=it.rarityColor; if(slot==='anel') mods.ringGlow=it.rarityColor; if(slot==='colar') mods.aura=it.rarityColor; if(slot==='ornamento' && (it.wingVisual || (it.visual&&it.visual.wing))) mods.wing=it.wingVisual || {name:it.nome,color:it.rarityColor,size:1+rarityRank(it.raridade)*.08}; } return mods; }
+  static normalizeMountCollection(player){
+    player.mount = player.mount || { id:'lobo_cristalino', level:1 };
+    const activeId = player.mount.id || 'lobo_cristalino';
+    const list = Array.isArray(player.mountCollection) ? player.mountCollection : [];
+    const byId = new Map();
+    for(const row of list){ if(row && row.id && MOUNTS[row.id]) byId.set(row.id, { id:row.id, level:Math.max(1, Math.floor(row.level||1)), active:!!row.active, unlockedAt:row.unlockedAt||Date.now() }); }
+    if(!byId.has(activeId) && MOUNTS[activeId]) byId.set(activeId, { id:activeId, level:Math.max(1, Math.floor(player.mount.level||1)), active:true, unlockedAt:Date.now() });
+    if(!byId.has('lobo_cristalino')) byId.set('lobo_cristalino', { id:'lobo_cristalino', level:1, active:activeId==='lobo_cristalino', unlockedAt:Date.now() });
+    for(const row of byId.values()) row.active = row.id === activeId;
+    player.mountCollection = Array.from(byId.values());
+    return player.mountCollection;
+  }
+  static mountSingleBonus(base, level){ return { ataque:Math.floor((base.bonus.ataque||0)*(1+level*.12)), hp:Math.floor((base.bonus.hp||0)*(1+level*.15)), power:Math.floor((base.bonus.power||0)+level*35), speed:Number(((base.bonus.speed||1)-1+level*.006).toFixed(3)), defesa:Math.floor(level*1.5+((base.bonus.hp||0)/55)), evasao:Math.floor(Math.max(0,((base.bonus.speed||1)-1)*35)+level*.25) }; }
+  static getMount(player){ this.normalizeMountCollection(player); const active=(player.mountCollection||[]).find(m=>m.active)||player.mountCollection[0]||{id:'lobo_cristalino',level:1}; const base=MOUNTS[active.id]||MOUNTS.lobo_cristalino; player.mount={id:base.id,level:active.level}; return {...base, level:active.level, active:true}; }
+  static getMountCollection(player){ return this.normalizeMountCollection(player).map(m=>{ const base=MOUNTS[m.id]||MOUNTS.lobo_cristalino; const level=Math.max(1,Math.floor(m.level||1)); const bonus=this.mountSingleBonus(base,level); return {...base, level, active:!!m.active, bonusCalculated:bonus}; }); }
+  static getMountBonus(player){ const rows=this.getMountCollection(player); return rows.reduce((sum,m)=>{ const b=m.bonusCalculated||this.mountSingleBonus(m,m.level||1); sum.ataque+=b.ataque||0; sum.hp+=b.hp||0; sum.power+=b.power||0; sum.speed+=b.speed||0; sum.defesa+=b.defesa||0; sum.evasao+=b.evasao||0; return sum; }, {ataque:0,hp:0,power:0,speed:0,defesa:0,evasao:0}); }
+  static unlockMount(player,mountId,level){ if(!MOUNTS[mountId]) return {ok:false,reason:'Montaria inválida.'}; this.normalizeMountCollection(player); const current=player.mountCollection.find(m=>m.id===mountId); if(current) current.level=Math.max(current.level||1,Math.floor(level||1)); else player.mountCollection.push({id:mountId,level:Math.max(1,Math.floor(level||1)),active:false,unlockedAt:Date.now()}); return this.activateMount(player,mountId); }
+  static activateMount(player,mountId){ if(!MOUNTS[mountId]) return {ok:false,reason:'Montaria inválida.'}; this.normalizeMountCollection(player); const current=player.mountCollection.find(m=>m.id===mountId); if(!current) return {ok:false,reason:'Você ainda não possui esta montaria.'}; for(const m of player.mountCollection) m.active=m.id===mountId; player.mount={id:mountId,level:current.level||1}; player.power=this.calculatePower(player); return {ok:true,mount:this.getMount(player),collection:this.getMountCollection(player),bonus:this.getMountBonus(player)}; }
+  static getCharacterAttributes(player){
+    const classe=GAME_CLASSES[player.classeId]||{baseStats:{maxHp:100,mana:0,baseDano:10,defesa:5,critico:5,multiplicadorNivel:2}};
+    const base=classe.baseStats; const eq=this.getEquippedList(player);
+    const gear=eq.reduce((s,it)=>{ const t=totalStats(it); s.ataque+=t.ataque||0; s.defesa+=t.defesa||0; s.critico+=t.critico||0; s.hp+=t.hp||0; s.mana+=t.mana||0; return s; },{ataque:0,defesa:0,critico:0,hp:0,mana:0});
+    const mb=this.getMountBonus(player); const level=player.nivel||1;
+    const attack=Math.floor((base.baseDano||10)+level*(base.multiplicadorNivel||2)+gear.ataque+mb.ataque);
+    const defense=Math.floor((base.defesa||5)+gear.defesa+mb.defesa+level*.8);
+    const maxHp=Math.floor((base.maxHp||100)+level*16+gear.hp+mb.hp);
+    const maxMana=Math.floor((base.mana||0)+level*6+gear.mana);
+    const crit=Math.floor((base.critico||0)+gear.critico);
+    const speed=Math.floor(100+mb.speed*100+level*.25);
+    const evasion=Math.floor(2+mb.evasao+Math.min(30,speed/25));
+    return {attack,defense,maxHp,maxMana,crit,speed,evasion,power:this.calculatePower(player),mountPower:mb.power,mountAttack:mb.ataque,mountHp:mb.hp,mountDefense:mb.defesa};
+  }
+  static calculatePower(player){ const classe=GAME_CLASSES[player.classeId]||{baseStats:{baseDano:10,defesa:5,critico:5,mana:0}}; const base=classe.baseStats; const gear=this.getEquippedList(player).reduce((s,i)=>s+this.scoreItem(i),0); const mount=this.getMountBonus(player); return Math.floor(120+player.nivel*52+base.baseDano*8+base.defesa*5+base.critico*5+Math.floor((base.mana||0)*.2)+gear+mount.power+mount.ataque*7+mount.defesa*5+mount.evasao*12); }
   static syncInventoryFlags(player){
     player.inventario=player.inventario||[];
     player.equipados=player.equipados||{arma:null,anel:null,colar:null,ornamento:null};
@@ -364,6 +394,6 @@ class LootManager {
     this.syncInventoryFlags(player);
     return {ok:true,item:this.enrichItem(item)};
   }
-  static upgradeMount(player){ player.mount=player.mount||{id:'lobo_cristalino',level:1}; const cost=150*player.mount.level; if((player.ouro||0)<cost) return {ok:false,reason:'Ouro insuficiente para treinar a montaria.'}; player.ouro-=cost; player.mount.level+=1; if(player.mount.level>=8 && player.nivel>=10) player.mount.id='grifo_dourado'; if(player.mount.level>=16 && player.nivel>=25) player.mount.id='dragao_mirim'; return {ok:true,mount:this.getMount(player),cost}; }
+  static upgradeMount(player){ const active=this.getMount(player); const cost=150*(active.level||1); if((player.ouro||0)<cost) return {ok:false,reason:'Ouro insuficiente para treinar a montaria.'}; player.ouro-=cost; const row=(player.mountCollection||[]).find(m=>m.id===active.id); if(row) row.level=(row.level||1)+1; player.mount={id:active.id,level:(row&&row.level)||((active.level||1)+1)}; player.power=this.calculatePower(player); return {ok:true,mount:this.getMount(player),collection:this.getMountCollection(player),bonus:this.getMountBonus(player),cost}; }
 }
 module.exports=LootManager;

@@ -85,6 +85,7 @@ function createPlayer(socket) {
     equipados: { arma: null, anel: null, colar: null, ornamento: null },
     equipadosList: [],
     mount: { id: 'lobo_cristalino', level: 1 },
+    mountCollection: [{ id: 'lobo_cristalino', level: 1, active: true, unlockedAt: Date.now() }],
     achievements: [],
     bestiary: {},
     stats: { damageDealt: 0, damageTaken: 0, goldEarned: 0, bossKills: 0, deaths: 0, itemsSold: 0 },
@@ -136,6 +137,9 @@ function publicPlayer(player) {
     equipados,
     visualMods: LootManager.getVisualMods(player),
     mount: LootManager.getMount(player),
+    mountCollection: LootManager.getMountCollection(player),
+    mountBonus: LootManager.getMountBonus(player),
+    attributes: LootManager.getCharacterAttributes(player),
     achievements: player.achievements || [],
     bestiary: player.bestiary || {},
     stats: player.stats || {},
@@ -328,11 +332,10 @@ function buyShopItem(player, itemId) {
     monsterManager.currentMonster = monsterManager.generateMonster(player.nivel || 1);
     granted = { tipo: 'boss', monster: monsterManager.getPublicMonster() };
   } else if (item.tipo === 'mount') {
-    player.mount = player.mount || { id: 'lobo_cristalino', level: 1 };
-    if (item.id === 'montaria_grifo') player.mount.id = 'grifo_dourado';
-    if (item.id === 'montaria_dragao') player.mount.id = 'dragao_mirim';
-    player.mount.level = Math.max(player.mount.level || 1, item.id === 'montaria_dragao' ? 8 : 4);
-    granted = { tipo: 'mount', mount: LootManager.getMount(player) };
+    const mountId = item.id === 'montaria_dragao' ? 'dragao_mirim' : 'grifo_dourado';
+    const baseLevel = item.id === 'montaria_dragao' ? 8 : 4;
+    const mountResult = LootManager.unlockMount(player, mountId, baseLevel);
+    granted = { tipo: 'mount', mount: mountResult.mount, collection: mountResult.collection, bonus: mountResult.bonus };
   } else if (item.tipo === 'pet') {
     const petResult = PetManager.acquire(player, item.petId);
     granted = { tipo: 'pet', pet: petResult.pet, pets: PetManager.publicPets(player) };
@@ -469,6 +472,7 @@ io.on('connection', (socket) => {
     player.inventario = [];
     player.equipados = { arma: null, anel: null, colar: null, ornamento: null };
     player.mount = player.mount || { id: 'lobo_cristalino', level: 1 };
+    player.mountCollection = player.mountCollection || [{ id: player.mount.id || 'lobo_cristalino', level: player.mount.level || 1, active: true, unlockedAt: Date.now() }];
     player.cooldowns = {};
     player.horda = Math.max(1, player.horda || 1);
     player.isDead = false;
@@ -613,7 +617,17 @@ io.on('connection', (socket) => {
     syncPlayerPower(player);
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
-    socket.emit('mountUpdated', { mount: result.mount, cost: result.cost });
+    socket.emit('mountUpdated', { mount: result.mount, collection: result.collection, bonus: result.bonus, cost: result.cost });
+  });
+
+  socket.on('activateMount', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = LootManager.activateMount(player, data.mountId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('mountUpdated', { mount: result.mount, collection: result.collection, bonus: result.bonus, cost: 0 });
   });
 
   socket.on('upgradePet', (data = {}) => {

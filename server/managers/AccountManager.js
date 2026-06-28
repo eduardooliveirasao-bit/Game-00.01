@@ -105,6 +105,11 @@ class AccountManager {
     player.mana = 1000;
     player.maxMana = 1000;
     player.mount = { id: 'dragao_mirim', level: 10 };
+    player.mountCollection = [
+      { id:'lobo_cristalino', level:10, active:false, unlockedAt:Date.now() },
+      { id:'grifo_dourado', level:10, active:false, unlockedAt:Date.now() },
+      { id:'dragao_mirim', level:10, active:true, unlockedAt:Date.now() }
+    ];
     player.stats = player.stats || {};
     player.stats.gmSeed = true;
     SaveManager.save(player);
@@ -155,10 +160,16 @@ class AccountManager {
     player.cashGems = player.gemas;
     player.ouro = account.isGM ? 500000 : 150;
     player.mount = { id: 'lobo_cristalino', level: 1 };
+    player.mountCollection = [{ id:'lobo_cristalino', level:1, active:true, unlockedAt:Date.now() }];
     if (account.isGM) {
       player.nivel = 20;
       player.level = 20;
       player.mount = { id: 'dragao_mirim', level: 10 };
+    player.mountCollection = [
+      { id:'lobo_cristalino', level:10, active:false, unlockedAt:Date.now() },
+      { id:'grifo_dourado', level:10, active:false, unlockedAt:Date.now() },
+      { id:'dragao_mirim', level:10, active:true, unlockedAt:Date.now() }
+    ];
     }
     SaveManager.save(player);
     return { ok: true, account: publicAccount(account), saveId };

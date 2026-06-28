@@ -53,6 +53,7 @@ function sanitizePlayer(player) {
     bestiary: player.bestiary || {},
     stats: player.stats || {},
     mount: player.mount || { id: 'lobo_cristalino', level: 1 },
+    mountCollection: player.mountCollection || [{ id: (player.mount && player.mount.id) || 'lobo_cristalino', level: (player.mount && player.mount.level) || 1, active: true, unlockedAt: Date.now() }],
     updatedAt: Date.now()
   };
 }
@@ -108,7 +109,8 @@ class SaveManager {
       achievements: save.achievements || [],
       bestiary: save.bestiary || {},
       stats: save.stats || {},
-      mount: save.mount || { id: 'lobo_cristalino', level: 1 }
+      mount: save.mount || { id: 'lobo_cristalino', level: 1 },
+      mountCollection: save.mountCollection || [{ id: (save.mount && save.mount.id) || 'lobo_cristalino', level: (save.mount && save.mount.level) || 1, active: true, unlockedAt: Date.now() }]
     });
     player.id = keepSocketId;
     player.isDead = false;
