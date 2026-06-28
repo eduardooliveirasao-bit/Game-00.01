@@ -1,6 +1,6 @@
 # Crystal Realms — MMORPG Idle
 
-Base Node.js + Express + Socket.IO para um MMORPG Idle inspirado em jogos como Legend of Mushroom, com combate automático, monstro atual, XP, nível máximo e evolução visual das asas.
+Versão transformada para uma base mais próxima de um idle RPG no estilo Legend of Mushroom.
 
 ## Como rodar
 
@@ -9,103 +9,69 @@ npm install
 npm start
 ```
 
-Depois abra:
+Abra no navegador:
 
 ```txt
 http://localhost:3000
 ```
 
-## O que foi implementado nesta versão
+## O que já foi implementado
 
-### PvE / Monstro atual
-
-- Um `MonsterManager` no servidor instancia o monstro atual.
-- Cada monstro possui:
-  - nome;
-  - nível;
-  - HP máximo;
-  - HP atual;
-  - XP concedida ao morrer;
-  - tipo: normal, elite ou boss.
-- A cada 10 mortes nasce um boss mais forte.
-- Quando o HP chega a 0, o servidor emite `enemyDied`, entrega XP ao jogador que matou e gera o próximo monstro.
-
-### Leveling
+### PvE e progressão
 
 - Level cap em 80.
-- `XP_TABLE` progressiva do nível 1 ao 80 em `shared/classes.js`.
-- `LevelManager` controla ganho de XP, level up, XP restante, barra de XP e evolução das asas.
-- O personagem aparece no formato:
+- XP_TABLE progressiva dentro de `shared/classes.js`.
+- Combate automático a cada 1 segundo.
+- Dano validado no servidor.
+- Monstro atual com nome, nível, tipo, HP máximo, HP atual e XP.
+- Boss automático a cada 10 monstros derrotados.
+- Evento `enemyDied` enviado pelo servidor.
+- Evolução de asas por nível.
+
+### Visual estilo idle RPG
+
+- HUD superior com XP, ouro, poder, asa e jogadores online.
+- Painel lateral do herói.
+- Painel de progresso/missão.
+- Lista de loot recente.
+- Barra de habilidades.
+- Menu inferior inspirado em mobile idle RPG.
+- Personagens maiores no palco.
+- Mago com asas de arcanjo renderizadas no canvas.
+- Dano flutuante e efeitos de habilidade.
+
+### Loot e poder
+
+- Ouro ao derrotar monstros.
+- Chance de drop de item.
+- Raridades: comum, raro, épico e lendário.
+- Itens com ataque, defesa, crítico e HP.
+- Poder calculado automaticamente com base em nível, classe e itens.
+- Equipamentos recentes exibidos no painel lateral.
+
+## Arquivos principais
 
 ```txt
-Aventureiro-abcd [Nv. 1]
+server.js
+server/managers/CombatManager.js
+server/managers/LevelManager.js
+server/managers/MonsterManager.js
+server/managers/LootManager.js
+shared/classes.js
+public/index.html
+public/css/style.css
+public/js/game.js
 ```
 
-### Combate Idle
+## Próximas melhorias recomendadas
 
-- O servidor executa um loop de combate a cada 1 segundo.
-- O dano é validado no servidor, não no cliente.
-- Fórmula base:
-
-```txt
-dano = baseDanoDaClasse + (nivel * multiplicadorDaClasse)
-```
-
-- Habilidades também são validadas no servidor com cooldown.
-- O cliente apenas pede o uso da habilidade; quem decide dano, crítico e cooldown é o servidor.
-
-### Frontend
-
-- Barra de HP do monstro.
-- Nome, nível e tipo do monstro.
-- Barra de XP do jogador em tempo real.
-- Log de combate.
-- Dano flutuante no canvas.
-- Mago com asas visuais de arcanjo.
-- Guerreiro, arqueiro e mago com identidades próprias.
-
-## Estrutura principal
-
-```txt
-MeuJogoIdle/
-├── server.js
-├── server/
-│   └── managers/
-│       ├── CombatManager.js
-│       ├── LevelManager.js
-│       └── MonsterManager.js
-├── shared/
-│   └── classes.js
-└── public/
-    ├── index.html
-    ├── css/style.css
-    └── js/game.js
-```
-
-## Eventos Socket.IO principais
-
-### Servidor → Cliente
-
-- `init`: envia jogador, jogadores online, monstro atual e level cap.
-- `playerUpdated`: atualiza dados públicos do jogador.
-- `gameState`: sincroniza lista de jogadores.
-- `enemyUpdate`: atualiza HP/dados do monstro atual.
-- `enemyDied`: informa morte do monstro, XP recebida e próximo monstro.
-- `combatTick`: envia ataques realizados no tick para efeitos visuais.
-- `abilityUsed`: sincroniza efeito visual de habilidade.
-
-### Cliente → Servidor
-
-- `selectClass`: seleciona guerreiro, arqueiro ou mago.
-- `useAbility`: tenta usar uma habilidade; o servidor valida cooldown e dano.
-
-## Próximos sistemas recomendados
-
-1. Loot e equipamentos.
-2. Inventário.
-3. Dungeons por estágio.
-4. Boss especial por mapa.
-5. Sistema offline idle.
-6. Save em banco de dados.
-7. Skills passivas e árvore de talentos.
-8. Ranking e guildas.
+- Persistência em banco de dados.
+- Sistema real de equipar/desequipar itens.
+- Inventário completo.
+- Missões diárias.
+- Progressão offline.
+- Dungeons.
+- World Boss.
+- Guildas.
+- Ranking.
+- Loja e moedas premium.

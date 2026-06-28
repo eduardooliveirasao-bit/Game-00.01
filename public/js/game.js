@@ -46,7 +46,9 @@
       efeitosAtivos: [],
       danosFlutuantes: [],
       log: [],
-      tempoInicio: performance.now()
+      lootRecente: [],
+      tempoInicio: performance.now(),
+      ultimoGolpeVisual: 0
     };
 
     var canvas = document.getElementById('game-canvas');
@@ -62,21 +64,56 @@
     var hudXpFill = document.getElementById('hud-xp-fill');
     var hudXpText = document.getElementById('hud-xp-text');
     var hudOnlineCount = document.getElementById('hud-online-count');
+    var hudGold = document.getElementById('hud-gold-value');
+    var hudPower = document.getElementById('hud-power-value');
 
     var enemyName = document.getElementById('enemy-name');
     var enemyLevel = document.getElementById('enemy-level');
     var enemyType = document.getElementById('enemy-type');
     var enemyHpFill = document.getElementById('enemy-hp-fill');
     var enemyHpText = document.getElementById('enemy-hp-text');
+
     var combatLogEl = document.getElementById('combat-log');
+    var heroNameSide = document.getElementById('hero-name-side');
+    var heroClassSide = document.getElementById('hero-class-side');
+    var heroLevelSide = document.getElementById('hero-level-side');
+    var heroPowerSide = document.getElementById('hero-power-side');
+    var heroHpSide = document.getElementById('hero-hp-side');
+    var heroGoldSide = document.getElementById('hero-gold-side');
+    var equipmentGrid = document.getElementById('equipment-grid');
+    var lootList = document.getElementById('loot-list');
+    var questFill = document.getElementById('quest-fill');
+    var questProgress = document.getElementById('quest-progress');
+    var questText = document.getElementById('quest-text');
 
     function ajustarCanvas() {
       var stage = document.getElementById('stage');
-      canvas.width = stage.clientWidth;
-      canvas.height = stage.clientHeight;
+      canvas.width = Math.max(320, stage.clientWidth);
+      canvas.height = Math.max(320, stage.clientHeight);
     }
     window.addEventListener('resize', ajustarCanvas);
     ajustarCanvas();
+
+    function formatarNumero(valor) {
+      valor = Math.floor(valor || 0);
+      if (valor >= 1000000) return (valor / 1000000).toFixed(1) + 'M';
+      if (valor >= 1000) return (valor / 1000).toFixed(1) + 'K';
+      return String(valor);
+    }
+
+    function escaparHtml(valor) {
+      return String(valor)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function obterNomeAsaPorNivel(nivel) {
+      var found = WING_LEVELS.find(function (w) { return w.nivel === nivel; });
+      return found ? found.nome : 'Asas Iniciais';
+    }
 
     function montarTelaSelecaoClasse() {
       classCardsEl.innerHTML = '';
@@ -109,9 +146,7 @@
         slot.className = 'ability-slot';
         slot.dataset.habilidade = habilidade.id;
         slot.title = habilidade.nome + ' — ' + habilidade.descricao;
-        slot.innerHTML =
-          '<span>' + habilidade.nome + '</span>' +
-          '<div class="cooldown-overlay hidden"></div>';
+        slot.innerHTML = '<span>' + habilidade.nome + '</span><div class="cooldown-overlay hidden"></div>';
         slot.addEventListener('click', function () {
           socket.emit('useAbility', { habilidadeId: habilidade.id });
         });
@@ -135,51 +170,91 @@
           return;
         }
         overlay.textContent = Math.ceil(restante / 1000) + 's';
-      }, 150);
+      }, 120);
     }
 
     function atualizarHud() {
       if (!state.meuPlayer) return;
-      var classe = GAME_CLASSES[state.meuPlayer.classeId];
-      var nivel = state.meuPlayer.nivel || 1;
-      var xpToNext = state.meuPlayer.xpToNext || 0;
-      var xp = state.meuPlayer.xp || 0;
-      var xpPercent = nivel >= LEVEL_CAP ? 100 : (state.meuPlayer.xpPercent || 0);
+      var p = state.meuPlayer;
+      var classe = GAME_CLASSES[p.classeId];
+      var nivel = p.nivel || 1;
+      var xpToNext = p.xpToNext || 0;
+      var xp = p.xp || 0;
+      var xpPercent = nivel >= LEVEL_CAP ? 100 : (p.xpPercent || 0);
+      var power = p.power || 0;
 
-      hudNome.textContent = state.meuPlayer.nome + ' [Nv. ' + nivel + ']';
+      hudNome.textContent = p.nome + ' [Nv. ' + nivel + ']';
       hudClasse.textContent = classe ? classe.nome : 'Escolha sua classe';
-      hudAsaNivel.textContent = state.meuPlayer.asaNivel || 1;
-      hudAsaNome.textContent = state.meuPlayer.asaNome || obterNomeAsaPorNivel(state.meuPlayer.asaNivel || 1);
+      hudAsaNivel.textContent = p.asaNivel || 1;
+      hudAsaNome.textContent = p.asaNome || obterNomeAsaPorNivel(p.asaNivel || 1);
       hudXpFill.style.width = Math.min(100, Math.max(0, xpPercent)) + '%';
-      if (hudXpText) {
-        hudXpText.textContent = nivel >= LEVEL_CAP
-          ? 'Nível máximo'
-          : xp + ' / ' + xpToNext + ' XP';
-      }
+      hudXpText.textContent = nivel >= LEVEL_CAP ? 'Nível máximo' : xp + ' / ' + xpToNext + ' XP';
       hudOnlineCount.textContent = Object.keys(state.players).length;
-    }
+      if (hudGold) hudGold.textContent = formatarNumero(p.ouro || 0);
+      if (hudPower) hudPower.textContent = formatarNumero(power);
 
-    function obterNomeAsaPorNivel(nivel) {
-      var found = WING_LEVELS.find(function (w) { return w.nivel === nivel; });
-      return found ? found.nome : '—';
+      if (heroNameSide) heroNameSide.textContent = p.nome;
+      if (heroClassSide) heroClassSide.textContent = classe ? classe.nome : 'Escolha uma classe';
+      if (heroLevelSide) heroLevelSide.textContent = nivel;
+      if (heroPowerSide) heroPowerSide.textContent = formatarNumero(power);
+      if (heroHpSide) heroHpSide.textContent = (p.hp || 0) + ' / ' + (p.maxHp || 0);
+      if (heroGoldSide) heroGoldSide.textContent = formatarNumero(p.ouro || 0);
+
+      atualizarEquipamentos(p);
+      atualizarQuest(p);
     }
 
     function atualizarEnemyHud() {
       if (!state.monster) return;
-      var percent = state.monster.hpMax > 0
-        ? (state.monster.hpAtual / state.monster.hpMax) * 100
-        : 0;
-
+      var percent = state.monster.hpMax > 0 ? (state.monster.hpAtual / state.monster.hpMax) * 100 : 0;
       enemyName.textContent = state.monster.nome;
       enemyLevel.textContent = 'Nv. ' + state.monster.nivel;
-      enemyType.textContent = state.monster.isBoss ? 'BOSS' : state.monster.tipo.toUpperCase();
+      enemyType.textContent = state.monster.isBoss ? 'BOSS' : String(state.monster.tipo || 'normal').toUpperCase();
       enemyHpFill.style.width = Math.min(100, Math.max(0, percent)) + '%';
       enemyHpText.textContent = state.monster.hpAtual + ' / ' + state.monster.hpMax + ' HP';
     }
 
+    function atualizarQuest(player) {
+      var kills = player.kills || 0;
+      var dentro = kills % 10;
+      var fase = player.fase || Math.floor(kills / 10) + 1;
+      if (questFill) questFill.style.width = (dentro * 10) + '%';
+      if (questProgress) questProgress.textContent = dentro + ' / 10';
+      if (questText) questText.textContent = 'Fase ' + fase + ' — derrote 10 monstros para invocar o boss';
+    }
+
+    function atualizarEquipamentos(player) {
+      if (!equipmentGrid) return;
+      var inventario = (player.inventario || []).slice(-6).reverse();
+      equipmentGrid.innerHTML = '';
+      for (var i = 0; i < 6; i++) {
+        var item = inventario[i];
+        var slot = document.createElement('div');
+        slot.className = 'equipment-slot' + (item ? ' filled loot-' + item.raridade : '');
+        slot.innerHTML = item
+          ? '<strong>' + item.icone + ' ' + escaparHtml(item.nome) + '</strong><small>+' + (item.stats.ataque || 0) + ' ATQ</small>'
+          : '<span>Vazio</span>';
+        equipmentGrid.appendChild(slot);
+      }
+    }
+
+    function atualizarLoot() {
+      if (!lootList) return;
+      if (state.lootRecente.length === 0) {
+        lootList.innerHTML = '<div class="loot-item">Nenhum loot ainda.</div>';
+        return;
+      }
+      lootList.innerHTML = state.lootRecente.slice(0, 5).map(function (item) {
+        return '<div class="loot-item loot-' + item.raridade + '">' +
+          item.icone + ' <strong>' + escaparHtml(item.nome) + '</strong><br>' +
+          '<span>' + item.raridade.toUpperCase() + ' · +' + (item.stats.ataque || 0) + ' ATQ</span>' +
+          '</div>';
+      }).join('');
+    }
+
     function adicionarLog(texto) {
       state.log.unshift(texto);
-      state.log = state.log.slice(0, 5);
+      state.log = state.log.slice(0, 7);
       if (combatLogEl) {
         combatLogEl.innerHTML = state.log.map(function (linha) {
           return '<div>' + linha + '</div>';
@@ -187,64 +262,75 @@
       }
     }
 
-    function adicionarDanoFlutuante(texto, isCrit, cor) {
+    function adicionarDanoFlutuante(texto, isCrit, cor, x, y) {
       state.danosFlutuantes.push({
-        x: canvas.width * 0.68 + (Math.random() - 0.5) * 80,
-        y: canvas.height * 0.42 + (Math.random() - 0.5) * 30,
-        vy: -0.65 - Math.random() * 0.35,
+        x: x || canvas.width * 0.68,
+        y: y || canvas.height * 0.46,
+        vy: -0.82 - Math.random() * 0.42,
         vida: 1,
         texto: texto,
         isCrit: !!isCrit,
-        cor: cor || (isCrit ? '#f1d98b' : '#ece9f5')
+        cor: cor || (isCrit ? '#ffe69b' : '#f2efff')
       });
     }
 
-    function desenharAsasCristal(x, y, nivel, cor) {
-      for (var i = 0; i < nivel; i++) {
-        var tamanho = 14 + i * 6;
-        var alpha = 0.85 - i * 0.12;
-        ctx.save();
-        ctx.globalAlpha = Math.max(0.15, alpha);
-        ctx.fillStyle = cor;
+    function desenharFundo() {
+      var w = canvas.width;
+      var h = canvas.height;
+      var t = performance.now() / 1000;
 
+      var grd = ctx.createLinearGradient(0, 0, 0, h);
+      grd.addColorStop(0, 'rgba(26, 35, 88, 0.24)');
+      grd.addColorStop(0.55, 'rgba(10, 14, 34, 0.16)');
+      grd.addColorStop(1, 'rgba(0, 0, 0, 0.14)');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      for (var i = 0; i < 34; i++) {
+        var sx = (i * 149 + Math.sin(t * 0.1 + i) * 18) % w;
+        var sy = (i * 67) % Math.max(1, h * 0.55);
+        ctx.fillStyle = i % 3 === 0 ? '#66c9ff' : '#ffe69b';
+        ctx.fillRect(sx, sy, 2, 2);
+      }
+      ctx.restore();
+
+      // plataformas e cristais do cenário
+      ctx.fillStyle = 'rgba(0,0,0,.24)';
+      ctx.beginPath();
+      ctx.ellipse(w * 0.28, h * 0.78, 150, 34, 0, 0, Math.PI * 2);
+      ctx.ellipse(w * 0.70, h * 0.76, 170, 38, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (var c = 0; c < 7; c++) {
+        var cx = 28 + c * 72;
+        var cy = h - 72 - Math.sin(t + c) * 3;
+        ctx.fillStyle = c % 2 ? 'rgba(185,133,255,.22)' : 'rgba(102,201,255,.22)';
         ctx.beginPath();
-        ctx.moveTo(x - 5, y);
-        ctx.lineTo(x - 8 - tamanho, y - tamanho * 0.7 - i * 3);
-        ctx.lineTo(x - 8 - tamanho * 0.55, y + tamanho * 0.25);
+        ctx.moveTo(cx, cy - 40);
+        ctx.lineTo(cx + 12, cy);
+        ctx.lineTo(cx - 12, cy);
         ctx.closePath();
         ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(x + 5, y);
-        ctx.lineTo(x + 8 + tamanho, y - tamanho * 0.7 - i * 3);
-        ctx.lineTo(x + 8 + tamanho * 0.55, y + tamanho * 0.25);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
       }
     }
 
-    function desenharAsasArcanjo(x, y, nivel) {
-      var camadas = Math.max(2, nivel + 1);
+    function desenharAsasArcanjo(x, y, escala, nivel) {
+      var camadas = Math.max(4, (nivel || 1) + 3);
       for (var lado = -1; lado <= 1; lado += 2) {
         for (var i = 0; i < camadas; i++) {
-          var largura = 18 + i * 7;
-          var altura = 18 + i * 5;
+          var largura = (34 + i * 9) * escala;
+          var altura = (18 + i * 5) * escala;
+          var px = x + lado * (34 + i * 11) * escala;
+          var py = y - (16 - i * 5) * escala;
           ctx.save();
-          ctx.globalAlpha = 0.75 - i * 0.07;
-          ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#bfe9ff';
-          ctx.strokeStyle = '#f1d98b';
-          ctx.lineWidth = 1;
+          ctx.globalAlpha = Math.max(0.18, 0.86 - i * 0.08);
+          ctx.fillStyle = i % 2 ? '#d8f4ff' : '#ffffff';
+          ctx.strokeStyle = '#ffe69b';
+          ctx.lineWidth = 1.4;
           ctx.beginPath();
-          ctx.ellipse(
-            x + lado * (18 + i * 6),
-            y - 8 + i * 3,
-            largura,
-            altura,
-            lado * -0.55,
-            0,
-            Math.PI * 2
-          );
+          ctx.ellipse(px, py, largura, altura, lado * -0.5, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
           ctx.restore();
@@ -252,56 +338,128 @@
       }
     }
 
-    function desenharJogador(player) {
+    function desenharAsasCristal(x, y, escala, nivel, cor) {
+      for (var i = 0; i < Math.max(2, nivel || 1); i++) {
+        var tamanho = (32 + i * 12) * escala;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0.35, 0.85 - i * 0.1);
+        ctx.fillStyle = cor;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        [-1, 1].forEach(function (lado) {
+          ctx.beginPath();
+          ctx.moveTo(x + lado * 10 * escala, y);
+          ctx.lineTo(x + lado * tamanho, y - tamanho * 0.68);
+          ctx.lineTo(x + lado * tamanho * 0.72, y + tamanho * 0.34);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+    }
+
+    function desenharJogador(player, index) {
       var classe = GAME_CLASSES[player.classeId];
       if (!classe) return;
 
-      var x = player.posicao.x + 80;
-      var y = player.posicao.y + 80;
-      var t = (performance.now() - state.tempoInicio) / 1000;
-      y += Math.sin(t * 1.6 + (player.id.charCodeAt(0) || 0)) * 4;
+      var souEu = player.id === state.meuId;
+      var x = souEu ? canvas.width * 0.28 : canvas.width * 0.16 + (index * 42);
+      var y = souEu ? canvas.height * 0.64 : canvas.height * 0.68 + (index % 2) * 24;
+      var escala = souEu ? 1.75 : 1.05;
+      var t = performance.now() / 1000;
+      y += Math.sin(t * 1.75 + index) * 5;
+
+      var pulse = 1 + Math.sin(t * 2.2) * 0.025;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(pulse, pulse);
 
       if (player.classeId === 'mago') {
-        desenharAsasArcanjo(x, y - 6, player.asaNivel || 1);
+        desenharAsasArcanjo(0, -30 * escala, escala, player.asaNivel || 1);
       } else {
-        desenharAsasCristal(x, y - 6, player.asaNivel || 1, classe.corPrimaria);
+        desenharAsasCristal(0, -22 * escala, escala, player.asaNivel || 1, classe.corPrimaria);
       }
 
-      ctx.save();
+      // aura
+      var aura = ctx.createRadialGradient(0, 0, 8, 0, 0, 74 * escala);
+      aura.addColorStop(0, classe.corPrimaria + '55');
+      aura.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(0, 0, 74 * escala, 0, Math.PI * 2);
+      ctx.fill();
+
+      // corpo
       ctx.fillStyle = classe.corPrimaria;
       ctx.strokeStyle = classe.corSecundaria;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(x, y, 14, 0, Math.PI * 2);
+      ctx.roundRect(-20 * escala, -18 * escala, 40 * escala, 58 * escala, 12 * escala);
       ctx.fill();
       ctx.stroke();
 
+      // cabeça
+      ctx.fillStyle = '#f4d0a5';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, -36 * escala, 18 * escala, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // cabelo/capuz
+      ctx.fillStyle = player.classeId === 'arqueiro' ? '#2f5f3b' : (player.classeId === 'guerreiro' ? '#5a2a1c' : '#151a33');
+      ctx.beginPath();
+      ctx.ellipse(0, -45 * escala, 20 * escala, 12 * escala, 0, Math.PI, Math.PI * 2);
+      ctx.fill();
+
+      // armas por classe
       if (player.classeId === 'guerreiro') {
-        ctx.fillStyle = classe.corSecundaria;
-        ctx.fillRect(x - 22, y - 4, 8, 20);
-      } else if (player.classeId === 'arqueiro') {
-        ctx.strokeStyle = classe.corSecundaria;
+        ctx.strokeStyle = '#d8d8e8';
+        ctx.lineWidth = 5 * escala;
         ctx.beginPath();
-        ctx.arc(x + 18, y, 14, -Math.PI / 2, Math.PI / 2);
+        ctx.moveTo(30 * escala, 4 * escala);
+        ctx.lineTo(70 * escala, -54 * escala);
         ctx.stroke();
-      } else if (player.classeId === 'mago') {
-        ctx.strokeStyle = '#ffffff';
+        ctx.fillStyle = '#d4af37';
+        ctx.fillRect(-42 * escala, -4 * escala, 18 * escala, 36 * escala);
+      } else if (player.classeId === 'arqueiro') {
+        ctx.strokeStyle = '#d4af37';
+        ctx.lineWidth = 3 * escala;
         ctx.beginPath();
-        ctx.arc(x, y - 23, 10, 0, Math.PI * 2);
+        ctx.arc(42 * escala, -4 * escala, 34 * escala, -Math.PI / 2, Math.PI / 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(40 * escala, -36 * escala);
+        ctx.lineTo(40 * escala, 30 * escala);
+        ctx.stroke();
+      } else {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 4 * escala;
+        ctx.beginPath();
+        ctx.moveTo(44 * escala, 26 * escala);
+        ctx.lineTo(44 * escala, -62 * escala);
+        ctx.stroke();
+        ctx.fillStyle = '#66c9ff';
+        ctx.beginPath();
+        ctx.arc(44 * escala, -72 * escala, 12 * escala, 0, Math.PI * 2);
+        ctx.fill();
         ctx.stroke();
       }
+
       ctx.restore();
 
-      ctx.fillStyle = '#ece9f5';
-      ctx.font = '11px Inter, sans-serif';
+      ctx.fillStyle = '#f2efff';
+      ctx.font = (souEu ? 'bold 15px Inter' : '12px Inter');
       ctx.textAlign = 'center';
-      ctx.fillText(player.nome + ' [Nv. ' + player.nivel + ']', x, y - 30);
+      ctx.fillText(player.nome + ' [Nv. ' + player.nivel + ']', x, y - 112 * escala / 1.75);
 
-      if (Math.random() < 0.05) {
+      if (Math.random() < 0.14) {
         state.particulas.push({
-          x: x + (Math.random() - 0.5) * 24,
-          y: y + 12,
-          vy: -0.4 - Math.random() * 0.3,
+          x: x + (Math.random() - 0.5) * 90 * escala,
+          y: y + (Math.random() - 0.2) * 28,
+          vy: -0.55 - Math.random() * 0.45,
           vida: 1,
           cor: classe.corParticulaIdle
         });
@@ -310,82 +468,84 @@
 
     function desenharMonstro() {
       if (!state.monster) return;
-      var x = canvas.width * 0.68;
-      var y = canvas.height * 0.46;
+      var x = canvas.width * 0.70;
+      var y = canvas.height * 0.60;
       var t = performance.now() / 1000;
       var boss = state.monster.isBoss;
-      var escala = boss ? 1.35 : 1;
-      var bob = Math.sin(t * 1.8) * 5;
+      var escala = boss ? 2.1 : 1.65;
+      var bob = Math.sin(t * 1.8) * 7;
 
       ctx.save();
       ctx.translate(x, y + bob);
       ctx.scale(escala, escala);
 
       var aura = ctx.createRadialGradient(0, 0, 10, 0, 0, 92);
-      aura.addColorStop(0, boss ? 'rgba(212,175,55,0.42)' : 'rgba(93,173,226,0.26)');
+      aura.addColorStop(0, boss ? 'rgba(255,230,155,.34)' : 'rgba(102,201,255,.24)');
       aura.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = aura;
       ctx.beginPath();
       ctx.arc(0, 0, 92, 0, Math.PI * 2);
       ctx.fill();
 
-      // Silhueta inspirada em criaturas idle/fantasia, sem copiar personagem existente.
-      ctx.fillStyle = boss ? '#7d3c98' : '#24566f';
-      ctx.strokeStyle = boss ? '#f1d98b' : '#5dade2';
+      // chapéu/coroa cristalina
+      ctx.fillStyle = boss ? '#9854d8' : '#2b7ca0';
+      ctx.strokeStyle = boss ? '#ffe69b' : '#66c9ff';
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.ellipse(0, -20, 46, 32, 0, Math.PI, Math.PI * 2);
+      ctx.ellipse(0, -28, 48, 34, 0, Math.PI, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = boss ? '#4a235a' : '#173c50';
+      // corpo
+      ctx.fillStyle = boss ? '#4b235f' : '#14394e';
       ctx.beginPath();
-      ctx.moveTo(-16, -18);
-      ctx.lineTo(16, -18);
-      ctx.quadraticCurveTo(34, -18, 34, 0);
-      ctx.lineTo(34, 28);
-      ctx.quadraticCurveTo(34, 46, 16, 46);
-      ctx.lineTo(-16, 46);
-      ctx.quadraticCurveTo(-34, 46, -34, 28);
-      ctx.lineTo(-34, 0);
-      ctx.quadraticCurveTo(-34, -18, -16, -18);
-      ctx.closePath();
+      ctx.roundRect(-36, -24, 72, 82, 17);
       ctx.fill();
       ctx.stroke();
 
+      // olhos
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(-14, 4, 5, 0, Math.PI * 2);
-      ctx.arc(14, 4, 5, 0, Math.PI * 2);
+      ctx.arc(-14, 8, 5, 0, Math.PI * 2);
+      ctx.arc(14, 8, 5, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = boss ? '#f1d98b' : '#5dade2';
-      for (var i = 0; i < 5; i++) {
+      // cristais no topo
+      ctx.fillStyle = boss ? '#ffe69b' : '#66c9ff';
+      for (var i = 0; i < 6; i++) {
         ctx.beginPath();
-        ctx.moveTo(-28 + i * 14, -48);
-        ctx.lineTo(-20 + i * 14, -65 - Math.sin(t + i) * 6);
-        ctx.lineTo(-12 + i * 14, -48);
+        ctx.moveTo(-34 + i * 13.5, -58);
+        ctx.lineTo(-27 + i * 13.5, -82 - Math.sin(t + i) * 5);
+        ctx.lineTo(-20 + i * 13.5, -58);
         ctx.closePath();
         ctx.fill();
       }
 
       ctx.restore();
 
-      ctx.fillStyle = '#ece9f5';
-      ctx.textAlign = 'center';
-      ctx.font = '14px Cinzel, serif';
-      ctx.fillText(state.monster.nome + ' [Nv. ' + state.monster.nivel + ']', x, y - 105);
+      if (Math.random() < 0.1) {
+        state.particulas.push({
+          x: x + (Math.random() - 0.5) * 150,
+          y: y - 40 + (Math.random() - 0.5) * 90,
+          vy: -0.25 - Math.random() * 0.3,
+          vida: 1,
+          cor: boss ? '#ffe69b' : '#66c9ff'
+        });
+      }
     }
 
     function desenharParticulas() {
       state.particulas.forEach(function (p) {
         p.y += p.vy;
-        p.vida -= 0.012;
+        p.vida -= 0.014;
+        ctx.save();
         ctx.globalAlpha = Math.max(0, p.vida);
         ctx.fillStyle = p.cor;
-        ctx.fillRect(p.x, p.y, 3, 3);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       });
-      ctx.globalAlpha = 1;
       state.particulas = state.particulas.filter(function (p) { return p.vida > 0; });
     }
 
@@ -393,13 +553,20 @@
       var agora = performance.now();
       state.efeitosAtivos.forEach(function (efeito) {
         var progresso = (agora - efeito.inicio) / efeito.duracao;
-        var raio = 10 + progresso * 72;
+        var raio = 20 + progresso * 110;
         ctx.save();
         ctx.globalAlpha = Math.max(0, 1 - progresso);
         ctx.strokeStyle = efeito.cor;
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.arc(efeito.x, efeito.y, raio, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(efeito.x - raio, efeito.y);
+        ctx.lineTo(efeito.x + raio, efeito.y);
+        ctx.moveTo(efeito.x, efeito.y - raio);
+        ctx.lineTo(efeito.x, efeito.y + raio);
         ctx.stroke();
         ctx.restore();
       });
@@ -415,8 +582,11 @@
         ctx.save();
         ctx.globalAlpha = Math.max(0, d.vida);
         ctx.fillStyle = d.cor;
-        ctx.font = d.isCrit ? 'bold 22px Inter, sans-serif' : 'bold 16px Inter, sans-serif';
+        ctx.font = d.isCrit ? '900 28px Inter' : '900 19px Inter';
         ctx.textAlign = 'center';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(0,0,0,.72)';
+        ctx.strokeText(d.texto, d.x, d.y);
         ctx.fillText(d.texto, d.x, d.y);
         ctx.restore();
       });
@@ -425,17 +595,11 @@
 
     function loopRender() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      var grd = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      grd.addColorStop(0, 'rgba(21,25,51,0.18)');
-      grd.addColorStop(1, 'rgba(11,14,26,0.05)');
-      ctx.fillStyle = grd;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+      desenharFundo();
       desenharMonstro();
-      Object.values(state.players).forEach(function (player) {
-        if (player.classeId) desenharJogador(player);
-      });
+      var playersList = Object.values(state.players).filter(function (p) { return p.classeId; });
+      playersList.sort(function (a, b) { return a.id === state.meuId ? -1 : (b.id === state.meuId ? 1 : 0); });
+      playersList.forEach(function (player, index) { desenharJogador(player, index); });
       desenharParticulas();
       desenharEfeitosHabilidade();
       desenharDanosFlutuantes();
@@ -457,11 +621,13 @@
         montarTelaSelecaoClasse();
         classSelectEl.classList.remove('hidden');
       } else {
+        classSelectEl.classList.add('hidden');
         montarBarraHabilidades(state.meuPlayer.classeId);
       }
 
       atualizarHud();
       atualizarEnemyHud();
+      atualizarLoot();
     });
 
     socket.on('playerJoined', function (player) {
@@ -508,16 +674,29 @@
       (data.attacks || []).forEach(function (attack) {
         var jogador = state.players[attack.playerId];
         var classe = jogador ? GAME_CLASSES[jogador.classeId] : null;
-        adicionarDanoFlutuante(
-          (attack.isCrit ? 'CRÍTICO ' : '-') + attack.damage,
-          attack.isCrit,
-          classe ? classe.corSecundaria : null
-        );
+        var x = canvas.width * 0.70 + (Math.random() - 0.5) * 90;
+        var y = canvas.height * 0.44 + (Math.random() - 0.5) * 50;
+        adicionarDanoFlutuante((attack.isCrit ? 'CRÍTICO ' : '-') + attack.damage, attack.isCrit, classe ? classe.corSecundaria : null, x, y);
       });
     });
 
     socket.on('enemyDied', function (data) {
-      adicionarLog('⚔️ ' + data.killerName + ' derrotou ' + data.deadMonster.nome + ' e ganhou +' + data.xpReward + ' XP.');
+      var texto = '⚔️ ' + data.killerName + ' derrotou ' + data.deadMonster.nome + ' e ganhou +' + data.xpReward + ' XP';
+      if (data.goldGained) texto += ' e +' + data.goldGained + ' ouro';
+      texto += '.';
+      adicionarLog(texto);
+
+      if (data.loot) {
+        state.lootRecente.unshift(data.loot);
+        state.lootRecente = state.lootRecente.slice(0, 8);
+        atualizarLoot();
+        adicionarLog('🎁 Loot: ' + data.loot.icone + ' ' + data.loot.nome + ' [' + data.loot.raridade + ']');
+      }
+
+      if (data.progress && data.progress.leveledUp) {
+        adicionarLog('✨ Level up! Agora você está no Nv. ' + data.progress.currentLevel + '.');
+      }
+
       if (data.nextMonster) {
         state.monster = data.nextMonster;
         atualizarEnemyHud();
@@ -525,16 +704,14 @@
     });
 
     socket.on('abilityUsed', function (evento) {
-      var jogador = state.players[evento.playerId];
-      var x = jogador ? jogador.posicao.x + 80 : canvas.width * 0.35;
-      var y = jogador ? jogador.posicao.y + 80 : canvas.height * 0.5;
-
+      var x = canvas.width * 0.70;
+      var y = canvas.height * 0.52;
       state.efeitosAtivos.push({
         x: x,
         y: y,
-        cor: evento.visual.cor,
+        cor: evento.visual && evento.visual.cor ? evento.visual.cor : '#ffe69b',
         inicio: performance.now(),
-        duracao: 800
+        duracao: 850
       });
 
       if (evento.playerId === state.meuId) {

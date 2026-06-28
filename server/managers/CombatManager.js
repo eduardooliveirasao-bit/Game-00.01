@@ -1,5 +1,6 @@
 const { GAME_CLASSES } = require('../../shared/classes.js');
 const LevelManager = require('./LevelManager');
+const LootManager = require('./LootManager');
 
 class CombatManager {
   static getAbility(classeId, habilidadeId) {
@@ -16,9 +17,11 @@ class CombatManager {
     }
 
     const stats = classe.baseStats;
-    const base = stats.baseDano + (player.nivel * stats.multiplicadorNivel);
+    const gearDamage = LootManager.getDamageBonus(player);
+    const gearCrit = LootManager.getCritBonus(player);
+    const base = stats.baseDano + gearDamage + (player.nivel * stats.multiplicadorNivel);
     const multiplier = ability && ability.danoMultiplicador ? ability.danoMultiplicador : 1;
-    const critChance = Math.min(95, (stats.critico || 0) + ((ability && ability.bonusCritico) || 0));
+    const critChance = Math.min(95, (stats.critico || 0) + gearCrit + ((ability && ability.bonusCritico) || 0));
     const isCrit = Math.random() * 100 < critChance;
     const critMultiplier = isCrit ? 1.75 : 1;
     const variance = 0.92 + Math.random() * 0.16;

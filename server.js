@@ -5,6 +5,7 @@ const { GAME_CLASSES, LEVEL_CAP } = require('./shared/classes.js');
 const LevelManager = require('./server/managers/LevelManager');
 const MonsterManager = require('./server/managers/MonsterManager');
 const CombatManager = require('./server/managers/CombatManager');
+const LootManager = require('./server/managers/LootManager');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE_MS = 1000;
@@ -40,6 +41,10 @@ function createPlayer(socket) {
     asaNivel: 1,
     asaNome: 'Asas Iniciais',
     ouro: 0,
+    power: 0,
+    kills: 0,
+    fase: 1,
+    inventario: [],
     cooldowns: {},
     posicao: {
       x: 70 + Math.floor(Math.random() * 120),
@@ -49,7 +54,9 @@ function createPlayer(socket) {
     lastAttackAt: 0
   };
 
-  return LevelManager.syncProgressFields(player);
+  LevelManager.syncProgressFields(player);
+  player.power = LootManager.calculatePower(player);
+  return player;
 }
 
 function publicPlayer(player) {
@@ -67,6 +74,10 @@ function publicPlayer(player) {
     asaNivel: player.asaNivel,
     asaNome: player.asaNome,
     ouro: player.ouro,
+    power: LootManager.calculatePower(player),
+    kills: player.kills || 0,
+    fase: player.fase || 1,
+    inventario: player.inventario || [],
     posicao: player.posicao
   };
 }
@@ -84,15 +95,19 @@ function rewardIfEnemyDied(player, combatEvent) {
 
   const xpReward = combatEvent.result.xpReward;
   const progress = CombatManager.grantKillRewards(player, combatEvent);
+  const loot = LootManager.grantKillLoot(player, combatEvent.result.deadMonster);
 
   io.emit('enemyDied', {
     killerId: player.id,
     killerName: player.nome,
     xpReward,
+    goldGained: loot.gold,
+    loot: loot.item,
     deadMonster: combatEvent.result.deadMonster,
     nextMonster: combatEvent.result.nextMonster,
     killCount: combatEvent.result.killCount,
-    progress
+    progress,
+    player: publicPlayer(player)
   });
 
   io.emit('playerUpdated', publicPlayer(player));
@@ -125,6 +140,7 @@ io.on('connection', (socket) => {
     player.hp = classe.baseStats.maxHp;
     player.maxHp = classe.baseStats.maxHp;
     LevelManager.syncProgressFields(player);
+    player.power = LootManager.calculatePower(player);
 
     io.emit('playerUpdated', publicPlayer(player));
   });
