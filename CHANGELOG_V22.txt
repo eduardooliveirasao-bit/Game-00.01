@@ -1,0 +1,7 @@
+Legend Of Indle RPG V1 - V22 Monster Codex
+
+- Codex de monstros implementado.
+- Abates por espécie agora liberam marcos de domínio.
+- Bônus permanentes por espécie derrotada.
+- Slimes aumentam HP/ouro, esqueletos aumentam ataque/defesa, dragões aumentam ataque/crítico/drop.
+- Botão novo no menu inferior: Codex.

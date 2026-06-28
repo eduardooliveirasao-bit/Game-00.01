@@ -1,0 +1,7 @@
+Legend Of Indle RPG V1 - V21 Daily Mission Loop
+
+- Sistema de missões diárias adicionado.
+- Missões acompanham abates, bosses, drops, forja e expedições.
+- Recompensas com ouro, gemas, pontos extras de talento e poeira astral.
+- Botão novo no menu inferior: Missões.
+- Missões reiniciam por data e ficam salvas por conta.

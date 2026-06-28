@@ -1,5 +1,7 @@
 const { LEVEL_CAP, XP_TABLE, WING_LEVELS, GAME_CLASSES } = require('../../shared/classes.js');
 const LootManager = require('./LootManager');
+const TalentManager = require('./TalentManager');
+const MetaProgressManager = require('./MetaProgressManager');
 
 class LevelManager {
   static getXpToNext(level) {
@@ -17,7 +19,7 @@ class LevelManager {
     if (!classe) return 100;
     const base = classe.baseStats.maxHp || 100;
     const hpBonus = LootManager.getHpBonus(player);
-    return Math.floor(base + (player.nivel - 1) * 16 + hpBonus);
+    { const mb = MetaProgressManager.publicMeta(player); const pct = (TalentManager.getBonuses(player).hpPct || 0) + ((mb.ascension && mb.ascension.bonuses && mb.ascension.bonuses.hpPct) || 0) + ((mb.ascension && mb.ascension.artifactBonuses && mb.ascension.artifactBonuses.hpPct) || 0) + ((mb.codex && mb.codex.bonuses && mb.codex.bonuses.hpPct) || 0); return Math.floor((base + (player.nivel - 1) * 16 + hpBonus) * (1 + pct)); }
   }
 
   static calculateMaxMana(player) {
@@ -25,7 +27,7 @@ class LevelManager {
     if (!classe) return 0;
     const base = classe.baseStats.mana || 0;
     const manaBonus = LootManager.getManaBonus(player);
-    return Math.floor(base + (player.nivel - 1) * 6 + manaBonus);
+    { const mb = MetaProgressManager.publicMeta(player); const pct = (TalentManager.getBonuses(player).manaPct || 0) + ((mb.ascension && mb.ascension.artifactBonuses && mb.ascension.artifactBonuses.manaPct) || 0); return Math.floor((base + (player.nivel - 1) * 6 + manaBonus) * (1 + pct)); }
   }
 
   static syncProgressFields(player) {

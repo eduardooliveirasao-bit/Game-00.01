@@ -1,0 +1,9 @@
+Legend Of Indle RPG V1 - V24 Ascension Artifacts Final Polish
+
+- Sistema de Ascensão implementado.
+- Ao alcançar nível/poder suficientes, o jogador pode renascer e ganhar Poeira Astral.
+- Artefatos permanentes adicionados: Coroa da Luz, Grimório Azul, Medalhão da Terra e Moeda do Sol.
+- Artefatos melhoram ataque, HP, mana, defesa, crítico, XP, ouro e drop.
+- Sistema integrado ao poder do personagem, dano, HP/mana, recompensas e exibição da UI.
+- Botão novo no menu inferior: Ascensão.
+- Compatibilidade com Render mantida.

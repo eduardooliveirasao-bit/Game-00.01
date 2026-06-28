@@ -54,6 +54,14 @@ function sanitizePlayer(player) {
     stats: player.stats || {},
     mount: player.mount || { id: 'lobo_cristalino', level: 1 },
     mountCollection: player.mountCollection || [{ id: (player.mount && player.mount.id) || 'lobo_cristalino', level: (player.mount && player.mount.level) || 1, active: true, unlockedAt: Date.now() }],
+    pets: player.pets || { owned: [], equipped: [] },
+    talents: player.talents || {},
+    expedition: player.expedition || { active:null, history:[] },
+    missions: player.missions || null,
+    codex: player.codex || null,
+    ascension: player.ascension || null,
+    season: player.season || null,
+    extraTalentPoints: player.extraTalentPoints || 0,
     updatedAt: Date.now()
   };
 }
@@ -110,7 +118,15 @@ class SaveManager {
       bestiary: save.bestiary || {},
       stats: save.stats || {},
       mount: save.mount || { id: 'lobo_cristalino', level: 1 },
-      mountCollection: save.mountCollection || [{ id: (save.mount && save.mount.id) || 'lobo_cristalino', level: (save.mount && save.mount.level) || 1, active: true, unlockedAt: Date.now() }]
+      mountCollection: save.mountCollection || [{ id: (save.mount && save.mount.id) || 'lobo_cristalino', level: (save.mount && save.mount.level) || 1, active: true, unlockedAt: Date.now() }],
+      pets: save.pets || { owned: [], equipped: [] },
+      talents: save.talents || {},
+      expedition: save.expedition || { active:null, history:[] },
+      missions: save.missions || null,
+      codex: save.codex || null,
+      ascension: save.ascension || null,
+      season: save.season || null,
+      extraTalentPoints: save.extraTalentPoints || 0
     });
     player.id = keepSocketId;
     player.isDead = false;

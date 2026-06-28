@@ -89,3 +89,11 @@ Veja o guia completo em:
 ```txt
 docs/RENDER_DEPLOY.md
 ```
+
+
+## V20 - Talent Tree e Expedições
+
+- Árvore de talentos permanente.
+- Expedições Idle paralelas.
+- Bônus de XP/Ouro/Drop por talentos.
+- Persistência de talentos e expedições.

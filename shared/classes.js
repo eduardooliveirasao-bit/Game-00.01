@@ -178,6 +178,43 @@
     sombra_corvo: { id:'sombra_corvo', nome:'Corvo Sombrio', elemento:'sombra', asset:'assets/pets/corvo.png', icon:'🪶', bonus:{ critico:6, evasao:3 }, skill:{ nome:'Marca Sombria', trigger:'onCrit', danoPct:0.12 } }
   };
 
+
+  var ZONES = [
+    { id:'floresta', nome:'Floresta Cristalina', minWave:1, bg:'#0a1442', bonus:{ xpPct:0, goldPct:0 }, icon:'🌲' },
+    { id:'cripta', nome:'Cripta dos Ossos', minWave:20, bg:'#11182e', bonus:{ xpPct:0.08, goldPct:0.06 }, icon:'☠️' },
+    { id:'ruinas', nome:'Ruínas Celestes', minWave:45, bg:'#18133a', bonus:{ xpPct:0.16, goldPct:0.12 }, icon:'🏛️' },
+    { id:'vulcao', nome:'Vulcão Elemental', minWave:75, bg:'#32131b', bonus:{ xpPct:0.28, goldPct:0.22 }, icon:'🌋' },
+    { id:'ceus', nome:'Reino do Céu', minWave:110, bg:'#10244c', bonus:{ xpPct:0.45, goldPct:0.35 }, icon:'☁️' }
+  ];
+
+  var MISSION_DEFS = {
+    kill_30: { id:'kill_30', nome:'Caçador Incansável', icon:'⚔️', type:'kill', target:30, desc:'Derrote 30 monstros.', rewards:{ ouro:900, gemas:2, talentPoints:1 } },
+    boss_2: { id:'boss_2', nome:'Quebra-Dragões', icon:'🐉', type:'boss', target:2, desc:'Derrote 2 bosses.', rewards:{ ouro:1800, gemas:5, ascensionDust:1 } },
+    loot_8: { id:'loot_8', nome:'Chuva de Loot', icon:'🎁', type:'loot', target:8, desc:'Obtenha 8 itens.', rewards:{ ouro:1200, gemas:3 } },
+    forge_3: { id:'forge_3', nome:'Ferreiro de Campo', icon:'🛠️', type:'forge', target:3, desc:'Melhore itens 3 vezes.', rewards:{ ouro:1600, gemas:2, ascensionDust:1 } },
+    expedition_1: { id:'expedition_1', nome:'Explorador Idle', icon:'🧭', type:'expedition', target:1, desc:'Colete 1 expedição.', rewards:{ ouro:1000, gemas:4 } }
+  };
+
+  var CODEX_MILESTONES = {
+    slime: { id:'slime', nome:'Domínio dos Slimes', icon:'🟢', steps:[10,50,150,400], bonusPerStep:{ hpPct:0.01, goldPct:0.01 } },
+    skeleton: { id:'skeleton', nome:'Domínio dos Esqueletos', icon:'☠️', steps:[10,50,150,400], bonusPerStep:{ ataquePct:0.01, defesa:2 } },
+    dragon: { id:'dragon', nome:'Domínio Dracônico', icon:'🐉', steps:[1,5,15,40], bonusPerStep:{ ataquePct:0.015, critico:1.5, dropPct:0.01 } }
+  };
+
+  var ASCENSION_CONFIG = {
+    minLevel: 80,
+    minPower: 12000,
+    baseDustReward: 3,
+    bonusesPerRank: { ataquePct:0.06, hpPct:0.06, xpPct:0.05, goldPct:0.05, power:850 }
+  };
+
+  var ARTIFACTS = {
+    coroa_luz: { id:'coroa_luz', nome:'Coroa da Luz Antiga', icon:'👑', max:20, costDust:2, bonus:{ ataquePct:0.015, critico:0.7 }, desc:'Aumenta dano e crítico permanentemente.' },
+    grimorio_azul: { id:'grimorio_azul', nome:'Grimório Azul', icon:'📘', max:20, costDust:2, bonus:{ xpPct:0.02, manaPct:0.015 }, desc:'Aumenta XP e mana permanentemente.' },
+    medalhao_terra: { id:'medalhao_terra', nome:'Medalhão da Terra', icon:'🛡️', max:20, costDust:2, bonus:{ hpPct:0.02, defesa:3 }, desc:'Aumenta HP e defesa permanentemente.' },
+    moeda_sol: { id:'moeda_sol', nome:'Moeda do Sol', icon:'🌞', max:20, costDust:2, bonus:{ goldPct:0.025, dropPct:0.006 }, desc:'Aumenta ouro e sorte de loot.' }
+  };
+
   var SHOP_ITEMS = {
     pocao_vida: { id: 'pocao_vida', nome: 'Poção de Vida', tipo: 'potion', asset: 'assets/items/colar_comum.png', icon: '🧪', priceGems: 3, desc: 'Restaura 60% do HP máximo.', effect: { hpPercent: 60 } },
     pocao_mana: { id: 'pocao_mana', nome: 'Poção de Mana', tipo: 'potion', asset: 'assets/gems/safira.png', icon: '🔮', priceGems: 3, desc: 'Restaura 70% da mana máxima.', effect: { manaPercent: 70 } },
@@ -192,7 +229,7 @@
     pet_corvo: { id:'pet_corvo', nome:'Ovo do Corvo Sombrio', tipo:'pet', petId:'sombra_corvo', asset:'assets/pets/corvo.png', icon:'🪶', priceGems:85, desc:'Adquire ou evolui o Corvo Sombrio.' }
   };
 
-  var EXPORTS = { LEVEL_CAP: LEVEL_CAP, XP_TABLE: XP_TABLE, GAME_CLASSES: GAME_CLASSES, ITEM_CATALOG: ITEM_CATALOG, MONSTERS: MONSTERS, WING_LEVELS: WING_LEVELS, GEM_TYPES: GEM_TYPES, MOUNTS: MOUNTS, SHOP_ITEMS: SHOP_ITEMS, PETS: PETS };
+  var EXPORTS = { LEVEL_CAP: LEVEL_CAP, XP_TABLE: XP_TABLE, GAME_CLASSES: GAME_CLASSES, ITEM_CATALOG: ITEM_CATALOG, MONSTERS: MONSTERS, WING_LEVELS: WING_LEVELS, GEM_TYPES: GEM_TYPES, MOUNTS: MOUNTS, SHOP_ITEMS: SHOP_ITEMS, PETS: PETS, ZONES: ZONES, MISSION_DEFS: MISSION_DEFS, CODEX_MILESTONES: CODEX_MILESTONES, ASCENSION_CONFIG: ASCENSION_CONFIG, ARTIFACTS: ARTIFACTS };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = EXPORTS;
   else {
@@ -206,5 +243,10 @@
     window.MOUNTS = MOUNTS;
     window.SHOP_ITEMS = SHOP_ITEMS;
     window.PETS = PETS;
+    window.ZONES = ZONES;
+    window.MISSION_DEFS = MISSION_DEFS;
+    window.CODEX_MILESTONES = CODEX_MILESTONES;
+    window.ASCENSION_CONFIG = ASCENSION_CONFIG;
+    window.ARTIFACTS = ARTIFACTS;
   }
 })();

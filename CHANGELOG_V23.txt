@@ -1,0 +1,7 @@
+Legend Of Indle RPG V1 - V23 Zones and Meta Scaling
+
+- Sistema de zonas por horda implementado.
+- O palco agora muda o nome da área conforme o avanço.
+- Zonas escalam recompensas de XP e ouro.
+- Bônus de zona integrado ao combate, loot e progressão.
+- Ranking passou a carregar também rank de ascensão.

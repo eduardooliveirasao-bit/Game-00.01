@@ -1,0 +1,11 @@
+Legend Of Indle RPG V1 - V19 Combat Animation Upgrade
+
+Melhorias principais:
+- animação do herói refeito com pseudo-rig 2D por segmentos (cabeça, tronco e pernas)
+- avanço, recuo, inclinação, squash/stretch e secondary motion em combate
+- trilhas de arma e afterimages durante ataque
+- mago com asas/energia mais vivas durante a ação
+- monstros também receberam animação segmentada e mais vida
+- camera shake e impacto em hits e skills
+- montaria continua fora do palco, atuando apenas como bônus acumulativo
+- compatível com Render e com o restante do sistema atual

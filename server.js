@@ -9,6 +9,9 @@ const LootManager = require('./server/managers/LootManager');
 const SaveManager = require('./server/managers/SaveManager');
 const AccountManager = require('./server/managers/AccountManager');
 const PetManager = require('./server/managers/PetManager');
+const TalentManager = require('./server/managers/TalentManager');
+const ExpeditionManager = require('./server/managers/ExpeditionManager');
+const MetaProgressManager = require('./server/managers/MetaProgressManager');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE_MS = 1000;
@@ -90,9 +93,17 @@ function createPlayer(socket) {
     bestiary: {},
     stats: { damageDealt: 0, damageTaken: 0, goldEarned: 0, bossKills: 0, deaths: 0, itemsSold: 0 },
     daily: { lastClaimDay: null, streak: 0 },
-    pets: { owned: [{ id: 'fogo_fenix', level: 1 }, { id: 'luz_serafim', level: 1 }], equipped: ['fogo_fenix', 'luz_serafim'] }
+    pets: { owned: [{ id: 'fogo_fenix', level: 1 }, { id: 'luz_serafim', level: 1 }], equipped: ['fogo_fenix', 'luz_serafim'] },
+    talents: {},
+    expedition: { active: null, history: [] },
+    missions: null,
+    codex: null,
+    ascension: null,
+    season: null,
+    extraTalentPoints: 0
   };
   LevelManager.syncProgressFields(player);
+  MetaProgressManager.normalize(player);
   player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player);
   return player;
 }
@@ -144,7 +155,10 @@ function publicPlayer(player) {
     bestiary: player.bestiary || {},
     stats: player.stats || {},
     daily: player.daily || { lastClaimDay: null, streak: 0 },
-    pets: PetManager.publicPets(player)
+    pets: PetManager.publicPets(player),
+    talents: TalentManager.publicTalents(player),
+    expedition: ExpeditionManager.publicExpedition(player),
+    meta: MetaProgressManager.publicMeta(player)
   };
 }
 
@@ -167,7 +181,7 @@ function buildRanking() {
     map.set(key, publicPlayer(fake));
   }
   const base = Array.from(map.values()).map((p) => ({
-    nome: p.nome, classeId: p.classeId, nivel: p.nivel, power: p.power, kills: p.kills || 0, horda: p.horda || 1, bossKills: (p.stats && p.stats.bossKills) || 0, mount: p.mount
+    nome: p.nome, classeId: p.classeId, nivel: p.nivel, power: p.power, kills: p.kills || 0, horda: p.horda || 1, bossKills: (p.stats && p.stats.bossKills) || 0, mount: p.mount, ascensionRank: (p.meta && p.meta.ascension && p.meta.ascension.rank) || 0
   }));
   return {
     level: base.slice().sort((a,b) => (b.nivel - a.nivel) || (b.power - a.power)).slice(0, 20),
@@ -177,7 +191,9 @@ function buildRanking() {
 function emitEnemyUpdate() { io.emit('enemyUpdate', monsterManager.getPublicMonster()); }
 
 function syncPlayerPower(player) {
+  MetaProgressManager.normalize(player);
   LevelManager.syncProgressFields(player);
+  MetaProgressManager.normalize(player);
   player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player);
 }
 
@@ -215,6 +231,18 @@ function rewardIfEnemyDied(player, combatEvent) {
 
   const progress = CombatManager.grantKillRewards(player, combatEvent);
   const loot = LootManager.grantKillLoot(player, dead);
+  MetaProgressManager.progressMission(player, loot.item ? 'loot' : 'none', loot.item ? 1 : 0);
+  const talentBonus = TalentManager.getBonuses(player);
+  const meta = MetaProgressManager.publicMeta(player);
+  const goldPctMeta = (meta.zone && meta.zone.bonus && meta.zone.bonus.goldPct || 0) + ((meta.ascension && meta.ascension.bonuses && meta.ascension.bonuses.goldPct) || 0) + ((meta.ascension && meta.ascension.artifactBonuses && meta.ascension.artifactBonuses.goldPct) || 0) + ((meta.codex && meta.codex.bonuses && meta.codex.bonuses.goldPct) || 0);
+  if (goldPctMeta) { const zGold = Math.floor((loot.gold || 0) * goldPctMeta); if (zGold > 0) { player.ouro = (player.ouro || 0) + zGold; loot.gold += zGold; } }
+  if (talentBonus.goldPct) {
+    const extraGold = Math.floor((loot.gold || 0) * talentBonus.goldPct);
+    if (extraGold > 0) {
+      player.ouro = (player.ouro || 0) + extraGold;
+      loot.gold += extraGold;
+    }
+  }
   player.stats.goldEarned = (player.stats.goldEarned || 0) + loot.gold;
   syncPlayerPower(player);
   const unlocked = updateAchievements(player);
@@ -232,7 +260,8 @@ function rewardIfEnemyDied(player, combatEvent) {
     deadMonster: dead,
     nextMonster: combatEvent.result.nextMonster,
     horda: combatEvent.result.horda,
-    player: publicPlayer(player)
+    player: publicPlayer(player),
+    meta: MetaProgressManager.publicMeta(player)
   });
   io.emit('playerUpdated', publicPlayer(player));
 }
@@ -241,7 +270,14 @@ function monsterStrike(player, now) {
   if (!player.classeId || player.isDead) return null;
   const monster = monsterManager.getPublicMonster();
   const base = 3 + Math.floor(monster.nivel * (monster.isBoss ? 1.25 : monster.templateId === 'skeleton' ? 0.8 : 0.55));
-  const defense = (GAME_CLASSES[player.classeId]?.baseStats?.defesa || 0) + LootManager.getEquippedList(player).reduce((s, item) => s + ((item.stats && item.stats.defesa) || 0), 0);
+  const talentBonus = TalentManager.getBonuses(player);
+  const metaBonus = MetaProgressManager.getArtifactBonuses(player);
+  const codexBonus = MetaProgressManager.getCodexBonuses(player);
+  const defense = (GAME_CLASSES[player.classeId]?.baseStats?.defesa || 0) + LootManager.getEquippedList(player).reduce((s, item) => s + ((item.stats && item.stats.defesa) || 0), 0) + (talentBonus.defesa || 0) + (metaBonus.defesa || 0) + (codexBonus.defesa || 0);
+  const dodgeChance = Math.min(42, (talentBonus.evasion || 0) + ((LootManager.getCharacterAttributes(player).evasion || 0) * 0.12));
+  if (Math.random() * 100 < dodgeChance) {
+    return { playerId: player.id, playerName: player.nome, damage: 0, dodged: true, died: false, hp: player.hp, maxHp: player.maxHp };
+  }
   let damage = Math.max(1, Math.floor(base - defense * 0.08));
   if (monster.special && monster.special.active) damage = Math.floor(damage * 1.25);
   if (monster.isBoss && monster.special && monster.special.rageTurns > 0) damage = Math.floor(damage * 1.45);
@@ -289,6 +325,7 @@ function applyAccountToPlayer(player, accountResult) {
   } else {
     player.cashGems = player.cashGems != null ? player.cashGems : (player.gemas || 0);
   }
+  MetaProgressManager.normalize(player);
   syncPlayerPower(player);
   savePlayer(player, true);
   return player;
@@ -437,12 +474,15 @@ io.on('connection', (socket) => {
     }
     const offlineMs = Math.max(0, Date.now() - (save.updatedAt || Date.now()));
     SaveManager.apply(player, save);
+    player.talents = player.talents || {};
+    player.expedition = player.expedition || { active:null, history:[] };
     let offlineRewards = null;
     if (player.classeId && offlineMs > 60000) {
       const offlineMinutes = Math.min(240, Math.floor(offlineMs / 60000));
       const offlineKills = Math.max(1, Math.floor(offlineMinutes * 1.8));
-      const offlineGold = Math.floor(offlineKills * (12 + (player.nivel || 1) * 3));
-      const offlineXp = Math.floor(offlineKills * (18 + (player.nivel || 1) * 5));
+      const offlineBonuses = TalentManager.getBonuses(player);
+      const offlineGold = Math.floor(offlineKills * (12 + (player.nivel || 1) * 3) * (1 + (offlineBonuses.goldPct || 0)));
+      const offlineXp = Math.floor(offlineKills * (18 + (player.nivel || 1) * 5) * (1 + (offlineBonuses.xpPct || 0)));
       player.kills = (player.kills || 0) + offlineKills;
       player.ouro = (player.ouro || 0) + offlineGold;
       player.stats = player.stats || {};
@@ -480,7 +520,8 @@ io.on('connection', (socket) => {
     LevelManager.syncProgressFields(player);
     player.hp = player.maxHp;
     player.mana = player.maxMana;
-    player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player);
+    MetaProgressManager.normalize(player);
+  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player);
     updateAchievements(player);
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
@@ -585,6 +626,7 @@ io.on('connection', (socket) => {
   socket.on('upgradeItem', (data = {}) => {
     const result = LootManager.upgradeItem(player, data.itemId);
     if (!result.ok) return socket.emit('errorMsg', result.reason);
+    MetaProgressManager.progressMission(player, 'forge', 1);
     syncPlayerPower(player);
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
@@ -710,6 +752,99 @@ io.on('connection', (socket) => {
 
   socket.on('requestRanking', () => {
     socket.emit('rankingUpdate', buildRanking());
+  });
+
+
+  socket.on('upgradeTalent', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = TalentManager.upgrade(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('talentAction', { type: 'upgrade', result, player: publicPlayer(player) });
+  });
+
+  socket.on('resetTalents', () => {
+    if (!requireAuth(socket, player)) return;
+    const result = TalentManager.reset(player);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('talentAction', { type: 'reset', result, player: publicPlayer(player) });
+  });
+
+  socket.on('startExpedition', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = ExpeditionManager.start(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    savePlayer(player, true);
+    socket.emit('expeditionAction', { type: 'start', result, player: publicPlayer(player) });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
+  socket.on('claimExpedition', () => {
+    if (!requireAuth(socket, player)) return;
+    const result = ExpeditionManager.claim(player);
+    if (result.ok) MetaProgressManager.progressMission(player, 'expedition', 1);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    socket.emit('expeditionAction', { type: 'claim', result, player: publicPlayer(player) });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
+
+  socket.on('claimMission', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = MetaProgressManager.claimMission(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    socket.emit('metaUpdated', { meta: MetaProgressManager.publicMeta(player), player: publicPlayer(player), result });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
+  socket.on('claimAllMissions', () => {
+    if (!requireAuth(socket, player)) return;
+    const result = MetaProgressManager.claimAllMissions(player);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    socket.emit('metaUpdated', { meta: MetaProgressManager.publicMeta(player), player: publicPlayer(player), result });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
+  socket.on('claimCodex', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = MetaProgressManager.claimCodex(player, data.monsterId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    socket.emit('metaUpdated', { meta: MetaProgressManager.publicMeta(player), player: publicPlayer(player), result });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
+  socket.on('upgradeArtifact', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = MetaProgressManager.upgradeArtifact(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    socket.emit('metaUpdated', { meta: MetaProgressManager.publicMeta(player), player: publicPlayer(player), result });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
+  socket.on('ascendPlayer', () => {
+    if (!requireAuth(socket, player)) return;
+    const result = MetaProgressManager.ascend(player);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    monsterManager.horda = 1;
+    monsterManager.currentMonster = monsterManager.generateMonster(player.nivel || 1);
+    savePlayer(player, true);
+    io.emit('enemyUpdate', monsterManager.getPublicMonster());
+    socket.emit('metaUpdated', { meta: MetaProgressManager.publicMeta(player), player: publicPlayer(player), result });
+    io.emit('playerUpdated', publicPlayer(player));
   });
 
   socket.on('disconnect', () => {

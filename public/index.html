@@ -159,6 +159,11 @@
     <nav id="bottom-menu">
       <button id="menu-hunt" class="active">⚔️ Caçar</button>
       <button id="menu-bag">🎒 Bolsa</button>
+      <button id="menu-talent">🌟 Talentos</button>
+      <button id="menu-expedition">🧭 Expedição</button>
+      <button id="menu-missions">📜 Missões</button>
+      <button id="menu-codex">📖 Codex</button>
+      <button id="menu-ascension">🌌 Ascensão</button>
       <button>🪽 Asas</button>
       <button id="menu-mount">🐺 Montaria</button>
       <button id="menu-ranking">🏆 Ranking</button>
@@ -230,6 +235,64 @@
             <button id="use-mp-potion">Usar Poção de Mana</button>
             <div id="shop-info" class="shop-info">Selecione um item para comprar.</div>
           </div>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="talent-modal" class="modal hidden">
+      <div class="modal-card compact-modal">
+        <div class="modal-header">
+          <div><h2>Árvore de Talentos</h2><p>Use pontos ganhos por nível, bosses e abates para fortalecer seu herói permanentemente.</p></div>
+          <button id="talent-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body talent-body">
+          <div class="talent-summary" id="talent-summary">Carregando talentos...</div>
+          <div id="talent-list" class="talent-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="expedition-modal" class="modal hidden">
+      <div class="modal-card compact-modal">
+        <div class="modal-header">
+          <div><h2>Expedições Idle</h2><p>Envie sua equipe para missões paralelas. O combate continua, e as recompensas ficam prontas com o tempo.</p></div>
+          <button id="expedition-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body expedition-body">
+          <div id="expedition-list" class="expedition-list"></div>
+          <div id="expedition-status" class="expedition-status">Nenhuma expedição ativa.</div>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="missions-modal" class="modal hidden">
+      <div class="modal-card compact-modal">
+        <div class="modal-header"><div><h2>Missões Diárias</h2><p>Objetivos curtos para guiar o farm e acelerar sua progressão.</p></div><button id="missions-close" class="modal-close">✕</button></div>
+        <div class="modal-body meta-body">
+          <div class="meta-summary" id="missions-summary">Carregando missões...</div>
+          <div id="missions-list" class="meta-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="codex-modal" class="modal hidden">
+      <div class="modal-card compact-modal">
+        <div class="modal-header"><div><h2>Codex de Monstros</h2><p>Cada espécie derrotada libera marcos permanentes de atributos.</p></div><button id="codex-close" class="modal-close">✕</button></div>
+        <div class="modal-body meta-body">
+          <div class="meta-summary" id="codex-summary">Carregando codex...</div>
+          <div id="codex-list" class="meta-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ascension-modal" class="modal hidden">
+      <div class="modal-card compact-modal">
+        <div class="modal-header"><div><h2>Ascensão e Artefatos</h2><p>Ao chegar no limite, renasça para ganhar poder permanente e evoluir relíquias.</p></div><button id="ascension-close" class="modal-close">✕</button></div>
+        <div class="modal-body meta-body">
+          <div class="meta-summary" id="ascension-summary">Carregando ascensão...</div>
+          <div id="artifact-list" class="meta-list"></div>
         </div>
       </div>
     </section>

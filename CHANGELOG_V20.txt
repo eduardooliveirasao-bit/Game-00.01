@@ -1,0 +1,13 @@
+Legend Of Indle RPG V1 - V20 Final Polish Systems
+
+Novas mecânicas:
+- Árvore de Talentos com pontos por nível, bosses e abates.
+- Talentos afetam dano, HP, mana, defesa, crítico, velocidade, evasão, XP, ouro e drop.
+- Sistema de Expedições Idle paralelas.
+- Expedições geram XP, ouro, gemas e chance de item sem interromper o combate.
+- Recompensas offline agora respeitam talentos de XP/Ouro.
+- Drops passam a considerar bônus de talento de loot.
+- Combate considera talentos no dano, crítico, defesa e evasão.
+- UI nova para Talentos e Expedições.
+- Persistência atualizada para salvar talentos e expedições.
+- Compatível com Render.

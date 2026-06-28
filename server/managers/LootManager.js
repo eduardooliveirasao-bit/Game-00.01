@@ -1,4 +1,6 @@
 const { ITEM_CATALOG, GAME_CLASSES, GEM_TYPES, MOUNTS } = require('../../shared/classes.js');
+const TalentManager = require('./TalentManager');
+const MetaProgressManager = require('./MetaProgressManager');
 
 const SLOT_ORDER = ['arma', 'anel', 'colar', 'ornamento'];
 const RARITY_COLORS = { comum:'#d9dde7', raro:'#55c7ff', 'épico':'#b07cff', 'lendário':'#ffcf5b', 'mítico':'#ff7fbb', boss:'#ff8f3d' };
@@ -190,17 +192,17 @@ class LootManager {
     const classe=GAME_CLASSES[player.classeId]||{baseStats:{maxHp:100,mana:0,baseDano:10,defesa:5,critico:5,multiplicadorNivel:2}};
     const base=classe.baseStats; const eq=this.getEquippedList(player);
     const gear=eq.reduce((s,it)=>{ const t=totalStats(it); s.ataque+=t.ataque||0; s.defesa+=t.defesa||0; s.critico+=t.critico||0; s.hp+=t.hp||0; s.mana+=t.mana||0; return s; },{ataque:0,defesa:0,critico:0,hp:0,mana:0});
-    const mb=this.getMountBonus(player); const level=player.nivel||1;
-    const attack=Math.floor((base.baseDano||10)+level*(base.multiplicadorNivel||2)+gear.ataque+mb.ataque);
-    const defense=Math.floor((base.defesa||5)+gear.defesa+mb.defesa+level*.8);
-    const maxHp=Math.floor((base.maxHp||100)+level*16+gear.hp+mb.hp);
-    const maxMana=Math.floor((base.mana||0)+level*6+gear.mana);
-    const crit=Math.floor((base.critico||0)+gear.critico);
-    const speed=Math.floor(100+mb.speed*100+level*.25);
-    const evasion=Math.floor(2+mb.evasao+Math.min(30,speed/25));
-    return {attack,defense,maxHp,maxMana,crit,speed,evasion,power:this.calculatePower(player),mountPower:mb.power,mountAttack:mb.ataque,mountHp:mb.hp,mountDefense:mb.defesa};
+    const mb=this.getMountBonus(player); const tb=TalentManager.getBonuses(player); const level=player.nivel||1;
+    const attack=Math.floor(((base.baseDano||10)+level*(base.multiplicadorNivel||2)+gear.ataque+mb.ataque) * (1 + (tb.ataquePct||0)));
+    const defense=Math.floor((base.defesa||5)+gear.defesa+mb.defesa+(tb.defesa||0)+level*.8);
+    const maxHp=Math.floor(((base.maxHp||100)+level*16+gear.hp+mb.hp) * (1 + (tb.hpPct||0)));
+    const maxMana=Math.floor(((base.mana||0)+level*6+gear.mana) * (1 + (tb.manaPct||0)));
+    const crit=Math.floor((base.critico||0)+gear.critico+(tb.critico||0));
+    const speed=Math.floor(100+mb.speed*100+(tb.speed||0)+level*.25);
+    const evasion=Math.floor(2+mb.evasao+(tb.evasion||0)+Math.min(30,speed/25));
+    return {attack,defense,maxHp,maxMana,crit,speed,evasion,power:this.calculatePower(player),mountPower:mb.power,mountAttack:mb.ataque,mountHp:mb.hp,mountDefense:mb.defesa,talentPower:tb.power,talentBonuses:tb};
   }
-  static calculatePower(player){ const classe=GAME_CLASSES[player.classeId]||{baseStats:{baseDano:10,defesa:5,critico:5,mana:0}}; const base=classe.baseStats; const gear=this.getEquippedList(player).reduce((s,i)=>s+this.scoreItem(i),0); const mount=this.getMountBonus(player); return Math.floor(120+player.nivel*52+base.baseDano*8+base.defesa*5+base.critico*5+Math.floor((base.mana||0)*.2)+gear+mount.power+mount.ataque*7+mount.defesa*5+mount.evasao*12); }
+  static calculatePower(player){ const classe=GAME_CLASSES[player.classeId]||{baseStats:{baseDano:10,defesa:5,critico:5,mana:0}}; const base=classe.baseStats; const gear=this.getEquippedList(player).reduce((s,i)=>s+this.scoreItem(i),0); const mount=this.getMountBonus(player); const tb=TalentManager.getBonuses(player); { const meta = MetaProgressManager.publicMeta(player); return Math.floor(120+player.nivel*52+base.baseDano*8+base.defesa*5+base.critico*5+Math.floor((base.mana||0)*.2)+gear+mount.power+mount.ataque*7+mount.defesa*5+mount.evasao*12+tb.power+((meta.ascension&&meta.ascension.bonuses&&meta.ascension.bonuses.power)||0)+((meta.ascension&&meta.ascension.artifactBonuses&&meta.ascension.artifactBonuses.power)||0)+((meta.codex&&meta.codex.bonuses&&meta.codex.bonuses.power)||0)); } }
   static syncInventoryFlags(player){
     player.inventario=player.inventario||[];
     player.equipados=player.equipados||{arma:null,anel:null,colar:null,ornamento:null};
@@ -220,8 +222,8 @@ class LootManager {
     }
     return player;
   }
-  static getDamageBonus(player){ return this.getEquippedList(player).reduce((s,i)=>s+(totalStats(i).ataque||0),0)+this.getMountBonus(player).ataque; }
-  static getCritBonus(player){ return this.getEquippedList(player).reduce((s,i)=>s+(totalStats(i).critico||0),0); }
+  static getDamageBonus(player){ const meta=MetaProgressManager.publicMeta(player); const pct=((meta.ascension&&meta.ascension.bonuses&&meta.ascension.bonuses.ataquePct)||0)+((meta.ascension&&meta.ascension.artifactBonuses&&meta.ascension.artifactBonuses.ataquePct)||0)+((meta.codex&&meta.codex.bonuses&&meta.codex.bonuses.ataquePct)||0); const flat=this.getEquippedList(player).reduce((s,i)=>s+(totalStats(i).ataque||0),0)+this.getMountBonus(player).ataque; return Math.floor(flat*(1+pct)); }
+  static getCritBonus(player){ const meta=MetaProgressManager.publicMeta(player); return this.getEquippedList(player).reduce((s,i)=>s+(totalStats(i).critico||0),0)+((meta.ascension&&meta.ascension.artifactBonuses&&meta.ascension.artifactBonuses.critico)||0)+((meta.codex&&meta.codex.bonuses&&meta.codex.bonuses.critico)||0); }
   static getHpBonus(player){ return this.getEquippedList(player).reduce((s,i)=>s+(totalStats(i).hp||0),0)+this.getMountBonus(player).hp; }
   static getManaBonus(player){ return this.getEquippedList(player).reduce((s,i)=>s+(totalStats(i).mana||0),0); }
   static chooseDrop(player, monster){
@@ -252,7 +254,7 @@ class LootManager {
       isBetter: newPower > currentPower
     };
   }
-  static maybeDropItem(player, monster){ if(monster.isBoss && Math.random()<.72) return this.enrichItem(cloneBossItem(player,monster)); const rate=monster.isBoss?1:(monster.templateId==='skeleton'? .68:.43); if(Math.random()>rate) return null; return this.chooseDrop(player,monster); }
+  static maybeDropItem(player, monster){ if(monster.isBoss && Math.random()<.72) return this.enrichItem(cloneBossItem(player,monster)); const tb=TalentManager.getBonuses(player); const meta=MetaProgressManager.publicMeta(player); const metaDrop=((meta.ascension&&meta.ascension.artifactBonuses&&meta.ascension.artifactBonuses.dropPct)||0)+((meta.codex&&meta.codex.bonuses&&meta.codex.bonuses.dropPct)||0); const rate=Math.min(0.95,(monster.isBoss?1:(monster.templateId==='skeleton'? .68:.43))+(tb.dropPct||0)+metaDrop); if(Math.random()>rate) return null; return this.chooseDrop(player,monster); }
   static grantKillLoot(player, monster){
     const gold=Math.floor(((monster&&monster.goldBase)||10)+(monster.nivel||1)*4+(monster.isBoss?100:0));
     const item=this.maybeDropItem(player,monster);
