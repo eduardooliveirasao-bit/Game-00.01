@@ -1,105 +1,223 @@
 {
-  "4c3974a5b173afe38236579f13db9869": {
-    "saveId": "4c3974a5b173afe38236579f13db9869",
+  "4631e213fdeaf8c1fc5cc29769f8163d": {
+    "saveId": "4631e213fdeaf8c1fc5cc29769f8163d",
     "nome": "Elyon, o Arcano Azul",
     "classeId": "mago",
-    "nivel": 5,
-    "level": 5,
-    "xp": 43,
-    "hp": 263,
-    "maxHp": 263,
-    "mana": 390,
-    "maxMana": 390,
-    "ouro": 3584,
-    "gemas": 21,
-    "kills": 15,
-    "horda": 16,
-    "autoFarm": true,
+    "nivel": 10,
+    "level": 10,
+    "xp": 81,
+    "hp": 602,
+    "maxHp": 698,
+    "mana": 736,
+    "maxMana": 736,
+    "ouro": 18116,
+    "gemas": 29,
+    "kills": 42,
+    "horda": 43,
+    "autoFarm": false,
     "inventario": [
       {
-        "id": "mago_arma_3_1782656580999_3c11463a3e6c7",
-        "baseId": "mago_arma_3",
+        "id": "mago_colar_1_1782657604920_b347803d0de93",
+        "baseId": "mago_colar_1",
         "classeId": "mago",
-        "nome": "Cajado das Asas Sagradas",
-        "slot": "arma",
-        "raridade": "épico",
-        "cor": "#5da9ff",
-        "icon": "⚔️",
-        "asset": "assets/items/arma_épico.png",
-        "requiredLevel": 17,
-        "exclusivoBoss": false,
-        "sockets": 2,
-        "gems": [],
-        "visual": {
-          "glow": "#5da9ff",
-          "wing": false,
-          "tier": 3
-        },
-        "stats": {
-          "ataque": 44,
-          "defesa": 9,
-          "critico": 6,
-          "hp": 43,
-          "mana": 46
-        },
-        "rarityColor": "#b07cff",
-        "totalStats": {
-          "ataque": 44,
-          "defesa": 9,
-          "critico": 6,
-          "hp": 43,
-          "mana": 46
-        },
-        "powerScore": 419,
-        "sellValue": 426
-      },
-      {
-        "id": "mago_anel_3_1782656576952_3ea1a5bc02e088",
-        "baseId": "mago_anel_3",
-        "classeId": "mago",
-        "nome": "Anel da Aurora Arcana",
-        "slot": "anel",
-        "raridade": "épico",
-        "cor": "#5da9ff",
-        "icon": "💍",
-        "asset": "assets/items/anel_épico.png",
-        "requiredLevel": 17,
-        "exclusivoBoss": false,
-        "sockets": 2,
-        "gems": [],
-        "visual": {
-          "glow": "#5da9ff",
-          "wing": false,
-          "tier": 3
-        },
-        "stats": {
-          "ataque": 21,
-          "defesa": 9,
-          "critico": 12,
-          "hp": 41,
-          "mana": 49
-        },
-        "rarityColor": "#b07cff",
-        "totalStats": {
-          "ataque": 21,
-          "defesa": 9,
-          "critico": 12,
-          "hp": 41,
-          "mana": 49
-        },
-        "powerScore": 323,
-        "sellValue": 344
-      },
-      {
-        "id": "boss_mago_colar_1782656556740_b2e168a8e6c85",
-        "baseId": "boss_colar",
-        "classeId": "mago",
-        "nome": "Colar do Sopro Celestial",
+        "nome": "Colar da Luz Serena",
         "slot": "colar",
+        "raridade": "comum",
+        "cor": "#5da9ff",
+        "icon": "📿",
+        "asset": "assets/items/colar_comum.png",
+        "requiredLevel": 1,
+        "exclusivoBoss": false,
+        "sockets": 1,
+        "gems": [],
+        "visual": {
+          "glow": "#5da9ff",
+          "wing": false,
+          "tier": 1
+        },
+        "stats": {
+          "ataque": 33,
+          "defesa": 26,
+          "critico": 8,
+          "hp": 137,
+          "mana": 79
+        },
+        "rarityColor": "#d9dde7",
+        "totalStats": {
+          "ataque": 33,
+          "defesa": 26,
+          "critico": 8,
+          "hp": 137,
+          "mana": 79
+        },
+        "powerScore": 457,
+        "sellValue": 388
+      },
+      {
+        "id": "boss_mago_ornamento_1782657602905_857f2f9a2f494",
+        "baseId": "boss_ornamento",
+        "classeId": "mago",
+        "nome": "Asa Dracônica do Arcanjo",
+        "slot": "ornamento",
         "raridade": "boss",
         "cor": "#ff8f3d",
+        "icon": "🪽",
+        "asset": "assets/items/ornamento_boss.png",
+        "requiredLevel": 31,
+        "exclusivoBoss": true,
+        "sockets": 3,
+        "gems": [],
+        "wingVisual": {
+          "name": "Asas Dracônicas do Arcanjo",
+          "color": "#78cfff",
+          "size": 1.45
+        },
+        "visual": {
+          "glow": "#ff8f3d",
+          "wing": true,
+          "tier": 6
+        },
+        "stats": {
+          "ataque": 88,
+          "defesa": 51,
+          "critico": 17,
+          "hp": 288,
+          "mana": 264
+        },
+        "rarityColor": "#ff8f3d",
+        "totalStats": {
+          "ataque": 88,
+          "defesa": 51,
+          "critico": 17,
+          "hp": 288,
+          "mana": 264
+        },
+        "powerScore": 1273,
+        "sellValue": 1257
+      },
+      {
+        "id": "mago_ornamento_5_1782657530298_5cf50f8e4dab",
+        "baseId": "mago_ornamento_5",
+        "classeId": "mago",
+        "nome": "Sigilo do Arcanjo",
+        "slot": "ornamento",
+        "raridade": "mítico",
+        "cor": "#5da9ff",
+        "icon": "✨",
+        "asset": "assets/items/ornamento_mítico.png",
+        "requiredLevel": 33,
+        "exclusivoBoss": false,
+        "sockets": 3,
+        "gems": [],
+        "visual": {
+          "glow": "#5da9ff",
+          "wing": true,
+          "tier": 5
+        },
+        "stats": {
+          "ataque": 30,
+          "defesa": 45,
+          "critico": 9,
+          "hp": 181,
+          "mana": 86
+        },
+        "rarityColor": "#ff7fbb",
+        "totalStats": {
+          "ataque": 30,
+          "defesa": 45,
+          "critico": 9,
+          "hp": 181,
+          "mana": 86
+        },
+        "powerScore": 628,
+        "sellValue": 673
+      },
+      {
+        "id": "mago_colar_4_1782657527282_2bf3e76018c6f",
+        "baseId": "mago_colar_4",
+        "classeId": "mago",
+        "nome": "Colar do Santuário",
+        "slot": "colar",
+        "raridade": "lendário",
+        "cor": "#5da9ff",
         "icon": "📿",
-        "asset": "assets/items/colar_boss.png",
+        "asset": "assets/items/colar_lendário.png",
+        "requiredLevel": 25,
+        "exclusivoBoss": false,
+        "sockets": 2,
+        "gems": [],
+        "visual": {
+          "glow": "#5da9ff",
+          "wing": false,
+          "tier": 4
+        },
+        "stats": {
+          "ataque": 29,
+          "defesa": 29,
+          "critico": 7,
+          "hp": 186,
+          "mana": 86
+        },
+        "rarityColor": "#ffcf5b",
+        "totalStats": {
+          "ataque": 29,
+          "defesa": 29,
+          "critico": 7,
+          "hp": 186,
+          "mana": 86
+        },
+        "powerScore": 527,
+        "sellValue": 552
+      },
+      {
+        "id": "mago_colar_5_1782657523244_952d145210eeb8",
+        "baseId": "mago_colar_5",
+        "classeId": "mago",
+        "nome": "Colar do Juízo Celestial",
+        "slot": "colar",
+        "raridade": "mítico",
+        "cor": "#5da9ff",
+        "icon": "📿",
+        "asset": "assets/items/colar_mítico.png",
+        "requiredLevel": 33,
+        "exclusivoBoss": false,
+        "sockets": 3,
+        "gems": [],
+        "visual": {
+          "glow": "#5da9ff",
+          "wing": false,
+          "tier": 5
+        },
+        "stats": {
+          "ataque": 28,
+          "defesa": 31,
+          "critico": 7,
+          "hp": 204,
+          "mana": 90
+        },
+        "rarityColor": "#ff7fbb",
+        "totalStats": {
+          "ataque": 28,
+          "defesa": 31,
+          "critico": 7,
+          "hp": 204,
+          "mana": 90
+        },
+        "powerScore": 560,
+        "sellValue": 616
+      }
+    ],
+    "equipados": {
+      "arma": {
+        "id": "boss_mago_arma_1782657165153_bc6321217cad28",
+        "baseId": "boss_arma",
+        "classeId": "mago",
+        "nome": "Cajado do Dragão Elemental",
+        "slot": "arma",
+        "raridade": "boss",
+        "cor": "#ff8f3d",
+        "icon": "🐉",
+        "asset": "assets/items/arma_boss.png",
         "requiredLevel": 7,
         "exclusivoBoss": true,
         "sockets": 3,
@@ -111,102 +229,25 @@
           "tier": 6
         },
         "stats": {
-          "ataque": 45,
-          "defesa": 18,
-          "critico": 10,
-          "hp": 177,
-          "mana": 201
+          "ataque": 105,
+          "defesa": 14,
+          "critico": 13,
+          "hp": 97,
+          "mana": 181
         },
         "rarityColor": "#ff8f3d",
         "totalStats": {
-          "ataque": 45,
-          "defesa": 18,
-          "critico": 10,
-          "hp": 177,
-          "mana": 201
+          "ataque": 105,
+          "defesa": 14,
+          "critico": 13,
+          "hp": 97,
+          "mana": 181
         },
-        "powerScore": 754,
-        "sellValue": 815
+        "powerScore": 1069,
+        "sellValue": 1083
       },
-      {
-        "id": "mago_anel_2_1782656504266_c761127b18cda8",
-        "baseId": "mago_anel_2",
-        "classeId": "mago",
-        "nome": "Anel das Runas",
-        "slot": "anel",
-        "raridade": "raro",
-        "cor": "#5da9ff",
-        "icon": "💍",
-        "asset": "assets/items/anel_raro.png",
-        "requiredLevel": 9,
-        "exclusivoBoss": false,
-        "sockets": 1,
-        "gems": [],
-        "visual": {
-          "glow": "#5da9ff",
-          "wing": false,
-          "tier": 2
-        },
-        "stats": {
-          "ataque": 13,
-          "defesa": 5,
-          "critico": 8,
-          "hp": 23,
-          "mana": 31
-        },
-        "rarityColor": "#55c7ff",
-        "totalStats": {
-          "ataque": 13,
-          "defesa": 5,
-          "critico": 8,
-          "hp": 23,
-          "mana": 31
-        },
-        "powerScore": 195,
-        "sellValue": 200
-      },
-      {
-        "id": "mago_anel_2_1782656494174_6ca5ba3c31ed3",
-        "baseId": "mago_anel_2",
-        "classeId": "mago",
-        "nome": "Anel das Runas",
-        "slot": "anel",
-        "raridade": "raro",
-        "cor": "#5da9ff",
-        "icon": "💍",
-        "asset": "assets/items/anel_raro.png",
-        "requiredLevel": 9,
-        "exclusivoBoss": false,
-        "sockets": 1,
-        "gems": [],
-        "visual": {
-          "glow": "#5da9ff",
-          "wing": false,
-          "tier": 2
-        },
-        "stats": {
-          "ataque": 12,
-          "defesa": 4,
-          "critico": 8,
-          "hp": 18,
-          "mana": 28
-        },
-        "rarityColor": "#55c7ff",
-        "totalStats": {
-          "ataque": 12,
-          "defesa": 4,
-          "critico": 8,
-          "hp": 18,
-          "mana": 28
-        },
-        "powerScore": 182,
-        "sellValue": 189
-      }
-    ],
-    "equipados": {
-      "arma": null,
       "anel": {
-        "id": "mago_anel_1_1782656508307_09a8ac5ed20cf8",
+        "id": "mago_anel_1_1782657104623_fb3dc3fcbfed18",
         "baseId": "mago_anel_1",
         "classeId": "mago",
         "nome": "Anel do Mana Puro",
@@ -225,51 +266,123 @@
           "tier": 1
         },
         "stats": {
-          "ataque": 12,
-          "defesa": 5,
-          "critico": 7,
-          "hp": 25,
-          "mana": 26
+          "ataque": 8,
+          "defesa": 3,
+          "critico": 6,
+          "hp": 14,
+          "mana": 19
         },
         "rarityColor": "#d9dde7",
         "totalStats": {
-          "ataque": 12,
-          "defesa": 5,
-          "critico": 7,
-          "hp": 25,
-          "mana": 26
+          "ataque": 8,
+          "defesa": 3,
+          "critico": 6,
+          "hp": 14,
+          "mana": 19
         },
-        "powerScore": 162,
-        "sellValue": 137
+        "powerScore": 115,
+        "sellValue": 97
       },
-      "colar": null,
-      "ornamento": null
+      "colar": {
+        "id": "mago_colar_2_1782657514144_e40d501a0f8338",
+        "baseId": "mago_colar_2",
+        "classeId": "mago",
+        "nome": "Colar da Estrela Guia",
+        "slot": "colar",
+        "raridade": "raro",
+        "cor": "#5da9ff",
+        "icon": "📿",
+        "asset": "assets/items/colar_raro.png",
+        "requiredLevel": 9,
+        "exclusivoBoss": false,
+        "sockets": 1,
+        "gems": [],
+        "visual": {
+          "glow": "#5da9ff",
+          "wing": false,
+          "tier": 2
+        },
+        "stats": {
+          "ataque": 27,
+          "defesa": 24,
+          "critico": 6,
+          "hp": 139,
+          "mana": 72
+        },
+        "rarityColor": "#55c7ff",
+        "totalStats": {
+          "ataque": 27,
+          "defesa": 24,
+          "critico": 6,
+          "hp": 139,
+          "mana": 72
+        },
+        "powerScore": 418,
+        "sellValue": 390
+      },
+      "ornamento": {
+        "id": "mago_ornamento_2_1782657519188_b54810dd3896f",
+        "baseId": "mago_ornamento_2",
+        "classeId": "mago",
+        "nome": "Relicário Azul",
+        "slot": "ornamento",
+        "raridade": "raro",
+        "cor": "#5da9ff",
+        "icon": "✨",
+        "asset": "assets/items/ornamento_raro.png",
+        "requiredLevel": 9,
+        "exclusivoBoss": false,
+        "sockets": 1,
+        "gems": [],
+        "visual": {
+          "glow": "#5da9ff",
+          "wing": false,
+          "tier": 2
+        },
+        "stats": {
+          "ataque": 28,
+          "defesa": 31,
+          "critico": 8,
+          "hp": 130,
+          "mana": 70
+        },
+        "rarityColor": "#55c7ff",
+        "totalStats": {
+          "ataque": 28,
+          "defesa": 31,
+          "critico": 8,
+          "hp": 130,
+          "mana": 70
+        },
+        "powerScore": 460,
+        "sellValue": 426
+      }
     },
     "achievements": [
       "primeiro_sangue",
       "cacador_10",
-      "poder_1000",
       "matador_dragao",
       "reliquia_boss",
-      "nivel_5"
+      "nivel_5",
+      "poder_1000"
     ],
     "bestiary": {
-      "slime": 8,
-      "skeleton": 6,
-      "dragon": 1
+      "slime": 21,
+      "skeleton": 17,
+      "dragon": 4
     },
     "stats": {
-      "damageDealt": 7195,
-      "damageTaken": 1090,
-      "goldEarned": 1394,
-      "bossKills": 1,
-      "deaths": 3,
-      "itemsSold": 0
+      "damageDealt": 47441,
+      "damageTaken": 9759,
+      "goldEarned": 9210,
+      "bossKills": 4,
+      "deaths": 25,
+      "itemsSold": 17
     },
     "mount": {
       "id": "lobo_cristalino",
       "level": 1
     },
-    "updatedAt": 1782656581000
+    "updatedAt": 1782657653198
   }
 }

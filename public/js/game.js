@@ -280,8 +280,9 @@
       var el = document.createElement('div');
       el.className = 'bag-item' + (state.selectedItemId === item.id ? ' active' : '');
       el.style.borderColor = item.rarityColor || item.cor || 'rgba(255,255,255,.08)';
-      el.innerHTML = '<strong style="color:' + (item.rarityColor || '#fff') + '"><img class="mini-item-img" src="' + (item.asset || '') + '" alt=""> ' + item.icon + ' ' + escapeHtml(item.nome) + '</strong>' +
-        '<small>' + escapeHtml(item.slot) + ' · ' + escapeHtml(item.raridade) + ' · Nv.' + (item.requiredLevel || 1) + ' · Venda ' + (item.sellValue || 0) + ' ouro</small>';
+      el.innerHTML = '<div class="bag-item-top"><img class="bag-item-img" src="' + (item.asset || '') + '" alt=""><div class="bag-item-text"><strong style="color:' + (item.rarityColor || '#fff') + '">' + item.icon + ' ' + escapeHtml(item.nome) + '</strong>' +
+        '<small>' + escapeHtml(item.slot) + ' · ' + escapeHtml(item.raridade) + ' · Nv.' + (item.requiredLevel || 1) + '</small></div></div>' +
+        '<div class="bag-item-bottom"><span>Poder ' + (item.powerScore || 0) + '</span><span>Venda ' + (item.sellValue || 0) + ' ouro</span></div>';
       el.onclick = function () { state.selectedItemId = item.id; renderBag(); renderBagDetail(item); };
       bagList.appendChild(el);
     });
@@ -307,13 +308,15 @@
     });
     socketHtml += '</div><small>Cada gema inserida consome 1 💎 e aumenta os atributos do item.</small></div>';
 
+    var equippedHtml = equipped ? '<div class="compare-item"><img class="compare-item-img" src="' + (equipped.asset || '') + '" alt=""><div><span style="color:' + (equipped.rarityColor || '#fff') + '">' + equipped.icon + ' ' + escapeHtml(equipped.nome) + '</span><small>' + escapeHtml(equipped.raridade) + ' · Poder ' + (equipped.powerScore || 0) + '</small></div></div>' : 'Nada equipado';
+
     bagDetail.innerHTML = '<h3 style="color:' + (item.rarityColor || '#fff') + '"><img class="detail-item-img" src="' + (item.asset || '') + '" alt=""> ' + item.icon + ' ' + escapeHtml(item.nome) + '</h3>' +
       '<div class="rarity ' + rarityClass(item.raridade) + '">' + escapeHtml(String(item.raridade).toUpperCase()) + ' · Slot ' + escapeHtml(item.slot) + ' · Requer Nv. ' + (item.requiredLevel || 1) + '</div>' +
       '<p>Venda por <strong>' + (item.sellValue || 0) + ' ouro</strong> ou equipe para alterar os atributos e o visual do herói.</p>' +
       '<div class="detail-stats">' +
         diffHtml(item, equipped, 'ataque', 'ATQ') + diffHtml(item, equipped, 'defesa', 'DEF') + diffHtml(item, equipped, 'critico', 'CRIT') + diffHtml(item, equipped, 'hp', 'HP') + diffHtml(item, equipped, 'mana', 'MANA') + '<div>PODER<br><strong>' + (item.powerScore || 0) + '</strong></div>' +
       '</div>' +
-      '<div class="compare-box"><strong>Equipado no slot:</strong><br>' + (equipped ? '<span style="color:' + (equipped.rarityColor || '#fff') + '">' + equipped.icon + ' ' + escapeHtml(equipped.nome) + '</span>' : 'Nada equipado') + '</div>' +
+      '<div class="compare-box"><strong>Equipado no slot:</strong><br>' + equippedHtml + '</div>' +
       socketHtml +
       '<button id="equip-selected-btn">Equipar item</button><button id="sell-selected-btn">Vender item</button>';
     var equipBtn = byId('equip-selected-btn');
@@ -356,88 +359,161 @@
     var mods = state.me.visualMods || {};
     var mount = state.me.mount || (mods && mods.mount);
     var mountImg = mount && mountImages[mount.id];
-    var idle = Math.sin(now / 420) * 5;
-    var x = canvas.width * 0.28;
-    var y = canvas.height * 0.88 + idle;
+    var clsId = state.me.classeId;
     var hit = now < state.anim.playerHitUntil;
     var attack = now < state.anim.playerAttackUntil;
     var dead = !!state.me.isDead;
+    var t = now / 1000;
+    var bob = Math.sin(now / 230) * 4;
+    var x = canvas.width * 0.28;
+    var y = canvas.height * 0.88 + bob;
     var progress = attack ? 1 - Math.max(0, (state.anim.playerAttackUntil - now) / 520) : 0;
-    if (attack) {
-      x += Math.sin(progress * Math.PI) * 70;
-      y -= Math.sin(progress * Math.PI) * 18;
-    }
-    if (hit) x -= 22 + Math.random() * 10;
+    var swing = attack ? Math.sin(progress * Math.PI) : 0;
+    if (attack) { x += swing * 80; y -= swing * 22; }
+    if (hit) x -= 18 + Math.random() * 8;
 
-    var charH = Math.min(250, Math.max(170, canvas.height * 0.58));
-    var charW = state.me.classeId === 'mago' ? charH * 1.02 : charH * 0.76;
-    var mountH = mount ? Math.min(120, charH * 0.46) : 0;
-    var mountY = y;
+    var charH = Math.min(256, Math.max(176, canvas.height * 0.60));
+    var charW = clsId === 'mago' ? charH * 1.02 : charH * 0.78;
+    var mountH = mount ? Math.min(138, charH * 0.50) : 0;
+    var heroAnchorY = y - mountH;
+    var breathScale = 1 + Math.sin(now / 220) * 0.015;
+    var tilt = (hit ? -0.08 : 0) + (attack ? (clsId === 'arqueiro' ? 0.08 : -0.06) * swing : 0);
 
     ctx.save();
-    if (dead) { ctx.globalAlpha = 0.55; ctx.filter = 'grayscale(1)'; }
+    if (dead) { ctx.globalAlpha = 0.58; ctx.filter = 'grayscale(1)'; }
+
     if (mountImg && mountImg.complete) {
       var mountW = mountH * 1.55;
+      var trot = Math.sin(now / 135) * (state.me.autoFarm ? 2.8 : 1.2);
       ctx.save();
-      ctx.globalAlpha = dead ? 0.55 : 1;
-      ctx.translate(x - 5, mountY - mountH * 0.18);
-      ctx.scale(1 + Math.sin(now / 320) * 0.012, 1);
+      ctx.translate(x - 6, y + trot * 0.35);
+      ctx.rotate((attack ? -0.03 * swing : 0) + Math.sin(now / 260) * 0.012);
+      ctx.scale(1 + Math.sin(now / 210) * 0.02, 1 - Math.sin(now / 210) * 0.015);
       ctx.drawImage(mountImg, -mountW / 2, -mountH, mountW, mountH);
+      ctx.strokeStyle = 'rgba(255,255,255,.20)';
+      ctx.lineWidth = 3;
+      for (var lm = -1; lm <= 1; lm += 2) {
+        ctx.beginPath();
+        ctx.moveTo(lm * mountW * 0.12, -mountH * 0.08);
+        ctx.lineTo(lm * mountW * 0.08 + Math.sin(now / 120 + lm) * 6, mountH * 0.18);
+        ctx.stroke();
+      }
       ctx.restore();
+      if (state.me.autoFarm) spawnParticles(x - 20, y + 2, 'rgba(160,220,255,.55)', 1);
     }
 
-    // Asa visual muda com ornamento equipado.
     var wing = mods.wing || null;
-    if (wing || state.me.classeId === 'mago') {
+    if (wing || clsId === 'mago') {
       var wingColor = wing ? wing.color : '#d7ebff';
       var scale = wing ? (wing.size || 1.15) : 1.0;
+      var flap = Math.sin(now / 150) * 0.18;
       ctx.save();
-      ctx.globalAlpha = 0.58;
+      ctx.globalAlpha = 0.62;
       ctx.fillStyle = wingColor;
       ctx.shadowColor = wingColor;
-      ctx.shadowBlur = 24;
-      ctx.beginPath();
-      ctx.ellipse(x - charW * 0.42, y - mountH - charH * 0.55, charW * 0.34 * scale, charH * 0.22 * scale, -0.55, 0, Math.PI * 2);
-      ctx.ellipse(x + charW * 0.42, y - mountH - charH * 0.55, charW * 0.34 * scale, charH * 0.22 * scale, 0.55, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.shadowBlur = 26;
+      ctx.translate(x, heroAnchorY - charH * 0.56);
+      ctx.rotate(-0.18 + flap);
+      ctx.beginPath(); ctx.ellipse(-charW * 0.42, 0, charW * 0.34 * scale, charH * 0.22 * scale, -0.48, 0, Math.PI * 2); ctx.fill();
+      ctx.rotate(0.36 - flap * 2);
+      ctx.beginPath(); ctx.ellipse(charW * 0.42, 0, charW * 0.34 * scale, charH * 0.22 * scale, 0.48, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
 
-    if (img && img.complete) ctx.drawImage(img, x - charW / 2, y - mountH - charH, charW, charH);
-
-    // Glows/equipamento visual por item equipado.
     if (mods.aura) {
-      ctx.save(); ctx.globalAlpha = 0.45; ctx.strokeStyle = mods.aura; ctx.shadowColor = mods.aura; ctx.shadowBlur = 20; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(x, y - mountH - charH * 0.45, charW * 0.55, charH * 0.48, 0, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.globalAlpha = 0.35; ctx.strokeStyle = mods.aura; ctx.shadowColor = mods.aura; ctx.shadowBlur = 24; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(x, heroAnchorY - charH * 0.46, charW * 0.58, charH * 0.50, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
     }
+
+    ctx.save();
+    ctx.translate(x, heroAnchorY - charH / 2);
+    ctx.rotate(tilt);
+    ctx.scale((attack ? 1 + 0.03 * swing : 1) * breathScale, (hit ? 0.97 : 1) * breathScale);
+    if (img && img.complete) ctx.drawImage(img, -charW / 2, -charH / 2, charW, charH);
+
     if (mods.weaponGlow) {
-      ctx.save(); ctx.strokeStyle = mods.weaponGlow; ctx.shadowColor = mods.weaponGlow; ctx.shadowBlur = 18; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x + charW * 0.16, y - mountH - charH * 0.38); ctx.lineTo(x + charW * 0.48, y - mountH - charH * 0.78); ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.strokeStyle = mods.weaponGlow; ctx.shadowColor = mods.weaponGlow; ctx.shadowBlur = 18; ctx.lineWidth = 5;
+      if (clsId === 'guerreiro') {
+        ctx.beginPath(); ctx.arc(charW * 0.10, -charH * 0.10, charW * 0.32, -1.1, 0.5); ctx.stroke();
+      } else if (clsId === 'arqueiro') {
+        ctx.beginPath(); ctx.arc(charW * 0.16, -charH * 0.12, charW * 0.16, -1.25, 1.25); ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.moveTo(charW * 0.18, -charH * 0.10); ctx.lineTo(charW * 0.42, -charH * 0.48); ctx.stroke();
+      }
+      ctx.restore();
     }
     if (mods.ringGlow) {
-      ctx.save(); ctx.fillStyle = mods.ringGlow; ctx.shadowColor = mods.ringGlow; ctx.shadowBlur = 16; ctx.beginPath(); ctx.arc(x - charW * 0.2, y - mountH - charH * 0.42, 7, 0, Math.PI*2); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.fillStyle = mods.ringGlow; ctx.shadowColor = mods.ringGlow; ctx.shadowBlur = 14; ctx.beginPath(); ctx.arc(-charW * 0.18, -charH * 0.02, 6 + Math.sin(now / 160) * 1.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
+
+    // animação própria por classe
+    ctx.save();
+    if (clsId === 'guerreiro' && attack) {
+      ctx.strokeStyle = mods.weaponGlow || '#ffb179'; ctx.lineWidth = 6; ctx.shadowColor = mods.weaponGlow || '#ffb179'; ctx.shadowBlur = 16;
+      ctx.beginPath(); ctx.arc(charW * 0.06, -charH * 0.16, charW * 0.40, -1.3 + swing * 0.4, 0.7 + swing * 0.5); ctx.stroke();
+    } else if (clsId === 'arqueiro') {
+      var drawBack = attack ? 12 * swing : 4 + Math.sin(now / 180) * 2;
+      ctx.strokeStyle = '#9ef0c8'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(charW * 0.18, -charH * 0.10, charW * 0.15, -1.2, 1.2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(charW * 0.15, -charH * 0.24); ctx.lineTo(charW * 0.15 - drawBack, -charH * 0.02); ctx.lineTo(charW * 0.15, charH * 0.10); ctx.stroke();
+    } else if (clsId === 'mago') {
+      ctx.strokeStyle = '#7fd6ff'; ctx.lineWidth = 3; ctx.shadowColor = '#7fd6ff'; ctx.shadowBlur = 12;
+      var orbR = charW * 0.28;
+      for (var o = 0; o < 3; o++) {
+        var ang = t * 2.2 + o * 2.09;
+        ctx.beginPath(); ctx.arc(Math.cos(ang) * orbR, -charH * 0.12 + Math.sin(ang) * 12, 5, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.moveTo(charW * 0.18, -charH * 0.05); ctx.lineTo(charW * 0.38, -charH * 0.48); ctx.stroke();
     }
     ctx.restore();
-    if (hit) spawnParticles(x, y - mountH - charH * 0.55, '#ff7b7b', 2);
-    drawNameplate(state.me.nome + ' [Nv. ' + state.me.nivel + ']', x, Math.max(22, y - mountH - charH - 12), dead ? '#ffb3b3' : '#ffe69b', 'rgba(255,230,155,.4)');
+    ctx.restore();
+    ctx.restore();
+
+    if (hit) spawnParticles(x, heroAnchorY - charH * 0.35, '#ff7b7b', 2);
+    drawNameplate(state.me.nome + ' [Nv. ' + state.me.nivel + ']', x, Math.max(22, heroAnchorY - charH - 16), dead ? '#ffb3b3' : '#ffe69b', 'rgba(255,230,155,.4)');
   }
 
   function drawMonster(now) {
     if (!state.monster) return;
     var img = monsterImages[state.monster.templateId];
-    var idle = Math.sin(now / 360) * 6;
+    var idle = Math.sin(now / 280) * 5;
     var x = canvas.width * 0.72;
     var y = canvas.height * 0.88 + idle;
     var isDragon = state.monster.templateId === 'dragon';
     var hit = now < state.anim.monsterHitUntil;
     var attack = now < state.anim.monsterAttackUntil;
-    if (attack) x -= 28 * Math.sin((state.anim.monsterAttackUntil - now) / 290 * Math.PI);
-    if (hit) x += (Math.random() - 0.5) * 20;
+    var attackPulse = attack ? Math.sin((1 - Math.max(0, (state.anim.monsterAttackUntil - now) / 360)) * Math.PI) : 0;
+    if (attack) x -= 34 * attackPulse;
+    if (hit) x += (Math.random() - 0.5) * 16;
     var h = isDragon ? Math.min(300, canvas.height * 0.72) : Math.min(220, canvas.height * 0.55);
     var w = isDragon ? h * 1.18 : h * 0.96;
-    if (img && img.complete) ctx.drawImage(img, x - w / 2, y - h, w, h);
+
+    ctx.save();
+    ctx.translate(x, y - h / 2);
+    if (state.monster.templateId === 'slime') {
+      ctx.scale(1 + Math.sin(now / 170) * 0.045, 1 - Math.sin(now / 170) * 0.05);
+    } else if (state.monster.templateId === 'skeleton') {
+      ctx.rotate((attack ? -0.05 * attackPulse : 0) + Math.sin(now / 360) * 0.01);
+    } else if (isDragon) {
+      ctx.scale(1 + Math.sin(now / 210) * 0.02, 1 - Math.sin(now / 210) * 0.015);
+    }
+    if (img && img.complete) ctx.drawImage(img, -w / 2, -h / 2, w, h);
+
+    if (state.monster.templateId === 'skeleton' && attack) {
+      ctx.strokeStyle = '#d8f0ff'; ctx.lineWidth = 5; ctx.shadowColor = '#d8f0ff'; ctx.shadowBlur = 16;
+      ctx.beginPath(); ctx.arc(-10, -10, w * 0.24, -1.0, 0.5); ctx.stroke();
+    }
+    if (isDragon && attack) {
+      ctx.strokeStyle = '#ffb25e'; ctx.shadowColor = '#ffb25e'; ctx.shadowBlur = 18; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(-w * 0.05, -h * 0.10); ctx.bezierCurveTo(w * 0.05, -h * 0.18, w * 0.18, -h * 0.05, w * 0.32, -h * 0.18); ctx.stroke();
+    }
+    ctx.restore();
+
     if (state.monster.special && state.monster.special.active) {
       ctx.save(); ctx.strokeStyle = 'rgba(180,140,255,.85)'; ctx.lineWidth = 6; ctx.shadowColor = 'rgba(180,140,255,.65)'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.ellipse(x, y - h / 2, w * 0.34, h * 0.43, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
     }
-    if (hit) spawnParticles(x, y - h * 0.52, '#ff9090', 3);
+    if (hit) spawnParticles(x, y - h * 0.30, '#ff9090', 3);
     drawNameplate(state.monster.nome + ' [Nv. ' + state.monster.nivel + ']', x, Math.max(22, y - h - 12), '#eaf0ff', 'rgba(255,255,255,.16)');
   }
 
@@ -446,21 +522,53 @@
   }
   function roundRect(x, y, w, h, r, fill, stroke) { if (w < 2 * r) r = w / 2; if (h < 2 * r) r = h / 2; ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); if (fill) ctx.fill(); if (stroke) ctx.stroke(); }
 
-  function spawnEffect(type, color) { state.effects.push({ type: type || 'ring', color: color || '#fff', start: performance.now(), duration: 950, x: canvas.width * 0.72, y: canvas.height * 0.55 }); }
+  function spawnEffect(type, color, opts) {
+    opts = opts || {};
+    state.effects.push({
+      type: type || 'ring',
+      color: color || '#fff',
+      start: performance.now(),
+      duration: opts.duration || 950,
+      x: opts.x != null ? opts.x : canvas.width * 0.72,
+      y: opts.y != null ? opts.y : canvas.height * 0.55,
+      fromX: opts.fromX != null ? opts.fromX : canvas.width * 0.34,
+      fromY: opts.fromY != null ? opts.fromY : canvas.height * 0.50,
+      toX: opts.toX != null ? opts.toX : canvas.width * 0.72,
+      toY: opts.toY != null ? opts.toY : canvas.height * 0.46
+    });
+  }
   function drawEffects() {
     var now = performance.now(); state.effects = state.effects.filter(function (e) { return now - e.start < e.duration; });
-    state.effects.forEach(function (e) { var p = (now - e.start) / e.duration; var x = e.x, y = e.y, c = e.color; ctx.save(); ctx.globalAlpha = Math.max(0, 1 - p); ctx.strokeStyle = c; ctx.fillStyle = c; ctx.lineWidth = 4; ctx.shadowColor = c; ctx.shadowBlur = 20;
-      if (e.type === 'slash') { for (var i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(x - 60 + i * 18, y + 45); ctx.lineTo(x + 40 + i * 18, y - 45); ctx.stroke(); } }
-      else if (e.type === 'shieldBurst') { ctx.beginPath(); ctx.arc(x, y, 30 + p * 90, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.arc(x, y, 18 + p * 55, 0, Math.PI * 2); ctx.stroke(); }
-      else if (e.type === 'groundCrack') { for (var j = -2; j <= 2; j++) { ctx.beginPath(); ctx.moveTo(x + j * 18, y + 50); ctx.lineTo(x + j * 24 - 10, y + 10); ctx.lineTo(x + j * 28 + 8, y - 18); ctx.stroke(); } }
-      else if (e.type === 'holyShockwave' || e.type === 'angelJudgement') { ctx.beginPath(); ctx.arc(x, y, 20 + p * 120, 0, Math.PI * 2); ctx.stroke(); for (var a = 0; a < 10; a++) { var ang = (Math.PI * 2 / 10) * a; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(ang) * (45 + p * 90), y + Math.sin(ang) * (45 + p * 90)); ctx.stroke(); } }
-      else if (e.type === 'arrowLine' || e.type === 'holySpear') { ctx.beginPath(); ctx.moveTo(x - 120, y + 12); ctx.lineTo(x + 50, y - 28); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x + 50, y - 28); ctx.lineTo(x + 28, y - 38); ctx.lineTo(x + 33, y - 8); ctx.closePath(); ctx.fill(); }
-      else if (e.type === 'tripleArrow') { for (var t = -1; t <= 1; t++) { ctx.beginPath(); ctx.moveTo(x - 120, y + t * 20); ctx.lineTo(x + 30, y - 12 + t * 20); ctx.stroke(); } }
-      else if (e.type === 'shadowDash') { for (var s = 0; s < 6; s++) { ctx.beginPath(); ctx.arc(x - 12 * s, y + 6 * s, 18 + p * 16, 0, Math.PI * 2); ctx.stroke(); } }
-      else if (e.type === 'arrowRain' || e.type === 'meteorShower') { for (var m = 0; m < 12; m++) { var ox = -110 + m * 20; ctx.beginPath(); ctx.moveTo(x + ox, y - 120 + p * 35); ctx.lineTo(x + ox - 18, y - 55 + p * 55); ctx.stroke(); } }
-      else if (e.type === 'prismBurst') { ctx.beginPath(); ctx.moveTo(x, y - 70); ctx.lineTo(x - 65, y + 45); ctx.lineTo(x + 65, y + 45); ctx.closePath(); ctx.stroke(); ctx.beginPath(); ctx.arc(x, y, 22 + p * 52, 0, Math.PI * 2); ctx.stroke(); }
-      else { ctx.beginPath(); ctx.arc(x, y, 20 + p * 100, 0, Math.PI * 2); ctx.stroke(); }
-      ctx.restore(); });
+    state.effects.forEach(function (e) {
+      var p = (now - e.start) / e.duration;
+      var x = e.x, y = e.y, c = e.color;
+      var fx = e.fromX + (e.toX - e.fromX) * p;
+      var fy = e.fromY + (e.toY - e.fromY) * p;
+      ctx.save(); ctx.globalAlpha = Math.max(0, 1 - p * 0.4); ctx.strokeStyle = c; ctx.fillStyle = c; ctx.lineWidth = 4; ctx.shadowColor = c; ctx.shadowBlur = 20;
+      if (e.type === 'slash') {
+        var cx = e.toX, cy = e.toY;
+        for (var i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(cx - 60 + i * 18, cy + 45); ctx.lineTo(cx + 40 + i * 18, cy - 45); ctx.stroke(); }
+      }
+      else if (e.type === 'shieldBurst') { ctx.beginPath(); ctx.arc(e.toX, e.toY, 30 + p * 90, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.arc(e.toX, e.toY, 18 + p * 55, 0, Math.PI * 2); ctx.stroke(); }
+      else if (e.type === 'groundCrack') { for (var j = -2; j <= 2; j++) { ctx.beginPath(); ctx.moveTo(e.toX + j * 18, e.toY + 50); ctx.lineTo(e.toX + j * 24 - 10, e.toY + 10); ctx.lineTo(e.toX + j * 28 + 8, e.toY - 18); ctx.stroke(); } }
+      else if (e.type === 'holyShockwave' || e.type === 'angelJudgement') { ctx.beginPath(); ctx.arc(e.toX, e.toY, 20 + p * 120, 0, Math.PI * 2); ctx.stroke(); for (var a = 0; a < 10; a++) { var ang = (Math.PI * 2 / 10) * a; ctx.beginPath(); ctx.moveTo(e.toX, e.toY); ctx.lineTo(e.toX + Math.cos(ang) * (45 + p * 90), e.toY + Math.sin(ang) * (45 + p * 90)); ctx.stroke(); } }
+      else if (e.type === 'arrowLine' || e.type === 'holySpear') {
+        ctx.beginPath(); ctx.moveTo(e.fromX, e.fromY); ctx.lineTo(fx, fy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx - 18, fy - 10); ctx.lineTo(fx - 14, fy + 12); ctx.closePath(); ctx.fill();
+      }
+      else if (e.type === 'tripleArrow') {
+        for (var t = -1; t <= 1; t++) { ctx.beginPath(); ctx.moveTo(e.fromX, e.fromY + t * 18); ctx.lineTo(fx, fy + t * 18); ctx.stroke(); }
+      }
+      else if (e.type === 'shadowDash') {
+        for (var s = 0; s < 6; s++) { ctx.beginPath(); ctx.arc(fx - 12 * s, fy + 6 * s, 18 + p * 16, 0, Math.PI * 2); ctx.stroke(); }
+      }
+      else if (e.type === 'arrowRain' || e.type === 'meteorShower') {
+        for (var m = 0; m < 12; m++) { var ox = -110 + m * 20; ctx.beginPath(); ctx.moveTo(e.toX + ox, e.toY - 120 + p * 35); ctx.lineTo(e.toX + ox - 18, e.toY - 55 + p * 55); ctx.stroke(); }
+      }
+      else if (e.type === 'prismBurst') { ctx.beginPath(); ctx.moveTo(e.toX, e.toY - 70); ctx.lineTo(e.toX - 65, e.toY + 45); ctx.lineTo(e.toX + 65, e.toY + 45); ctx.closePath(); ctx.stroke(); ctx.beginPath(); ctx.arc(e.toX, e.toY, 22 + p * 52, 0, Math.PI * 2); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.arc(e.toX, e.toY, 20 + p * 100, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.restore();
+    });
   }
   function drawParticles() { state.particles = state.particles.filter(function (p) { return p.life > 0; }); state.particles.forEach(function (p) { p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.life -= 0.04; ctx.save(); ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 2.4, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }); }
   function drawFloating() { state.floating = state.floating.filter(function (f) { return f.life > 0; }); state.floating.forEach(function (f) { f.y += f.vy; f.life -= 0.02; ctx.save(); ctx.globalAlpha = f.life; ctx.font = f.isCrit ? '900 30px Inter' : '900 20px Inter'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.78)'; ctx.fillStyle = f.color; ctx.strokeText(f.text, f.x, f.y); ctx.fillText(f.text, f.x, f.y); ctx.restore(); }); }
@@ -491,7 +599,7 @@
     var nextCost = 150 * (mount.level || 1);
     mountCard.innerHTML = '<div class="mount-preview"><img src="' + mount.asset + '" alt="' + escapeHtml(mount.nome) + '"></div>' +
       '<h3>' + escapeHtml(mount.nome) + ' <span>Nv. ' + (mount.level || 1) + '</span></h3>' +
-      '<p>Montaria equipada no palco. Treinamentos aumentam poder, HP e ataque.</p>' +
+      '<p>Montaria com arte própria e animação no palco. Treinamentos aumentam poder, HP e ataque.</p>' +
       '<div class="detail-stats"><div>PODER<br><strong>+' + (mount.bonus.power || 0) + '</strong></div><div>ATQ<br><strong>+' + (mount.bonus.ataque || 0) + '</strong></div><div>HP<br><strong>+' + (mount.bonus.hp || 0) + '</strong></div><div>CUSTO<br><strong>' + nextCost + ' ouro</strong></div></div>' +
       '<button id="upgrade-mount-btn">Treinar montaria</button>';
     var btn = byId('upgrade-mount-btn');
@@ -523,7 +631,25 @@
     (data.monsterAttacks || []).forEach(function (ma) { state.anim.monsterAttackUntil = performance.now() + 360; if (ma.playerId === state.meId) { state.anim.playerHitUntil = performance.now() + 420; pushFloating('-' + ma.damage + ' HP', '#ffb0b0', canvas.width * 0.28, canvas.height * 0.42, ma.died); playSound(ma.died ? 'death' : 'hit'); } });
   });
   socket.on('enemyDied', function (data) { addLog('⚔️ ' + data.killerName + ' derrotou ' + data.deadMonster.nome + ' e ganhou +' + data.xpReward + ' XP e +' + data.goldGained + ' ouro.'); if (data.loot) { state.lootRecente.unshift(data.loot); state.lootRecente = state.lootRecente.slice(0, 8); addLog((data.loot.exclusivoBoss ? '🐉 Loot exclusivo: ' : '🎁 Loot obtido: ') + data.loot.icon + ' ' + data.loot.nome + ' [' + data.loot.raridade + ']'); playSound(data.loot.exclusivoBoss ? 'boss' : 'loot'); } if (data.progress && data.progress.leveledUp) addLog('✨ Level up! Agora você está no Nv. ' + data.progress.currentLevel + '.'); if (data.player && data.player.id === state.meId) state.me = data.player; if (data.nextMonster) { state.monster = data.nextMonster; updateEnemyHUD(); } updateHUD(); });
-  socket.on('abilityUsed', function (evt) { spawnEffect(evt.visual && evt.visual.tipo, evt.visual && evt.visual.cor ? evt.visual.cor : '#fff'); if (evt.playerId === state.meId) startCooldownVisual(evt.habilidadeId, evt.cooldown); });
+  socket.on('abilityUsed', function (evt) {
+    var color = evt.visual && evt.visual.cor ? evt.visual.cor : '#fff';
+    var type = evt.visual && evt.visual.tipo;
+    state.anim.playerSkillType = type;
+    state.anim.playerSkillUntil = performance.now() + 900;
+    spawnEffect(type, color, {
+      fromX: canvas.width * 0.35,
+      fromY: canvas.height * 0.47,
+      toX: canvas.width * 0.72,
+      toY: canvas.height * 0.40,
+      duration: /Rain|Shower|Judgement|Shockwave|Burst/.test(type || '') ? 1050 : 760
+    });
+    if (evt.playerId === state.meId) {
+      state.anim.playerAttackUntil = performance.now() + 560;
+      state.anim.monsterHitUntil = performance.now() + 420;
+      startCooldownVisual(evt.habilidadeId, evt.cooldown);
+    }
+    playSound('skill');
+  });
   socket.on('inventoryAction', function (info) { if (info.type === 'equip') { addLog('🧰 Item equipado: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'unequip') { addLog('🎒 Item retornou para a bolsa: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'sell') { addLog('🪙 Item vendido por +' + info.gold + ' ouro: ' + info.item.nome + '.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'sellAll') { addLog('🪙 ' + info.sold + ' itens vendidos por +' + info.gold + ' ouro.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'equipBest') { addLog('⚡ Melhor equipamento aplicado: ' + ((info.equippedItems || []).length) + ' item(ns).'); playSound('equip'); } if (info.type === 'gem') { addLog('💎 Gema inserida: ' + info.gem.nome + ' em ' + info.item.nome + '.'); playSound('equip'); } });
   socket.on('playerDied', function (data) { if (data.playerId === state.meId) { addLog('💀 Você foi derrotado por ' + data.monsterName + '. Ressurreição automática em 5s.'); state.anim.playerHitUntil = performance.now() + 900; playSound('death'); } });
   socket.on('playerRevived', function (data) { if (data.player && data.player.id === state.meId) { state.me = data.player; addLog('✨ Você ressuscitou e voltou ao combate.'); playSound('loot'); updateHUD(); } });
