@@ -61,6 +61,9 @@ function sanitizePlayer(player) {
     codex: player.codex || null,
     ascension: player.ascension || null,
     season: player.season || null,
+    v30: player.v30 || null,
+    v40: player.v40 || null,
+    v90: player.v90 || null,
     extraTalentPoints: player.extraTalentPoints || 0,
     updatedAt: Date.now()
   };
@@ -126,6 +129,9 @@ class SaveManager {
       codex: save.codex || null,
       ascension: save.ascension || null,
       season: save.season || null,
+      v30: save.v30 || null,
+      v40: save.v40 || null,
+      v90: save.v90 || null,
       extraTalentPoints: save.extraTalentPoints || 0
     });
     player.id = keepSocketId;

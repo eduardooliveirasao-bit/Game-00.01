@@ -1,0 +1,22 @@
+Legend Of Indle - V43 Combat Feel Overhaul
+
+Foco: transformar a batalha com apenas 1 PNG estático por personagem, simulando ação com Canvas.
+
+Implementado:
+- VFXManager 2.0 completo em public/js/vfx-manager.js.
+- Dash & Return com antecipação, avanço, impacto e retorno.
+- Hit Flinch com recuo, wobble e flash branco/vermelho.
+- Screen Shake com rotação leve e decaimento.
+- Hit Stop para golpes críticos/skills fortes.
+- Slashes em combo, impactos circulares, shockwaves e arcos brilhantes.
+- Projéteis para arqueiro e beam/runa para mago.
+- Ataques de monstro com dash, impacto e leitura de boss.
+- Morte de monstro com explosão/onda de choque.
+- Reescrita do render do personagem para usar 1 PNG inteiro com transformações mais limpas.
+- Pipeline preparado para skins futuras por camadas: cabelo, roupa, arma e asas.
+- Background de batalha revitalizado com arena, ruínas, neblina, cristais, lua/portal e parallax.
+- Correção crítica do servidor: v40Bonus agora é definido dentro de monsterStrike.
+
+Observação:
+- Não usa spritesheets obrigatórias.
+- A animação é simulada por tween, VFX e transformação da imagem no Canvas.

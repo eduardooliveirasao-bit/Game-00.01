@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Legend Of Indle RPG V1</title>
   <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/auth-dark-fantasy.css" />
 </head>
 <body>
   <div id="app">
@@ -43,52 +44,72 @@
     </header>
 
 
-    <section id="auth-modal" class="modal auth-modal">
-      <div class="auth-bg-orb orb-a"></div>
-      <div class="auth-bg-orb orb-b"></div>
-      <div class="auth-stars"></div>
-      <div class="modal-card auth-card auth-card-modern">
-        <div class="auth-hero-panel">
-          <div class="auth-version-badge">ONLINE BUILD • RENDER READY</div>
-          <h1>Legend Of<br><span>Indle RPG V1</span></h1>
-          <p>Progressão idle, combate dinâmico, pets, montarias acumulativas, ranking, talentos e endgame meta em um RPG mobile-first.</p>
-          <div class="auth-feature-grid">
-            <div><strong>⚔️</strong><span>Auto Battle</span></div>
-            <div><strong>🎒</strong><span>Loot Progressivo</span></div>
-            <div><strong>🌠</strong><span>Meta Systems</span></div>
-            <div><strong>🏆</strong><span>Ranking Global</span></div>
+    <section id="auth-modal" class="modal auth-modal auth-dark-fantasy-screen">
+      <div class="df-bg-layer" aria-hidden="true"></div>
+      <div class="df-vignette" aria-hidden="true"></div>
+      <div class="df-ember-field" aria-hidden="true">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+
+      <div class="df-logo-wrap" aria-label="Legend Of Indle">
+        <img class="df-logo" src="assets/ui/legend-of-indle-logo-rune.png" alt="Legend Of Indle" />
+      </div>
+
+      <div class="df-login-card" role="dialog" aria-modal="true" aria-labelledby="entry-title">
+        <div class="df-card-corners" aria-hidden="true"></div>
+        <div class="df-rune-ring" aria-hidden="true"></div>
+
+        <header class="df-login-header">
+          <img class="df-emblem" src="assets/ui/rune-emblem.png" alt="" />
+          <div>
+            <p class="df-kicker">Servidor Online • Dark Fantasy Idle</p>
+            <h1 id="entry-title">Entrar no Reino</h1>
+            <span>Forje sua lenda, colete relíquias e suba no ranking.</span>
           </div>
+        </header>
+
+        <div class="df-form-grid">
+          <label class="df-rune-input" for="login-user">
+            <span>LOGIN OU NOME DO PERSONAGEM</span>
+            <input id="login-user" placeholder="Digite seu login ou nick" autocomplete="username" />
+          </label>
+
+          <label class="df-rune-input" for="login-pass">
+            <span>SENHA</span>
+            <input id="login-pass" placeholder="Digite sua senha" type="password" autocomplete="current-password" />
+          </label>
         </div>
-        <div class="auth-form-panel">
-          <div class="modal-header modern-auth-header">
-            <div>
-              <h2>Entre na sua jornada</h2>
-              <p>Use seu login para carregar nível, mochila, itens, gemas e progresso salvo.</p>
-            </div>
-          </div>
-          <div class="modal-body auth-body">
-            <div class="auth-box auth-glass">
-              <h3>Login</h3>
-              <input id="login-user" placeholder="Login" autocomplete="username">
-              <input id="login-pass" placeholder="Senha" type="password" autocomplete="current-password">
-              <button id="login-btn">Entrar no jogo</button>
-              <small>Conta GM padrão: login <b>GM</b> / senha <b>GM123</b></small>
-            </div>
-            <div class="auth-box auth-glass">
-              <h3>Criar conta</h3>
-              <input id="reg-user" placeholder="Login único">
-              <input id="reg-pass" placeholder="Senha" type="password">
-              <input id="reg-nick" placeholder="Nick do personagem">
+
+        <div id="auth-error" class="auth-error df-error" aria-live="polite"></div>
+
+        <div class="df-primary-actions">
+          <button id="login-btn" class="df-btn df-btn-play" type="button">
+            <b>JOGAR</b>
+            <small>Entrar no mundo</small>
+          </button>
+        </div>
+
+        <div class="df-secondary-actions">
+          <button id="entry-ranking-btn" class="df-btn df-btn-stone" type="button">RANKING</button>
+          <button id="entry-options-btn" class="df-btn df-btn-stone" type="button">OPÇÕES</button>
+        </div>
+
+        <details class="df-create-account">
+          <summary>Criar novo personagem</summary>
+          <div class="df-create-body">
+            <label class="df-rune-input compact" for="reg-user"><span>LOGIN ÚNICO</span><input id="reg-user" placeholder="Novo login" /></label>
+            <label class="df-rune-input compact" for="reg-pass"><span>SENHA</span><input id="reg-pass" placeholder="Nova senha" type="password" /></label>
+            <label class="df-rune-input compact" for="reg-nick"><span>NICK DO HERÓI</span><input id="reg-nick" placeholder="Nome do personagem" /></label>
+            <label class="df-rune-input compact" for="reg-class"><span>CLASSE</span>
               <select id="reg-class">
                 <option value="mago">Mago Arcanjo</option>
                 <option value="guerreiro">Guerreiro</option>
                 <option value="arqueiro">Arqueira</option>
               </select>
-              <button id="register-btn">Criar personagem</button>
-            </div>
+            </label>
+            <button id="register-btn" class="df-btn df-btn-register" type="button">CRIAR PERSONAGEM</button>
           </div>
-          <div id="auth-error" class="auth-error"></div>
-        </div>
+        </details>
       </div>
     </section>
 
@@ -182,6 +203,7 @@
       <button id="menu-ascension">🌌 Ascensão</button>
       <button id="menu-v30">✨ V30</button>
       <button id="menu-v40">🌠 V40</button>
+      <button id="menu-v90">👑 V90</button>
       <button>🪽 Asas</button>
       <button id="menu-mount">🐺 Montaria</button>
       <button id="menu-ranking">🏆 Ranking</button>
@@ -350,6 +372,32 @@
             <button data-v40-tab="cosmetics">Visual</button>
           </div>
           <div id="v40-content" class="v30-content">Carregando sistemas V40...</div>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="v90-modal" class="modal hidden">
+      <div class="modal-card compact-modal v90-modal-card">
+        <div class="modal-header">
+          <div>
+            <h2>Meta V90 — Ultimate Polish</h2>
+            <p>Maestrias, posturas, guarda-roupa por camadas, cartas de alma, ecos de pesadelo, roadmap e tática automática.</p>
+          </div>
+          <button id="v90-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body v30-body v90-body">
+          <div class="v30-tabs v90-tabs">
+            <button data-v90-tab="hub" class="active">Central</button>
+            <button data-v90-tab="mastery">Maestrias</button>
+            <button data-v90-tab="stance">Postura</button>
+            <button data-v90-tab="wardrobe">Skins</button>
+            <button data-v90-tab="cards">Cartas</button>
+            <button data-v90-tab="echoes">Ecos</button>
+            <button data-v90-tab="roadmap">V44–V90</button>
+            <button data-v90-tab="tactic">Tática</button>
+          </div>
+          <div id="v90-content" class="v30-content v90-content">Carregando sistemas V90...</div>
         </div>
       </div>
     </section>

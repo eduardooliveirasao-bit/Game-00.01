@@ -56,7 +56,8 @@
       playerSkillType: null,
       monsterSkillType: null
     },
-    v30Tab: 'season'
+    v30Tab: 'season',
+    v90Tab: 'hub'
   };
 
   var canvas = byId('game-canvas');
@@ -89,6 +90,8 @@
   var authError = byId('auth-error');
   var loginBtn = byId('login-btn');
   var registerBtn = byId('register-btn');
+  var entryRankingBtn = byId('entry-ranking-btn');
+  var entryOptionsBtn = byId('entry-options-btn');
   var menuShop = byId('menu-shop');
   var shopModal = byId('shop-modal');
   var shopClose = byId('shop-close');
@@ -99,6 +102,20 @@
   var gmMenu = byId('menu-gm');
   var gmModal = byId('gm-modal');
   var gmClose = byId('gm-close');
+
+  function showAuthModal() {
+    if (!authModal) return;
+    authModal.classList.remove('hidden');
+    authModal.style.display = '';
+    authModal.removeAttribute('aria-hidden');
+  }
+
+  function hideAuthModal() {
+    if (!authModal) return;
+    authModal.classList.add('hidden');
+    authModal.style.display = 'none';
+    authModal.setAttribute('aria-hidden', 'true');
+  }
   var menuTalent = byId('menu-talent');
   var talentModal = byId('talent-modal');
   var talentClose = byId('talent-close');
@@ -132,6 +149,10 @@
   var v40Modal = byId('v40-modal');
   var v40Close = byId('v40-close');
   var v40Content = byId('v40-content');
+  var menuV90 = byId('menu-v90');
+  var v90Modal = byId('v90-modal');
+  var v90Close = byId('v90-close');
+  var v90Content = byId('v90-content');
 
   var audioCtx = null;
   function ensureAudio() {
@@ -574,40 +595,104 @@
   }
 
   function drawBackground() {
+    var now = performance.now();
     var monsterId = state.monster && state.monster.templateId;
+    var zoneName = byId('stage-title') ? byId('stage-title').textContent : '';
+    var top = '#0a1029', mid = '#111a3f', bot = '#030611';
+    if (monsterId === 'dragon') { top = '#210c1e'; mid = '#3b152c'; bot = '#09040c'; }
+    else if (monsterId === 'skeleton') { top = '#071126'; mid = '#0d2026'; bot = '#03070c'; }
+    else if (/Céu|Celeste/i.test(zoneName || '')) { top = '#0c1c45'; mid = '#102b5f'; bot = '#040817'; }
+
     var g = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    if (monsterId === 'dragon') { g.addColorStop(0, '#1b0d1f'); g.addColorStop(0.5, '#2b1231'); g.addColorStop(1, '#09050f'); }
-    else if (monsterId === 'skeleton') { g.addColorStop(0, '#0f1730'); g.addColorStop(0.5, '#0d1e24'); g.addColorStop(1, '#04070c'); }
-    else { g.addColorStop(0, '#0a1442'); g.addColorStop(0.55, '#0b1f57'); g.addColorStop(1, '#030711'); }
+    g.addColorStop(0, top); g.addColorStop(0.52, mid); g.addColorStop(1, bot);
     ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    for (var i = 0; i < 36; i++) {
-      var sx = (i * 97 + 13) % canvas.width;
-      var sy = (i * 61 + 25) % (canvas.height * 0.58);
-      ctx.fillStyle = 'rgba(255,255,255,.18)';
-      ctx.fillRect(sx, sy, 2, 2);
-    }
-
-    if (monsterId === 'dragon') {
-      ctx.save();
-      var rg = ctx.createRadialGradient(canvas.width * 0.72, canvas.height * 0.28, 10, canvas.width * 0.72, canvas.height * 0.28, canvas.width * 0.35);
-      rg.addColorStop(0, 'rgba(255,140,80,.24)'); rg.addColorStop(1, 'rgba(255,140,80,0)');
-      ctx.fillStyle = rg; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore();
-    }
-
+    // Lua/portal distante
     ctx.save();
-    ctx.fillStyle = 'rgba(7,10,26,.6)';
-    ctx.beginPath(); ctx.ellipse(canvas.width * 0.28, canvas.height * 0.88, 165, 34, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(canvas.width * 0.72, canvas.height * 0.88, monsterId === 'dragon' ? 205 : 150, monsterId === 'dragon' ? 44 : 32, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalCompositeOperation = 'screen';
+    var moonX = canvas.width * (monsterId === 'dragon' ? 0.76 : 0.58);
+    var moonY = canvas.height * 0.18;
+    var rgMoon = ctx.createRadialGradient(moonX, moonY, 5, moonX, moonY, canvas.width * 0.22);
+    rgMoon.addColorStop(0, monsterId === 'dragon' ? 'rgba(255,144,82,.28)' : 'rgba(145,216,255,.24)');
+    rgMoon.addColorStop(0.45, monsterId === 'dragon' ? 'rgba(255,85,70,.10)' : 'rgba(145,216,255,.08)');
+    rgMoon.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = rgMoon; ctx.fillRect(0, 0, canvas.width, canvas.height * 0.65);
     ctx.restore();
 
-    for (var j = 0; j < 7; j++) {
-      var px = 42 + j * (canvas.width / 8.2);
-      var py = canvas.height * 0.80 + Math.sin(j) * 8;
-      ctx.fillStyle = j % 2 ? 'rgba(146,102,255,.24)' : 'rgba(118,211,255,.18)';
+    // Estrelas e partículas lentas
+    for (var i = 0; i < 54; i++) {
+      var sx = (i * 97 + 13 + Math.sin(now / 3000 + i) * 10) % canvas.width;
+      var sy = (i * 61 + 25) % (canvas.height * 0.56);
+      var alpha = 0.09 + ((i * 17) % 10) / 70 + Math.sin(now / 700 + i) * 0.035;
+      ctx.fillStyle = 'rgba(230,240,255,' + Math.max(0.04, alpha).toFixed(3) + ')';
+      ctx.fillRect(sx, sy, i % 7 === 0 ? 3 : 2, i % 7 === 0 ? 3 : 2);
+    }
+
+    // Montanhas / ruínas em parallax
+    ctx.save();
+    ctx.fillStyle = monsterId === 'dragon' ? 'rgba(38,9,17,.72)' : 'rgba(3,8,22,.60)';
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height * 0.58);
+    for (var m = 0; m <= 8; m++) {
+      var x = m * canvas.width / 8;
+      var y = canvas.height * (0.50 + ((m * 29) % 10) / 100) + Math.sin(now / 2200 + m) * 4;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(canvas.width, canvas.height * 0.78); ctx.lineTo(0, canvas.height * 0.78); ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = 'rgba(10,14,31,.62)';
+    for (var c = 0; c < 7; c++) {
+      var cx = c * canvas.width / 6 + Math.sin(c) * 20;
+      var cy = canvas.height * 0.56 + Math.sin(now / 1800 + c) * 2;
+      ctx.fillRect(cx - 9, cy - 72 - (c % 2) * 28, 18, 96 + (c % 2) * 28);
+      ctx.beginPath(); ctx.moveTo(cx - 22, cy - 72 - (c % 2) * 28); ctx.lineTo(cx, cy - 102 - (c % 2) * 24); ctx.lineTo(cx + 22, cy - 72 - (c % 2) * 28); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+
+    // Nevoeiro baixo
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    for (var f = 0; f < 5; f++) {
+      var fog = ctx.createLinearGradient(0, canvas.height * (0.62 + f * 0.05), 0, canvas.height * (0.76 + f * 0.05));
+      fog.addColorStop(0, 'rgba(120,170,255,0)');
+      fog.addColorStop(0.5, 'rgba(120,170,255,.035)');
+      fog.addColorStop(1, 'rgba(120,170,255,0)');
+      ctx.fillStyle = fog;
+      ctx.fillRect(Math.sin(now / 2600 + f) * 80 - 80, canvas.height * (0.62 + f * 0.05), canvas.width + 160, canvas.height * 0.18);
+    }
+    ctx.restore();
+
+    // Arena chão / perspectiva
+    ctx.save();
+    var floor = ctx.createLinearGradient(0, canvas.height * 0.68, 0, canvas.height);
+    floor.addColorStop(0, 'rgba(22,33,70,.16)');
+    floor.addColorStop(1, 'rgba(0,0,0,.55)');
+    ctx.fillStyle = floor; ctx.fillRect(0, canvas.height * 0.66, canvas.width, canvas.height * 0.34);
+    ctx.strokeStyle = 'rgba(145,216,255,.07)'; ctx.lineWidth = 1;
+    for (var l = 0; l < 8; l++) {
+      var yy = canvas.height * (0.70 + l * 0.04);
+      ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(canvas.width, yy + l * 8); ctx.stroke();
+    }
+    for (var r = -4; r <= 4; r++) {
+      ctx.beginPath(); ctx.moveTo(canvas.width * 0.5, canvas.height * 0.68); ctx.lineTo(canvas.width * (0.5 + r * 0.18), canvas.height); ctx.stroke();
+    }
+    ctx.restore();
+
+    // Bases/posicionamento dos personagens
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,.62)';
+    ctx.beginPath(); ctx.ellipse(canvas.width * 0.28, canvas.height * 0.90, 172, 36, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(canvas.width * 0.72, canvas.height * 0.90, monsterId === 'dragon' ? 220 : 158, monsterId === 'dragon' ? 48 : 34, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // Cristais/rúnicos na frente
+    for (var j = 0; j < 8; j++) {
+      var px = 30 + j * (canvas.width / 7.6);
+      var py = canvas.height * 0.82 + Math.sin(now / 1400 + j) * 5;
+      ctx.fillStyle = j % 2 ? 'rgba(146,102,255,.25)' : 'rgba(118,211,255,.20)';
       ctx.beginPath();
-      ctx.moveTo(px, py); ctx.lineTo(px + 15, py - 44); ctx.lineTo(px + 30, py); ctx.closePath();
-      ctx.fill();
+      ctx.moveTo(px, py); ctx.lineTo(px + 14, py - 48 - (j % 3) * 8); ctx.lineTo(px + 31, py); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.stroke();
     }
   }
 
@@ -654,152 +739,151 @@
     ctx.restore();
   }
 
+  function drawHeroSkinLayer(layerSrc, x, y, w, h, transform, opts) {
+    if (!layerSrc || !vfx || !vfx.drawSkinLayer) return;
+    var layerImg = cachedImage(layerSrc);
+    if (!layerImg || !layerImg.complete) return;
+    vfx.drawSkinLayer(layerImg, x, y, w, h, transform, opts || {});
+  }
+
   function drawPlayer(now) {
     if (!state.me || !state.me.classeId) return;
     var clsId = state.me.classeId;
     var mods = state.me.visualMods || {};
+    var layers = state.me.visualLayers || state.me.skins || {};
     var eq = state.me.equipados || {};
     var action = now < state.anim.playerHitUntil ? 'hit' : (now < state.anim.playerAttackUntil ? 'attack' : 'idle');
-    var img = getCharacterPose(clsId, action) || characterImages[clsId];
+    // V43: usa 1 PNG inteiro como base. O movimento vem do VFXManager/tweening.
+    // Isso deixa a renderização pronta para skins futuras: cabelo, roupa, arma e asas podem ser camadas PNG alinhadas.
+    var img = characterImages[clsId] || getCharacterPose(clsId, action);
     if (!img || !img.complete) return;
 
     var sw = img.naturalWidth || img.width || 1;
     var sh = img.naturalHeight || img.height || 1;
     var baseX = canvas.width * 0.28;
     var baseY = canvas.height * 0.90;
-    var h = Math.min(356, Math.max(232, canvas.height * 0.76));
+    var h = Math.min(370, Math.max(238, canvas.height * 0.78));
     var w = h * (sw / sh);
-    var attackProg = action === 'attack' ? 1 - Math.max(0, (state.anim.playerAttackUntil - now) / 620) : 0;
+    var attackProg = action === 'attack' ? 1 - Math.max(0, (state.anim.playerAttackUntil - now) / 640) : 0;
     var attackSwing = Math.sin(attackProg * Math.PI);
-    var hitProg = action === 'hit' ? 1 - Math.max(0, (state.anim.playerHitUntil - now) / 440) : 0;
-    var hitShake = action === 'hit' ? (Math.random() - 0.5) * 10 : 0;
-    var idleBob = Math.sin(now / 170) * 4;
-    var x = baseX + hitShake + (action === 'attack' ? attackSwing * 46 : 0);
-    var y = baseY + idleBob - (action === 'attack' ? attackSwing * 12 : 0);
-    var vfxPlayer = vfx ? vfx.getTransform('player', { x: x, y: y }) : { x: x, y: y, rot: 0, sx: 1, sy: 1, flash: null };
-    x = vfxPlayer.x;
-    y = vfxPlayer.y;
-    var torsoRot = Math.sin(now / 340) * 0.03 + (action === 'attack' ? (clsId === 'arqueiro' ? -0.20 : 0.16) * attackSwing : 0) - hitProg * 0.08 + (vfxPlayer.rot || 0);
-    var headRot = Math.sin(now / 290) * 0.05 + (action === 'attack' ? 0.08 * attackSwing : 0) - hitProg * 0.10;
-    var legRot = Math.sin(now / 190) * 0.03 + (action === 'attack' ? -0.06 * attackSwing : 0);
-    var shadowW = Math.max(76, w * 0.26);
+    var hitProg = action === 'hit' ? 1 - Math.max(0, (state.anim.playerHitUntil - now) / 460) : 0;
+    var idleBob = Math.sin(now / 210) * 4;
+    var breath = Math.sin(now / 420) * 0.018;
+    var base = { x: baseX, y: baseY + idleBob };
+    var tr = vfx ? vfx.getTransform('player', base) : { x: base.x, y: base.y, rot: 0, sx: 1, sy: 1, flash: null };
+    tr.rot = (tr.rot || 0) + Math.sin(now / 520) * 0.018 + (clsId === 'arqueiro' ? -attackSwing * 0.025 : attackSwing * 0.035) - hitProg * 0.035;
+    tr.sx = (tr.sx || 1) + breath + attackSwing * 0.018;
+    tr.sy = (tr.sy || 1) - breath * 0.65 - attackSwing * 0.012;
 
     ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,.52)';
-    ctx.beginPath(); ctx.ellipse(x, y + 10, shadowW * (1 + attackSwing * 0.10), 22 + attackSwing * 4, 0, 0, Math.PI * 2); ctx.fill();
+    var shadowScale = Math.max(0.72, 1 - (baseY - tr.y) / 420);
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.beginPath(); ctx.ellipse(tr.x, baseY + 12, Math.max(74, w * 0.25) * shadowScale, 23 * shadowScale, 0, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 
-    if (action === 'attack') drawAfterImages(img, x, y, w, h, 3, 18, 4, 0.11);
-    if (mods.aura) {
+    if (mods.aura || state.me.v90AuraColor || (state.me.v40 && state.me.v40.cosmetics && state.me.v40.cosmetics.equipped !== 'classic')) {
+      var auraColor = state.me.v90AuraColor || mods.aura || (state.me.v40.cosmetics.equipped === 'draconic' ? '#ff8b53' : state.me.v40.cosmetics.equipped === 'emerald' ? '#74ffc6' : '#9fd8ff');
       ctx.save();
-      ctx.strokeStyle = mods.aura; ctx.shadowColor = mods.aura; ctx.shadowBlur = 30; ctx.lineWidth = 3; ctx.globalAlpha = .36;
-      ctx.beginPath(); ctx.ellipse(x, y - h * 0.40, w * 0.30, h * 0.38, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = auraColor; ctx.shadowColor = auraColor; ctx.shadowBlur = 30; ctx.lineWidth = 3; ctx.globalAlpha = .25 + Math.sin(now / 300) * .05;
+      ctx.beginPath(); ctx.ellipse(tr.x, tr.y - h * 0.44, w * 0.32, h * 0.40, 0, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
     }
 
-    if (clsId === 'mago') {
+    if (clsId === 'mago' || layers.wings) {
       ctx.save();
-      ctx.globalAlpha = 0.50;
-      ctx.fillStyle = 'rgba(218,235,255,.72)';
-      ctx.shadowColor = '#d7ebff'; ctx.shadowBlur = 22;
-      var flap = Math.sin(now / 110) * 0.22 + attackSwing * 0.18;
-      ctx.translate(x, y - h * 0.62);
-      ctx.rotate(-0.18 + flap); ctx.beginPath(); ctx.ellipse(-w * 0.22, 0, w * 0.18, h * 0.12, -0.4, 0, Math.PI * 2); ctx.fill();
-      ctx.rotate(0.36 - flap * 2); ctx.beginPath(); ctx.ellipse(w * 0.22, 0, w * 0.18, h * 0.12, 0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.42;
+      ctx.fillStyle = 'rgba(210,232,255,.75)';
+      ctx.shadowColor = '#d8ecff'; ctx.shadowBlur = 26;
+      var flap = Math.sin(now / 135) * 0.24 + attackSwing * 0.22;
+      ctx.translate(tr.x, tr.y - h * 0.61);
+      ctx.rotate(-0.22 + flap); ctx.beginPath(); ctx.ellipse(-w * 0.27, 0, w * 0.23, h * 0.13, -0.48, 0, Math.PI * 2); ctx.fill();
+      ctx.rotate(0.44 - flap * 2); ctx.beginPath(); ctx.ellipse(w * 0.27, 0, w * 0.23, h * 0.13, 0.48, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
 
-    var playerSegSx = vfxPlayer.sx || 1;
-    var playerSegSy = vfxPlayer.sy || 1;
-    if (state.me.isDead || vfxPlayer.flash) {
-      ctx.save();
-      if (state.me.isDead) { ctx.globalAlpha = 0.55; ctx.filter = 'grayscale(1)'; }
-      if (vfxPlayer.flash) ctx.filter = vfxPlayer.flash === 'red' ? 'brightness(1.8) sepia(1) saturate(6) hue-rotate(-35deg)' : 'brightness(2.6) saturate(0.2)';
+    // Camadas futuras, todas usando o mesmo pivot/transform do corpo.
+    drawHeroSkinLayer(layers.back || layers.wingsBack, tr.x, tr.y, w, h, tr, { shadowColor: mods.aura, shadowBlur: 10, dead: state.me.isDead });
+    if (vfx && vfx.drawCharacterImage) vfx.drawCharacterImage(img, tr.x, tr.y, w, h, tr, { shadowColor: mods.aura || '#000', shadowBlur: mods.aura ? 16 : 0, dead: state.me.isDead });
+    else {
+      ctx.save(); ctx.translate(tr.x, tr.y); ctx.rotate(tr.rot || 0); ctx.scale(tr.sx || 1, tr.sy || 1); if (tr.flash) ctx.filter = tr.flash === 'red' ? 'brightness(1.9) sepia(1) saturate(6) hue-rotate(-35deg)' : 'brightness(2.8)'; ctx.drawImage(img, -w / 2, -h, w, h); ctx.restore();
     }
-    drawSegment(img, sw, sh, 0.58, 1.00, x, y - h * 0.18, w * 0.98, h * 0.42, legRot, playerSegSx, (1 + Math.sin(now / 150) * 0.02) * playerSegSy, state.me.isDead ? 0.55 : 1);
-    drawSegment(img, sw, sh, 0.20, 0.68, x + (action === 'attack' ? 10 * attackSwing : 0), y - h * 0.50, w, h * 0.48, torsoRot, (1 + attackSwing * 0.02) * playerSegSx, playerSegSy, state.me.isDead ? 0.55 : 1);
-    drawSegment(img, sw, sh, 0.00, 0.24, x + (action === 'hit' ? -4 : 0), y - h * 0.86, w * 0.88, h * 0.24, headRot, playerSegSx, playerSegSy, state.me.isDead ? 0.55 : 1);
-    if (state.me.isDead || vfxPlayer.flash) ctx.restore();
+    drawHeroSkinLayer(layers.outfit || layers.armor, tr.x, tr.y, w, h, tr, { dead: state.me.isDead });
+    drawHeroSkinLayer(layers.hair, tr.x, tr.y, w, h, tr, { dead: state.me.isDead });
+    drawHeroSkinLayer(layers.front || layers.wingsFront, tr.x, tr.y, w, h, tr, { shadowColor: mods.aura, shadowBlur: 14, dead: state.me.isDead });
 
     var weap = eq.arma, ring = eq.anel, neck = eq.colar, orn = eq.ornamento;
-    var wxBase = x + w * (clsId === 'arqueiro' ? 0.10 : 0.18) + (action === 'attack' ? 14 * attackSwing : 0);
-    var wyBase = y - h * 0.48;
-    if (weap) {
-      var wr = clsId === 'guerreiro' ? (0.10 + attackSwing * 1.10) : clsId === 'arqueiro' ? (-0.55 + attackSwing * 0.18) : (0.04 + attackSwing * 0.20);
-      var ws = clsId === 'arqueiro' ? 62 : 56;
+    var wxBase = tr.x + w * (clsId === 'arqueiro' ? 0.13 : 0.20) + attackSwing * 24;
+    var wyBase = tr.y - h * (clsId === 'arqueiro' ? 0.48 : 0.46) - attackSwing * 8;
+    if (layers.weapon) drawHeroSkinLayer(layers.weapon, tr.x, tr.y, w, h, tr, { shadowColor: mods.weaponGlow || '#9fd8ff', shadowBlur: 16 });
+    else if (weap) {
+      var wr = clsId === 'guerreiro' ? (0.12 + attackSwing * 1.15) : clsId === 'arqueiro' ? (-0.55 + attackSwing * 0.20) : (0.08 + attackSwing * 0.25);
+      var ws = clsId === 'arqueiro' ? 66 : 60;
       renderAssetIcon(weap.asset, wxBase, wyBase, ws, weap.rarityColor, wr);
-      if (action === 'attack') drawWeaponTrail(clsId, wxBase + 10, wyBase - 6, clsId === 'mago' ? 40 : 56, wr, weap.rarityColor || mods.weaponGlow || '#a9d8ff');
-    } else if (action === 'attack') {
-      drawWeaponTrail(clsId, wxBase + 10, wyBase - 6, clsId === 'mago' ? 40 : 56, attackSwing, mods.weaponGlow || '#a9d8ff');
-    }
-    if (ring) {
-      var orbit = now / 280;
-      renderAssetIcon(ring.asset, x - w * 0.18 + Math.cos(orbit) * 12, y - h * 0.48 + Math.sin(orbit) * 7, 26, ring.rarityColor, orbit);
-    }
-    if (neck) renderAssetIcon(neck.asset, x, y - h * 0.58, 30, neck.rarityColor, 0);
-    if (orn && !mods.wing && clsId !== 'mago') renderAssetIcon(orn.asset, x + w * 0.10, y - h * 0.72, 40, orn.rarityColor, Math.sin(now / 420) * 0.15);
+      if (action === 'attack') drawWeaponTrail(clsId, wxBase + 12, wyBase - 6, clsId === 'mago' ? 48 : 66, wr, weap.rarityColor || mods.weaponGlow || '#a9d8ff');
+    } else if (action === 'attack') drawWeaponTrail(clsId, wxBase + 12, wyBase - 6, clsId === 'mago' ? 46 : 64, attackSwing, mods.weaponGlow || '#a9d8ff');
 
-    if (action === 'attack') spawnParticles(x + w * 0.14, y - h * 0.40, mods.weaponGlow || '#9fd1ff', 2);
-    if (action === 'hit') spawnParticles(x, y - h * 0.38, '#ff8686', 2);
-    drawNameplate(state.me.nome + ' [Nv. ' + state.me.nivel + ']', x, Math.max(22, y - h - 10), state.me.isDead ? '#ffb3b3' : '#ffe69b', 'rgba(255,230,155,.4)');
+    if (ring) { var orbit = now / 280; renderAssetIcon(ring.asset, tr.x - w * 0.22 + Math.cos(orbit) * 13, tr.y - h * 0.47 + Math.sin(orbit) * 8, 27, ring.rarityColor, orbit); }
+    if (neck) renderAssetIcon(neck.asset, tr.x, tr.y - h * 0.58, 31, neck.rarityColor, 0);
+    if (orn && !layers.front && clsId !== 'mago') renderAssetIcon(orn.asset, tr.x + w * 0.12, tr.y - h * 0.75, 42, orn.rarityColor, Math.sin(now / 420) * 0.15);
+
+    if (action === 'attack') spawnParticles(tr.x + w * 0.16, tr.y - h * 0.44, mods.weaponGlow || '#9fd1ff', 1);
+    if (action === 'hit') spawnParticles(tr.x, tr.y - h * 0.42, '#ff8686', 2);
+    drawNameplate(state.me.nome + ' [Nv. ' + state.me.nivel + ']', tr.x, Math.max(22, tr.y - h - 10), state.me.isDead ? '#ffb3b3' : '#ffe69b', 'rgba(255,230,155,.4)');
   }
 
   function drawMonster(now) {
     if (!state.monster) return;
     var id = state.monster.templateId;
     var action = now < state.anim.monsterHitUntil ? 'hit' : (now < state.anim.monsterAttackUntil ? 'attack' : 'idle');
-    var img = getAnimatedImage('monster', id, action, now) || monsterImages[id];
+    // V43: monstros também usam 1 PNG inteiro com tweens fortes para evitar corte feio por segmentos.
+    var img = monsterImages[id] || getAnimatedImage('monster', id, action, now);
     if (!img || !img.complete) return;
     var sw = img.naturalWidth || img.width || 1;
     var sh = img.naturalHeight || img.height || 1;
-    var x = canvas.width * 0.72;
-    var y = canvas.height * 0.90 + Math.sin(now / 230) * 2;
-    var attackPulse = action === 'attack' ? Math.sin((1 - Math.max(0, (state.anim.monsterAttackUntil - now) / 460)) * Math.PI) : 0;
-    var hitProg = action === 'hit' ? 1 - Math.max(0, (state.anim.monsterHitUntil - now) / 420) : 0;
-    if (action === 'attack') x -= 34 * attackPulse;
-    if (action === 'hit') x += (Math.random() - 0.5) * 12;
-    var vfxMonster = vfx ? vfx.getTransform('monster', { x: x, y: y }) : { x: x, y: y, rot: 0, sx: 1, sy: 1, flash: null };
-    x = vfxMonster.x;
-    y = vfxMonster.y;
     var isDragon = id === 'dragon';
-    var h = isDragon ? Math.min(312, canvas.height * 0.68) : Math.min(232, canvas.height * 0.54);
+    var baseX = canvas.width * 0.72;
+    var baseY = canvas.height * 0.90 + Math.sin(now / 260) * 3;
+    var h = isDragon ? Math.min(328, canvas.height * 0.70) : Math.min(244, canvas.height * 0.56);
     var w = h * (sw / sh);
+    var attackPulse = action === 'attack' ? Math.sin((1 - Math.max(0, (state.anim.monsterAttackUntil - now) / 500)) * Math.PI) : 0;
+    var hitProg = action === 'hit' ? 1 - Math.max(0, (state.anim.monsterHitUntil - now) / 430) : 0;
+    var base = { x: baseX - attackPulse * (isDragon ? 42 : 30), y: baseY - attackPulse * 8 };
+    var tr = vfx ? vfx.getTransform('monster', base) : { x: base.x, y: base.y, rot: 0, sx: 1, sy: 1, flash: null };
+    tr.rot = (tr.rot || 0) - attackPulse * 0.045 + Math.sin(now / 520) * 0.012 + hitProg * 0.045;
+    tr.sx = (tr.sx || 1) + attackPulse * 0.035 + Math.sin(now / 360) * 0.012;
+    tr.sy = (tr.sy || 1) - attackPulse * 0.018 - Math.sin(now / 360) * 0.008;
 
     ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,.50)';
-    ctx.beginPath(); ctx.ellipse(x, y + 8, (isDragon ? 112 : 86) * (1 + attackPulse * 0.08), isDragon ? 28 : 22, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.56)';
+    ctx.beginPath(); ctx.ellipse(tr.x, baseY + 10, (isDragon ? 126 : 88) * (1 + attackPulse * 0.12), isDragon ? 32 : 23, 0, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 
-    if (vfxMonster.flash) { ctx.save(); ctx.filter = vfxMonster.flash === 'red' ? 'brightness(1.8) sepia(1) saturate(6) hue-rotate(-35deg)' : 'brightness(2.6) saturate(0.2)'; }
-    if (id === 'slime') {
-      var sx = 1 + Math.sin(now / 180) * 0.04 + attackPulse * 0.10 - hitProg * 0.06;
-      var sy = 1 - Math.sin(now / 180) * 0.04 - attackPulse * 0.08 + hitProg * 0.05;
-      if (action === 'attack') drawAfterImages(img, x, y, w, h, 2, -14, 3, 0.10);
+    if (isDragon || (state.monster.special && state.monster.special.active)) {
       ctx.save();
-      ctx.translate(x, y - h / 2); ctx.scale(sx, sy); ctx.drawImage(img, -w / 2, -h / 2, w, h); ctx.restore();
-    } else if (id === 'skeleton') {
-      if (action === 'attack') drawAfterImages(img, x, y, w, h, 2, -16, 3, 0.09);
-      drawSegment(img, sw, sh, 0.66, 1.00, x, y - h * 0.16, w * 0.98, h * 0.34, Math.sin(now / 190) * 0.02, 1, 1, 1);
-      drawSegment(img, sw, sh, 0.24, 0.72, x - attackPulse * 10, y - h * 0.50, w, h * 0.48, -attackPulse * 0.18 + Math.sin(now / 300) * 0.02, 1, 1, 1);
-      drawSegment(img, sw, sh, 0.00, 0.28, x - attackPulse * 8, y - h * 0.82, w * 0.82, h * 0.28, attackPulse * 0.10, 1, 1, 1);
-      if (action === 'attack') { ctx.save(); ctx.strokeStyle = '#d8f0ff'; ctx.lineWidth = 5; ctx.shadowColor = '#d8f0ff'; ctx.shadowBlur = 16; ctx.beginPath(); ctx.arc(x - 12, y - h * 0.50, w * 0.18, -1.3, 0.45); ctx.stroke(); ctx.restore(); }
-    } else {
-      if (action === 'attack') drawAfterImages(img, x, y, w, h, 2, -18, 4, 0.08);
-      drawSegment(img, sw, sh, 0.46, 1.00, x, y - h * 0.18, w, h * 0.54, Math.sin(now / 240) * 0.03, 1 + attackPulse * 0.02, 1, 1);
-      drawSegment(img, sw, sh, 0.00, 0.50, x - attackPulse * 10, y - h * 0.72, w, h * 0.50, -attackPulse * 0.12 + Math.sin(now / 340) * 0.02, 1, 1, 1);
-      ctx.save();
-      var rg = ctx.createRadialGradient(x, y - h * 0.46, 10, x, y - h * 0.46, w * 0.62);
-      rg.addColorStop(0, 'rgba(255,158,72,.20)'); rg.addColorStop(1, 'rgba(255,158,72,0)');
-      ctx.fillStyle = rg; ctx.fillRect(x - w, y - h - 60, w * 2, h * 1.4); ctx.restore();
-      ctx.save(); ctx.strokeStyle = 'rgba(255,176,96,.75)'; ctx.shadowColor = 'rgba(255,176,96,.75)'; ctx.shadowBlur = 18; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x + w * 0.12, y - h * 0.56); ctx.lineTo(x + w * 0.32 + Math.sin(now / 180) * 10, y - h * 0.64); ctx.stroke(); ctx.restore();
+      ctx.globalCompositeOperation = 'lighter';
+      var aura = isDragon ? 'rgba(255,133,72,.30)' : 'rgba(183,146,255,.25)';
+      var rg = ctx.createRadialGradient(tr.x, tr.y - h * 0.52, 20, tr.x, tr.y - h * 0.52, w * 0.64);
+      rg.addColorStop(0, aura); rg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = rg; ctx.fillRect(tr.x - w, tr.y - h - 70, w * 2, h * 1.5);
+      ctx.restore();
     }
 
-    if (vfxMonster.flash) ctx.restore();
-    if (state.monster.special && state.monster.special.active) {
-      ctx.save(); ctx.strokeStyle = 'rgba(180,140,255,.85)'; ctx.lineWidth = 6; ctx.shadowColor = 'rgba(180,140,255,.65)'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.ellipse(x, y - h * 0.54, w * 0.30, h * 0.38, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    if (vfx && vfx.drawCharacterImage) vfx.drawCharacterImage(img, tr.x, tr.y, w, h, tr, { shadowColor: isDragon ? '#ff8f3d' : '#9fd8ff', shadowBlur: isDragon ? 18 : 8 });
+    else { ctx.save(); ctx.translate(tr.x, tr.y); ctx.rotate(tr.rot || 0); ctx.scale(tr.sx || 1, tr.sy || 1); if (tr.flash) ctx.filter = tr.flash === 'red' ? 'brightness(1.9) sepia(1) saturate(6) hue-rotate(-35deg)' : 'brightness(2.8)'; ctx.drawImage(img, -w / 2, -h, w, h); ctx.restore(); }
+
+    if (id === 'skeleton' && action === 'attack') {
+      ctx.save(); ctx.strokeStyle = '#d8f0ff'; ctx.lineWidth = 5; ctx.shadowColor = '#d8f0ff'; ctx.shadowBlur = 16; ctx.beginPath(); ctx.arc(tr.x - 14, tr.y - h * 0.50, w * 0.18, -1.3, 0.45); ctx.stroke(); ctx.restore();
     }
-    if (action === 'hit') spawnParticles(x, y - h * 0.42, '#ff9090', 3);
-    drawNameplate(state.monster.nome + ' [Nv. ' + state.monster.nivel + ']', x, Math.max(22, y - h - 8), '#eaf0ff', 'rgba(255,255,255,.16)');
+    if (id === 'dragon') {
+      ctx.save(); ctx.strokeStyle = 'rgba(255,176,96,.75)'; ctx.shadowColor = 'rgba(255,176,96,.75)'; ctx.shadowBlur = 18; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(tr.x + w * 0.12, tr.y - h * 0.56); ctx.lineTo(tr.x + w * 0.34 + Math.sin(now / 180) * 10, tr.y - h * 0.64); ctx.stroke(); ctx.restore();
+    }
+    if (state.monster.special && state.monster.special.active) {
+      ctx.save(); ctx.strokeStyle = 'rgba(180,140,255,.85)'; ctx.lineWidth = 6; ctx.shadowColor = 'rgba(180,140,255,.65)'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.ellipse(tr.x, tr.y - h * 0.54, w * 0.31, h * 0.39, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+    if (action === 'hit') spawnParticles(tr.x, tr.y - h * 0.42, '#ff9090', 3);
+    drawNameplate(state.monster.nome + ' [Nv. ' + state.monster.nivel + ']', tr.x, Math.max(22, tr.y - h - 8), '#eaf0ff', 'rgba(255,255,255,.16)');
   }
 
   function drawNameplate(text, x, y, fill, stroke) {
@@ -867,7 +951,27 @@
 
 
   function openRanking() { rankingModal.classList.remove('hidden'); socket.emit('requestRanking'); }
-  function closeRanking() { rankingModal.classList.add('hidden'); }
+  function closeRanking() {
+    rankingModal.classList.add('hidden');
+    rankingModal.classList.remove('entry-above-auth');
+    var auth = byId('auth-modal');
+    if (auth) auth.classList.remove('df-dimmed-for-ranking');
+  }
+  function openEntryRanking() {
+    if (!rankingModal) return;
+    rankingModal.classList.remove('hidden');
+    rankingModal.classList.add('entry-above-auth');
+    var auth = byId('auth-modal');
+    if (auth) auth.classList.add('df-dimmed-for-ranking');
+    socket.emit('requestRanking');
+  }
+  function toggleFullscreen() {
+    var root = document.documentElement;
+    var request = root.requestFullscreen || root.webkitRequestFullscreen || root.msRequestFullscreen;
+    var exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) { if (request) request.call(root); }
+    else { if (exit) exit.call(document); }
+  }
   function renderRanking(data) {
     state.ranking = data || state.ranking;
     if (!state.ranking) return;
@@ -940,7 +1044,7 @@
   }
 
   function openShop() {
-    if (!state.me || !state.me.isAuthenticated) { setAuthError('Faça login para abrir a loja.'); if (authModal) authModal.classList.remove('hidden'); return; }
+    if (!state.me || !state.me.isAuthenticated) { setAuthError('Faça login para abrir a loja.'); showAuthModal(); return; }
     shopModal.classList.remove('hidden');
     renderShop();
   }
@@ -1181,6 +1285,54 @@
     }
   }
 
+  function openV90() { if (!v90Modal) return; v90Modal.classList.remove('hidden'); renderV90(); }
+  function closeV90() { if (v90Modal) v90Modal.classList.add('hidden'); }
+
+  function renderV90() {
+    if (!v90Content || !state.me) return;
+    var v = state.me.v90 || {};
+    var tab = state.v90Tab || 'hub';
+    var tabs = v90Modal ? v90Modal.querySelectorAll('[data-v90-tab]') : [];
+    Array.prototype.forEach.call(tabs, function(btn){ btn.classList.toggle('active', btn.getAttribute('data-v90-tab') === tab); });
+    if (!v.version) { v90Content.innerHTML = '<div class="v30-card">Carregando V90...</div>'; return; }
+    var res = v.resources || {};
+    function resLine() { return 'Éter <b>' + formatNumber(res.aether||0) + '</b> · Fragmentos <b>' + formatNumber(res.skinShards||0) + '</b> · Sigilos <b>' + formatNumber(res.sigils||0) + '</b> · Chaves <b>' + formatNumber(res.echoKeys||0) + '</b> · Cronos <b>' + formatNumber(res.chronos||0) + '</b>'; }
+    function cost(c){ c=c||{}; var parts=[]; if(c.ouro)parts.push(formatNumber(c.ouro)+' ouro'); if(c.gemas)parts.push(c.gemas+' 💎'); if(c.aether)parts.push(formatNumber(c.aether)+' éter'); if(c.skinShards)parts.push(formatNumber(c.skinShards)+' frag.'); if(c.sigils)parts.push(formatNumber(c.sigils)+' sigilos'); if(c.echoKeys)parts.push(formatNumber(c.echoKeys)+' chave(s)'); if(c.chronos)parts.push(formatNumber(c.chronos)+' cronos'); return parts.join(' · ') || 'grátis'; }
+    if (tab === 'hub') {
+      var combo = v.combo || {}; var ledger = v.battleLedger || {};
+      v90Content.innerHTML = '<div class="v90-hero-panel"><div><h3>👑 Legend Of Indle V90</h3><p>' + resLine() + '</p><p>Bônus V90: ' + bonusLine(v.bonuses||{}) + '</p></div><div class="v90-big-power">+' + formatNumber(v.powerBonus||0) + '<small>Poder V90</small></div></div><div class="v30-grid v30-grid-two"><div class="v30-card ready"><h3>🎁 Baú de Fundador V90</h3><p>Pacote de recursos para testar maestrias, skins e ecos.</p><button id="v90-founders-btn" ' + ((v.unlocks&&v.unlocks.foundersChest)?'disabled':'') + '>' + ((v.unlocks&&v.unlocks.foundersChest)?'Coletado':'Coletar baú V90') + '</button></div><div class="v30-card"><h3>🔥 Ritmo de Combate</h3><p>Combo atual: <b>' + (combo.count||0) + '</b><br>Melhor combo: <b>' + (combo.best||0) + '</b><br>Dano registrado: <b>' + formatNumber(ledger.damage||0) + '</b><br>Score de estilo: <b>' + formatNumber(ledger.styleScore||0) + '</b></p></div></div>';
+      var fb = byId('v90-founders-btn'); if (fb) fb.onclick = function(){ ensureAudio(); socket.emit('v90ClaimFoundersChest'); };
+    } else if (tab === 'mastery') {
+      v90Content.innerHTML = '<div class="v30-hero"><h3>⚔️ Maestrias V90</h3><p>' + resLine() + '</p></div><div class="v30-grid">' + ((v.masteries&&v.masteries.defs)||[]).map(function(d){ var lv=(v.masteries.levels&&v.masteries.levels[d.id])||0; return '<div class="v30-card v90-card"><h3>' + d.icon + ' ' + d.nome + '<span>' + lv + '/' + d.max + '</span></h3><p>' + d.desc + '</p><small>' + bonusLine(d.bonus) + '</small><button data-v90-mastery="' + d.id + '" ' + (lv>=d.max?'disabled':'') + '>Evoluir: ' + cost(d.nextCost) + '</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v90Content.querySelectorAll('[data-v90-mastery]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v90UpgradeMastery', { id:btn.getAttribute('data-v90-mastery') }); }; });
+    } else if (tab === 'stance') {
+      v90Content.innerHTML = '<div class="v30-hero"><h3>🧍 Postura de Combate</h3><p>Escolha uma postura para mudar o perfil do personagem sem trocar PNG.</p></div><div class="v30-grid">' + (v.stances||[]).map(function(st){ return '<div class="v30-card ' + (st.active?'ready':'') + '"><h3>' + st.icon + ' ' + st.nome + '<span>' + (st.active?'Ativa':'') + '</span></h3><p>' + st.desc + '</p><small>' + bonusLine(st.bonus) + '</small><button data-v90-stance="' + st.id + '">' + (st.active?'Ativa':'Selecionar') + '</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v90Content.querySelectorAll('[data-v90-stance]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v90SelectStance', { id:btn.getAttribute('data-v90-stance') }); }; });
+    } else if (tab === 'wardrobe') {
+      var wardrobe = v.wardrobe || {}; var equipped = wardrobe.equipped || {};
+      v90Content.innerHTML = '<div class="v30-hero"><h3>🎭 Guarda-roupa por Camadas</h3><p>Preparado para cabelo, roupa, arma, asa e aura. Os assets futuros entram em <b>public/assets/skins</b>.</p><p>Equipado: ' + Object.keys(equipped).map(function(k){ return k+': '+equipped[k]; }).join(' · ') + '</p></div><div class="v30-grid">' + (wardrobe.all||[]).map(function(w){ return '<div class="v30-card ' + (w.unlocked?'ready':'') + '"><h3>' + w.icon + ' ' + w.nome + '<span>' + (w.equipped?'Equipado':w.unlocked?'Livre':'Bloq.') + '</span></h3><p>' + w.desc + '</p><small>' + bonusLine(w.bonus) + '</small><div class="v90-card-actions"><button data-v90-unlock="' + w.id + '" ' + (w.unlocked?'disabled':'') + '>Desbloquear: ' + cost(w.cost) + '</button><button data-v90-equip="' + w.id + '" ' + (!w.unlocked?'disabled':'') + '>Equipar</button></div></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v90Content.querySelectorAll('[data-v90-unlock]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v90UnlockWardrobe', { id:btn.getAttribute('data-v90-unlock') }); }; });
+      Array.prototype.forEach.call(v90Content.querySelectorAll('[data-v90-equip]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v90EquipWardrobe', { id:btn.getAttribute('data-v90-equip') }); }; });
+    } else if (tab === 'cards') {
+      v90Content.innerHTML = '<div class="v30-hero"><h3>🃏 Cartas de Alma</h3><p>Use sigilos para evoluir cartas permanentes.</p></div><div class="v30-grid">' + ((v.soulCards&&v.soulCards.defs)||[]).map(function(d){ var lv=(v.soulCards.levels&&v.soulCards.levels[d.id])||0; return '<div class="v30-card"><h3>' + d.icon + ' ' + d.nome + '<span>' + lv + '/' + d.max + '</span></h3><small>' + bonusLine(d.bonus) + '</small><button data-v90-card="' + d.id + '" ' + (lv>=d.max?'disabled':'') + '>Evoluir: ' + cost(d.nextCost) + '</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v90Content.querySelectorAll('[data-v90-card]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v90UpgradeSoulCard', { id:btn.getAttribute('data-v90-card') }); }; });
+    } else if (tab === 'echoes') {
+      var echoes = v.echoes || {};
+      v90Content.innerHTML = '<div class="v30-hero"><h3>🕳️ Ecos de Pesadelo</h3><p>Runs hoje: <b>' + (echoes.runs||0) + '/8</b> · Melhor Eco: <b>' + ((echoes.best&&echoes.best.id)||'-') + '</b> ' + formatNumber((echoes.best&&echoes.best.score)||0) + '</p></div><div class="v30-grid">' + (echoes.defs||[]).map(function(d){ return '<div class="v30-card ready"><h3>' + d.icon + ' ' + d.nome + '</h3><p>Poder mínimo: <b>' + formatNumber(d.minPower||0) + '</b><br>Recompensa: ouro, éter, sigilos, fragmentos e chance de item.</p><button data-v90-echo="' + d.id + '" ' + ((state.me.power||0)<(d.minPower||0)?'disabled':'') + '>Entrar: ' + cost(d.cost) + '</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v90Content.querySelectorAll('[data-v90-echo]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v90RunEcho', { id:btn.getAttribute('data-v90-echo') }); }; });
+    } else if (tab === 'roadmap') {
+      v90Content.innerHTML = '<div class="v30-hero"><h3>🧭 Roadmap V44 até V90</h3><p>Marcos acumulativos simulam a evolução técnica e de polimento até a versão 90.</p></div><div class="v30-list">' + (v.roadmap||[]).map(function(r){ return '<div class="v30-card ' + (r.claimed?'claimed':r.ready?'ready':'') + '"><h3>' + r.icon + ' ' + r.nome + '<span>' + (r.claimed?'Coletado':r.ready?'Pronto':'Bloqueado') + '</span></h3><p>Bônus: ' + bonusLine(r.bonus) + '</p><button data-v90-roadmap="' + r.id + '" ' + (!r.ready||r.claimed?'disabled':'') + '>Coletar marco</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v90Content.querySelectorAll('[data-v90-roadmap]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v90ClaimRoadmap', { id:btn.getAttribute('data-v90-roadmap') }); }; });
+    } else if (tab === 'tactic') {
+      var t = v.tactic || {};
+      v90Content.innerHTML = '<div class="v30-hero"><h3>🤖 Tática Automática</h3><p>Perfil atual: <b>' + (t.mode||'balanced') + '</b> · Foco: <b>' + (t.focus||'auto') + '</b> · Skill: <b>' + (t.skillBias||'auto') + '</b> · Poção em: <b>' + (t.potionAtHp||35) + '% HP</b></p></div><div class="v30-grid"><div class="v30-card"><h3>Modo</h3><button data-v90-tactic-mode="balanced">Equilibrado</button><button data-v90-tactic-mode="aggressive">Agressivo</button><button data-v90-tactic-mode="safe">Seguro</button><button data-v90-tactic-mode="loot">Loot</button><button data-v90-tactic-mode="boss">Boss</button></div><div class="v30-card"><h3>Foco</h3><button data-v90-tactic-focus="auto">Auto</button><button data-v90-tactic-focus="xp">XP</button><button data-v90-tactic-focus="gold">Ouro</button><button data-v90-tactic-focus="drop">Drop</button><button data-v90-tactic-focus="boss">Boss</button></div><div class="v30-card"><h3>Poção</h3><p>Definir uso de poção com HP baixo.</p><button data-v90-potion="25">25%</button><button data-v90-potion="35">35%</button><button data-v90-potion="50">50%</button></div></div>';
+      Array.prototype.forEach.call(v90Content.querySelectorAll('[data-v90-tactic-mode]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v90SetTactic', { mode:btn.getAttribute('data-v90-tactic-mode') }); }; });
+      Array.prototype.forEach.call(v90Content.querySelectorAll('[data-v90-tactic-focus]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v90SetTactic', { focus:btn.getAttribute('data-v90-tactic-focus') }); }; });
+      Array.prototype.forEach.call(v90Content.querySelectorAll('[data-v90-potion]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v90SetTactic', { potionAtHp:Number(btn.getAttribute('data-v90-potion')) }); }; });
+    }
+  }
+
+
   if (loginBtn) loginBtn.onclick = function () {
     ensureAudio();
     setAuthError('');
@@ -1199,6 +1351,20 @@
       classeId: byId('reg-class').value
     });
   };
+
+
+  if (entryRankingBtn) entryRankingBtn.onclick = function () {
+    ensureAudio();
+    openEntryRanking();
+  };
+  if (entryOptionsBtn) entryOptionsBtn.onclick = function () {
+    ensureAudio();
+    toggleFullscreen();
+  };
+  ['login-user', 'login-pass'].forEach(function (id) {
+    var el = byId(id);
+    if (el) el.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && loginBtn) loginBtn.click(); });
+  });
 
   autoFarmBtn.onclick = function () { ensureAudio(); if (!state.me) return; socket.emit('toggleAutoFarm', { enabled: !state.me.autoFarm }); };
   menuBag.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuBag.classList.add('active'); openBag(); };
@@ -1227,11 +1393,15 @@
   if (ascensionClose) ascensionClose.onclick = closeAscension;
   if (menuV30) menuV30.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuV30.classList.add('active'); openV30(); };
   if (menuV40) menuV40.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuV40.classList.add('active'); openV40(); };
+  if (menuV90) menuV90.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuV90.classList.add('active'); openV90(); };
   if (v30Close) v30Close.onclick = closeV30;
   if (v40Close) v40Close.onclick = closeV40;
+  if (v90Close) v90Close.onclick = closeV90;
   if (v40Modal) Array.prototype.forEach.call(v40Modal.querySelectorAll('[data-v40-tab]'), function(btn){ btn.onclick=function(){ state.v40Tab=btn.getAttribute('data-v40-tab'); renderV40(); }; });
+  if (v90Modal) Array.prototype.forEach.call(v90Modal.querySelectorAll('[data-v90-tab]'), function(btn){ btn.onclick=function(){ state.v90Tab=btn.getAttribute('data-v90-tab'); renderV90(); }; });
   if (v30Modal) Array.prototype.forEach.call(v30Modal.querySelectorAll('[data-v30-tab]'), function(btn){ btn.onclick=function(){ state.v30Tab=btn.getAttribute('data-v30-tab'); renderV30(); }; });
   if (ascensionModal) ascensionModal.addEventListener('click', function (e) { if (e.target === ascensionModal) closeAscension(); });
+  if (v90Modal) v90Modal.addEventListener('click', function (e) { if (e.target === v90Modal) closeV90(); });
 
   if (menuShop) menuShop.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuShop.classList.add('active'); openShop(); };
   if (shopClose) shopClose.onclick = closeShop;
@@ -1268,7 +1438,7 @@
     state.monster = data.monster;
     state.players = {};
     (data.players || []).forEach(function (p) { state.players[p.id] = p; });
-    if (authModal) authModal.classList.remove('hidden');
+    showAuthModal();
     classSelect.classList.add('hidden');
     mountClassSelect();
     updateHUD();
@@ -1280,20 +1450,95 @@
     state.players[player.id] = player;
     if (player.id === state.meId) {
       state.me = player;
-      if (player.isAuthenticated && authModal) authModal.classList.add('hidden');
+      if (player.isAuthenticated) hideAuthModal();
       if (player.classeId) { classSelect.classList.add('hidden'); mountAbilities(player.classeId); }
       else if (player.isAuthenticated) { mountClassSelect(); classSelect.classList.remove('hidden'); }
     }
     updateHUD();
-    renderV30();
+    renderV30(); renderV90();
   });
-  socket.on('gameState', function (list) { (list || []).forEach(function (p) { state.players[p.id] = p; if (p.id === state.meId) state.me = p; }); updateHUD(); renderV30(); });
+  socket.on('gameState', function (list) { (list || []).forEach(function (p) { state.players[p.id] = p; if (p.id === state.meId) state.me = p; }); updateHUD(); renderV30(); renderV90(); });
   socket.on('enemyUpdate', function (monster) { state.monster = monster; updateEnemyHUD(); });
-  socket.on('combatTick', function (data) { if (data.monster) { state.monster = data.monster; updateEnemyHUD(); }
-    (data.attacks || []).forEach(function (attack) { var color = attack.isCrit ? '#ffe69b' : '#ff9090'; state.anim.playerAttackUntil = performance.now() + (attack.type === 'ability' ? 520 : 280); state.anim.monsterHitUntil = performance.now() + 360; state.anim.shakeUntil = performance.now() + 120; var fxX = canvas.width * 0.72 + (Math.random() - 0.5) * 90; var fxY = canvas.height * 0.38 + (Math.random() - 0.5) * 60; if (vfx) { vfx.dashAndReturn('player', {x: canvas.width * 0.28, y: canvas.height * 0.90}, {x: canvas.width * 0.52, y: canvas.height * 0.82}, {duration: attack.type === 'ability' ? 520 : 340, color: color}); vfx.hitFlinch('monster', {x: 1, y: 0}, {distance: attack.isCrit ? 34 : 22, color: attack.isCrit ? 'white' : 'red'}); if (attack.type === 'ability') vfx.arcaneBurst(fxX, fxY, {color: color, size: attack.isCrit ? 110 : 86}); else vfx.slash(fxX, fxY, {color: color, size: attack.isCrit ? 104 : 78}); if (attack.isCrit) vfx.screenShake(16, 220); } pushFloating((attack.isCrit ? 'CRIT ' : '-') + attack.damage, color, fxX, fxY, attack.isCrit); spawnImpactBurst(fxX, fxY, color, attack.isCrit ? 1.35 : 1); playSound(attack.type === 'ability' ? 'skill' : 'hit'); if (attack.result && attack.result.specialTriggered) { if (attack.result.specialTriggered.type === 'bossShield') { addLog('🛡️ O Dragão Elemental ativou o Escudo Elemental! Use habilidades para quebrar.'); pushFloating('ESCUDO!', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.28, true); playSound('boss'); } else if (attack.result.specialTriggered.type === 'shieldBroken') { addLog('💥 O Escudo Elemental foi quebrado!'); pushFloating('QUEBRADO!', '#ffffff', canvas.width * 0.72, canvas.height * 0.28, true); playSound('loot'); } } if (attack.result && attack.result.resisted) pushFloating('RESIST', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.45, false); });
-    (data.monsterAttacks || []).forEach(function (ma) { state.anim.monsterAttackUntil = performance.now() + 360; if (vfx) vfx.dashAndReturn('monster', {x: canvas.width * 0.72, y: canvas.height * 0.90}, {x: canvas.width * 0.48, y: canvas.height * 0.84}, {duration: 400, color: '#ff9b9b', lift: -10}); if (ma.playerId === state.meId) { state.anim.playerHitUntil = performance.now() + 420; state.anim.shakeUntil = performance.now() + 160; var hx = canvas.width * 0.28; var hy = canvas.height * 0.42; if (vfx) { vfx.hitFlinch('player', {x: -1, y: 0}, {distance: ma.died ? 42 : 28, color: 'red'}); vfx.impact(hx, hy, {color: '#ff9b9b', size: ma.died ? 110 : 82, crit: ma.died}); vfx.screenShake(ma.died ? 18 : 10, ma.died ? 260 : 180); } pushFloating('-' + ma.damage + ' HP', '#ffb0b0', hx, hy, ma.died); spawnImpactBurst(hx, hy, '#ff9b9b', ma.died ? 1.4 : 1); playSound(ma.died ? 'death' : 'hit'); } });
+  socket.on('combatTick', function (data) {
+    if (data.monster) { state.monster = data.monster; updateEnemyHUD(); }
+    (data.attacks || []).forEach(function (attack) {
+      var clsId = state.me && state.me.classeId ? state.me.classeId : 'guerreiro';
+      var color = attack.isCrit ? '#ffe69b' : (clsId === 'mago' ? '#91d8ff' : clsId === 'arqueiro' ? '#a8ffca' : '#ffdf8a');
+      state.anim.playerAttackUntil = performance.now() + (attack.type === 'ability' ? 620 : 430);
+      state.anim.monsterHitUntil = performance.now() + 420;
+      state.anim.shakeUntil = performance.now() + (attack.isCrit ? 180 : 90);
+      var fxX = canvas.width * 0.72 + (Math.random() - 0.5) * 90;
+      var fxY = canvas.height * 0.40 + (Math.random() - 0.5) * 70;
+      if (vfx) {
+        vfx.playPlayerAttack({
+          classId: clsId,
+          from: { x: canvas.width * 0.28, y: canvas.height * 0.90 },
+          to: { x: canvas.width * 0.54, y: canvas.height * 0.82 },
+          impact: { x: fxX, y: fxY },
+          color: color,
+          crit: !!attack.isCrit
+        });
+      }
+      pushFloating((attack.isCrit ? 'CRIT ' : '-') + attack.damage, color, fxX, fxY, attack.isCrit);
+      spawnImpactBurst(fxX, fxY, color, attack.isCrit ? 1.35 : 1);
+      playSound(attack.type === 'ability' ? 'skill' : 'hit');
+      if (attack.result && attack.result.specialTriggered) {
+        if (attack.result.specialTriggered.type === 'bossShield') {
+          addLog('🛡️ O Dragão Elemental ativou o Escudo Elemental! Use habilidades para quebrar.');
+          pushFloating('ESCUDO!', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.28, true);
+          if (vfx) { vfx.groundRune(canvas.width * 0.72, canvas.height * 0.42, { color:'#cdb7ff', size:130 }); vfx.screenShake(12, 210); }
+          playSound('boss');
+        } else if (attack.result.specialTriggered.type === 'shieldBroken') {
+          addLog('💥 O Escudo Elemental foi quebrado!');
+          pushFloating('QUEBRADO!', '#ffffff', canvas.width * 0.72, canvas.height * 0.28, true);
+          if (vfx) vfx.playDeathBurst(canvas.width * 0.72, canvas.height * 0.42, '#ffffff');
+          playSound('loot');
+        }
+      }
+      if (attack.result && attack.result.resisted) pushFloating('RESIST', '#cdb7ff', canvas.width * 0.72, canvas.height * 0.45, false);
+    });
+
+    (data.monsterAttacks || []).forEach(function (ma) {
+      var isBossAtk = state.monster && state.monster.isBoss;
+      state.anim.monsterAttackUntil = performance.now() + (isBossAtk ? 560 : 430);
+      if (ma.dodged) {
+        if (vfx) vfx.playDodge(canvas.width * 0.28, canvas.height * 0.43);
+        pushFloating('ESQUIVA', '#b7ffdc', canvas.width * 0.28, canvas.height * 0.42, false);
+        playSound('equip');
+        return;
+      }
+      if (vfx) vfx.playMonsterAttack({
+        boss: !!isBossAtk,
+        from: { x: canvas.width * 0.72, y: canvas.height * 0.90 },
+        to: { x: canvas.width * 0.47, y: canvas.height * 0.84 },
+        impact: { x: canvas.width * 0.28, y: canvas.height * 0.43 }
+      });
+      if (ma.playerId === state.meId) {
+        state.anim.playerHitUntil = performance.now() + 460;
+        state.anim.shakeUntil = performance.now() + (ma.died ? 220 : 140);
+        var hx = canvas.width * 0.28;
+        var hy = canvas.height * 0.42;
+        pushFloating('-' + ma.damage + ' HP', '#ffb0b0', hx, hy, ma.died);
+        spawnImpactBurst(hx, hy, '#ff9b9b', ma.died ? 1.4 : 1);
+        playSound(ma.died ? 'death' : 'hit');
+      }
+    });
   });
-  socket.on('enemyDied', function (data) { addLog('⚔️ ' + data.killerName + ' derrotou ' + data.deadMonster.nome + ' e ganhou +' + data.xpReward + ' XP e +' + data.goldGained + ' ouro.'); if (data.loot) { state.lootRecente.unshift(data.loot); state.lootRecente = state.lootRecente.slice(0, 8); addLog((data.loot.exclusivoBoss ? '🐉 Loot exclusivo: ' : '🎁 Loot obtido: ') + data.loot.icon + ' ' + data.loot.nome + ' [' + data.loot.raridade + ']'); playSound(data.loot.exclusivoBoss ? 'boss' : 'loot'); } if (data.autoEquipSuggestion && data.killerId === state.meId) { showEquipSuggestion(data.autoEquipSuggestion); } if (data.progress && data.progress.leveledUp) addLog('✨ Level up! Agora você está no Nv. ' + data.progress.currentLevel + '.'); if (data.player && data.player.id === state.meId) state.me = data.player; if (data.meta && state.me) state.me.meta = data.meta; if (data.nextMonster) { state.monster = data.nextMonster; updateEnemyHUD(); } updateHUD(); });
+  socket.on('enemyDied', function (data) {
+    addLog('⚔️ ' + data.killerName + ' derrotou ' + data.deadMonster.nome + ' e ganhou +' + data.xpReward + ' XP e +' + data.goldGained + ' ouro.');
+    if (vfx) vfx.playDeathBurst(canvas.width * 0.72, canvas.height * 0.43, data.deadMonster && data.deadMonster.isBoss ? '#ff8f3d' : '#ffe69b');
+    if (data.loot) {
+      state.lootRecente.unshift(data.loot); state.lootRecente = state.lootRecente.slice(0, 8);
+      addLog((data.loot.exclusivoBoss ? '🐉 Loot exclusivo: ' : '🎁 Loot obtido: ') + data.loot.icon + ' ' + data.loot.nome + ' [' + data.loot.raridade + ']');
+      playSound(data.loot.exclusivoBoss ? 'boss' : 'loot');
+    }
+    if (data.autoEquipSuggestion && data.killerId === state.meId) showEquipSuggestion(data.autoEquipSuggestion);
+    if (data.progress && data.progress.leveledUp) addLog('✨ Level up! Agora você está no Nv. ' + data.progress.currentLevel + '.');
+    if (data.player && data.player.id === state.meId) state.me = data.player;
+    if (data.meta && state.me) state.me.meta = data.meta;
+    if (data.nextMonster) { state.monster = data.nextMonster; updateEnemyHUD(); }
+    updateHUD();
+  });
   socket.on('abilityUsed', function (evt) {
     var color = evt.visual && evt.visual.cor ? evt.visual.cor : '#fff';
     var type = evt.visual && evt.visual.tipo;
@@ -1311,7 +1556,16 @@
       state.anim.monsterHitUntil = performance.now() + 420;
       startCooldownVisual(evt.habilidadeId, evt.cooldown);
     }
-    if (vfx) { vfx.dashAndReturn('player', {x: canvas.width * 0.28, y: canvas.height * 0.90}, {x: canvas.width * 0.50, y: canvas.height * 0.82}, {duration: 560, color: color, lift: -24}); vfx.hitFlinch('monster', {x: 1, y: 0}, {distance: 26, color: 'white'}); vfx.arcaneBurst(canvas.width * 0.72, canvas.height * 0.40, {color: color, size: 104}); vfx.screenShake(10, 160); }
+    if (vfx) {
+      vfx.playAbility({
+        classId: state.me && state.me.classeId ? state.me.classeId : 'mago',
+        type: type,
+        color: color,
+        from: { x: canvas.width * 0.35, y: canvas.height * 0.47 },
+        to: { x: canvas.width * 0.72, y: canvas.height * 0.40 }
+      });
+      vfx.hitFlinch('monster', { x: 1, y: 0 }, { distance: 32, color: 'white' });
+    }
     spawnImpactBurst(canvas.width * 0.72, canvas.height * 0.40, color, 1.1); playSound('skill');
   });
   socket.on('inventoryAction', function (info) { if (info.type === 'equip') { addLog('🧰 Item equipado: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'unequip') { addLog('🎒 Item retornou para a bolsa: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'sell') { addLog('🪙 Item vendido por +' + info.gold + ' ouro: ' + info.item.nome + '.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'sellAll') { addLog('🪙 ' + info.sold + ' itens vendidos por +' + info.gold + ' ouro.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'equipBest') { addLog('⚡ Melhor equipamento aplicado: ' + ((info.equippedItems || []).length) + ' item(ns).'); playSound('equip'); } if (info.type === 'gem') { addLog('💎 Gema inserida: ' + info.gem.nome + ' em ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'upgradeItem') { addLog('🔥 Forja: ' + info.item.nome + ' melhorado para +' + (info.item.upgradeLevel || 0) + '.'); playSound('equip'); } if (info.type === 'lockItem') { addLog((info.item.locked ? '🔒 Item protegido: ' : '🔓 Item desbloqueado: ') + info.item.nome + '.'); playSound('equip'); } });
@@ -1328,7 +1582,7 @@
   socket.on('authSuccess', function (data) {
     state.me = data.player;
     localStorage.setItem('legend_of_indle_account_login', data.account.login);
-    if (authModal) authModal.classList.add('hidden');
+    hideAuthModal();
     if (byId('hud-save-status')) byId('hud-save-status').textContent = data.account.isGM ? 'GM conectado' : 'Conta conectada';
     addLog('🔐 Login realizado: ' + data.account.nick + (data.account.isGM ? ' [GM]' : '') + '.');
     if (state.me.classeId) { classSelect.classList.add('hidden'); mountAbilities(state.me.classeId); }
@@ -1378,8 +1632,31 @@
     if (type === 'reroll') msg = '♻️ Item reforjado: ' + data.result.item.nome + '.';
     addLog(msg);
     playSound('loot');
-    updateHUD(); renderV30(); renderBag(); renderPaperDoll();
+    updateHUD(); renderV30(); renderV90(); renderBag(); renderPaperDoll();
   });
+
+  socket.on('v90Action', function(data) {
+    if (data.player) state.me = data.player;
+    var type = data.type || 'sistema';
+    var msg = '👑 V90 atualizado.';
+    if (type === 'founders') msg = '🎁 Baú V90 coletado.';
+    if (type === 'mastery') msg = '⚔️ Maestria V90 evoluída.';
+    if (type === 'stance') msg = '🧍 Postura alterada: ' + ((data.result && data.result.stance && data.result.stance.nome) || 'V90') + '.';
+    if (type === 'wardrobeUnlock') msg = '🎭 Visual desbloqueado.';
+    if (type === 'wardrobeEquip') msg = '✨ Visual equipado.';
+    if (type === 'soulCard') msg = '🃏 Carta de alma evoluída.';
+    if (type === 'roadmap') msg = '🧭 Marco V90 coletado.';
+    if (type === 'echo') {
+      msg = '🕳️ Eco concluído.';
+      if (data.result && data.result.item) state.lootRecente.unshift(data.result.item);
+      if (vfx) { vfx.flashScreen('#8a5cff', 240, 0.16); vfx.screenShake(18, 280); }
+    }
+    if (type === 'tactic') msg = '🤖 Tática automática atualizada.';
+    addLog(msg);
+    playSound(type === 'tactic' ? 'equip' : 'loot');
+    updateHUD(); renderV90(); renderBag(); renderPaperDoll();
+  });
+
 
   socket.on('shopAction', function (data) {
     if (data.player) state.me = data.player;

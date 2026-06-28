@@ -14,6 +14,7 @@ const ExpeditionManager = require('./server/managers/ExpeditionManager');
 const MetaProgressManager = require('./server/managers/MetaProgressManager');
 const V30ProgressManager = require('./server/managers/V30ProgressManager');
 const V40ProgressManager = require('./server/managers/V40ProgressManager');
+const V90ProgressManager = require('./server/managers/V90ProgressManager');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE_MS = 1000;
@@ -104,13 +105,15 @@ function createPlayer(socket) {
     season: null,
     extraTalentPoints: 0,
     v30: null,
-    v40: null
+    v40: null,
+    v90: null
   };
   LevelManager.syncProgressFields(player);
   MetaProgressManager.normalize(player);
   V30ProgressManager.normalize(player);
   V40ProgressManager.normalize(player);
-  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player);
+  V90ProgressManager.normalize(player);
+  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player);
   return player;
 }
 
@@ -166,7 +169,10 @@ function publicPlayer(player) {
     expedition: ExpeditionManager.publicExpedition(player),
     meta: MetaProgressManager.publicMeta(player),
     endgame: V30ProgressManager.publicState(player),
-    v40: V40ProgressManager.publicState(player)
+    v40: V40ProgressManager.publicState(player),
+    v90: V90ProgressManager.publicState(player),
+    visualLayers: V90ProgressManager.visualLayers(player),
+    v90AuraColor: V90ProgressManager.auraColor(player)
   };
 }
 
@@ -204,7 +210,8 @@ function syncPlayerPower(player) {
   MetaProgressManager.normalize(player);
   V30ProgressManager.normalize(player);
   V40ProgressManager.normalize(player);
-  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player);
+  V90ProgressManager.normalize(player);
+  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player);
 }
 
 function savePlayer(player, force = false) {
@@ -243,6 +250,7 @@ function rewardIfEnemyDied(player, combatEvent) {
   const loot = LootManager.grantKillLoot(player, dead);
   const seasonXpGained = V30ProgressManager.onKill(player, dead, loot);
   const v40Kill = V40ProgressManager.onKill(player, dead, loot);
+  const v90Kill = V90ProgressManager.onKill(player, dead, loot);
   MetaProgressManager.progressMission(player, loot.item ? 'loot' : 'none', loot.item ? 1 : 0);
   const talentBonus = TalentManager.getBonuses(player);
   const meta = MetaProgressManager.publicMeta(player);
@@ -276,7 +284,9 @@ function rewardIfEnemyDied(player, combatEvent) {
     meta: MetaProgressManager.publicMeta(player),
     endgame: V30ProgressManager.publicState(player),
     seasonXpGained,
-    v40Kill
+    v40Kill,
+    v90Kill,
+    v90: V90ProgressManager.publicState(player)
   });
   io.emit('playerUpdated', publicPlayer(player));
 }
@@ -287,16 +297,20 @@ function monsterStrike(player, now) {
   const base = 3 + Math.floor(monster.nivel * (monster.isBoss ? 1.25 : monster.templateId === 'skeleton' ? 0.8 : 0.55));
   const talentBonus = TalentManager.getBonuses(player);
   const v30Bonus = V30ProgressManager.getBonuses(player);
+  const v40Bonus = V40ProgressManager.getBonuses(player);
+  const v90Bonus = V90ProgressManager.getBonuses(player);
   const metaBonus = MetaProgressManager.getArtifactBonuses(player);
   const codexBonus = MetaProgressManager.getCodexBonuses(player);
-  const defense = (GAME_CLASSES[player.classeId]?.baseStats?.defesa || 0) + LootManager.getEquippedList(player).reduce((s, item) => s + ((item.stats && item.stats.defesa) || 0), 0) + (talentBonus.defesa || 0) + (v30Bonus.defesa || 0) + (v40Bonus.defesa || 0) + (metaBonus.defesa || 0) + (codexBonus.defesa || 0);
-  const dodgeChance = Math.min(42, (talentBonus.evasion || 0) + (v30Bonus.evasion || 0) + (v40Bonus.evasion || 0) + ((LootManager.getCharacterAttributes(player).evasion || 0) * 0.12));
+  const defense = (GAME_CLASSES[player.classeId]?.baseStats?.defesa || 0) + LootManager.getEquippedList(player).reduce((s, item) => s + ((item.stats && item.stats.defesa) || 0), 0) + (talentBonus.defesa || 0) + (v30Bonus.defesa || 0) + (v40Bonus.defesa || 0) + (v90Bonus.defesa || 0) + (metaBonus.defesa || 0) + (codexBonus.defesa || 0);
+  const dodgeChance = Math.min(55, (talentBonus.evasion || 0) + (v30Bonus.evasion || 0) + (v40Bonus.evasion || 0) + (v90Bonus.evasion || 0) + ((LootManager.getCharacterAttributes(player).evasion || 0) * 0.12));
   if (Math.random() * 100 < dodgeChance) {
+    V90ProgressManager.onDodge(player);
     return { playerId: player.id, playerName: player.nome, damage: 0, dodged: true, died: false, hp: player.hp, maxHp: player.maxHp };
   }
   let damage = Math.max(1, Math.floor(base - defense * 0.08));
   if (monster.special && monster.special.active) damage = Math.floor(damage * 1.25);
   if (monster.isBoss && monster.special && monster.special.rageTurns > 0) damage = Math.floor(damage * 1.45);
+  if (v90Bonus.damageReductionPct) damage = Math.max(1, Math.floor(damage * (1 - Math.min(0.45, v90Bonus.damageReductionPct))));
 
   player.hp = Math.max(0, (player.hp || player.maxHp) - damage);
   player.stats = player.stats || {};
@@ -343,6 +357,8 @@ function applyAccountToPlayer(player, accountResult) {
   }
   MetaProgressManager.normalize(player);
   V30ProgressManager.normalize(player);
+  V40ProgressManager.normalize(player);
+  V90ProgressManager.normalize(player);
   syncPlayerPower(player);
   savePlayer(player, true);
   return player;
@@ -540,7 +556,8 @@ io.on('connection', (socket) => {
     MetaProgressManager.normalize(player);
   V30ProgressManager.normalize(player);
   V40ProgressManager.normalize(player);
-  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player);
+  V90ProgressManager.normalize(player);
+  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player);
     updateAchievements(player);
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
@@ -557,6 +574,7 @@ io.on('connection', (socket) => {
     }
     player.stats = player.stats || {};
     player.stats.damageDealt = (player.stats.damageDealt || 0) + (event.damage || 0);
+    V90ProgressManager.onDamageDealt(player, event.damage || 0, { crit: event.isCrit, type: 'ability' });
     io.emit('abilityUsed', { playerId: player.id, classeId: player.classeId, habilidadeId: event.habilidadeId, habilidadeNome: event.habilidadeNome, visual: event.visual, icon: event.icon, cooldown: event.cooldown, damage: event.damage, isCrit: event.isCrit });
     io.emit('combatTick', { attacks: [event], monsterAttacks: [], monster: monsterManager.getPublicMonster(), serverTime: now });
     rewardIfEnemyDied(player, event);
@@ -1028,6 +1046,95 @@ io.on('connection', (socket) => {
     socket.emit('v40Action', { type:'milestone', result, player:publicPlayer(player) });
   });
 
+
+  socket.on('v90ClaimFoundersChest', () => {
+    if (!requireAuth(socket, player)) return;
+    const result = V90ProgressManager.claimFoundersChest(player);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v90Action', { type:'founders', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v90UpgradeMastery', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V90ProgressManager.upgradeMastery(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v90Action', { type:'mastery', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v90SelectStance', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V90ProgressManager.selectStance(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v90Action', { type:'stance', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v90UnlockWardrobe', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V90ProgressManager.unlockWardrobe(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v90Action', { type:'wardrobeUnlock', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v90EquipWardrobe', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V90ProgressManager.equipWardrobe(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v90Action', { type:'wardrobeEquip', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v90UpgradeSoulCard', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V90ProgressManager.upgradeSoulCard(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v90Action', { type:'soulCard', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v90ClaimRoadmap', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V90ProgressManager.claimRoadmap(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v90Action', { type:'roadmap', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v90RunEcho', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V90ProgressManager.runEcho(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v90Action', { type:'echo', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v90SetTactic', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V90ProgressManager.setTactic(player, data);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    savePlayer(player, true);
+    socket.emit('v90Action', { type:'tactic', result, player:publicPlayer(player) });
+  });
+
   socket.on('disconnect', () => {
     savePlayer(player, true);
     delete players[socket.id];
@@ -1054,6 +1161,7 @@ setInterval(() => {
       if (basic) {
         player.stats = player.stats || {};
         player.stats.damageDealt = (player.stats.damageDealt || 0) + (basic.damage || 0);
+        V90ProgressManager.onDamageDealt(player, basic.damage || 0, { crit: basic.isCrit, type: 'basic' });
         attacks.push(basic);
         rewardIfEnemyDied(player, basic);
       }
@@ -1062,6 +1170,7 @@ setInterval(() => {
       if (autoSkill) {
         player.stats = player.stats || {};
         player.stats.damageDealt = (player.stats.damageDealt || 0) + (autoSkill.damage || 0);
+        V90ProgressManager.onDamageDealt(player, autoSkill.damage || 0, { crit: autoSkill.isCrit, type: 'ability' });
         attacks.push(autoSkill);
         io.emit('abilityUsed', { playerId: player.id, classeId: player.classeId, habilidadeId: autoSkill.habilidadeId, habilidadeNome: autoSkill.habilidadeNome, visual: autoSkill.visual, icon: autoSkill.icon, cooldown: autoSkill.cooldown, damage: autoSkill.damage, isCrit: autoSkill.isCrit });
         rewardIfEnemyDied(player, autoSkill);
@@ -1104,5 +1213,20 @@ process.on('SIGINT', () => {
   setTimeout(() => process.exit(0), 5000).unref();
 });
 
-server.listen(PORT, '0.0.0.0', () => console.log(`Servidor em http://0.0.0.0:${PORT}`));
+server.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.error(`\nERRO: a porta ${PORT} já está em uso.`);
+    console.error('Feche o outro terminal do jogo ou rode com outra porta: PORT=3001 npm start');
+    process.exit(1);
+  }
+  console.error(err);
+  process.exit(1);
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor iniciado com sucesso.`);
+  console.log(`Abra no navegador: http://localhost:${PORT}`);
+  console.log(`Alternativa local: http://127.0.0.1:${PORT}`);
+  console.log(`Bind interno/Render: 0.0.0.0:${PORT}`);
+});
 

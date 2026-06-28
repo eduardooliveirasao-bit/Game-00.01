@@ -1,0 +1,6 @@
+Legend Of Indle - V47
+
+Pacote de evolução contínua rumo à V90.
+- Polimento incremental de UI/UX, combate, progressão e estabilidade.
+- Mantido compatível com Render, Socket.IO e saves JSON.
+- Sistemas consolidados no V90ProgressManager para reduzir bagunça e centralizar o endgame moderno.

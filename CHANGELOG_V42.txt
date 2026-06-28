@@ -1,0 +1,18 @@
+Legend Of Indle - V42 Dark Fantasy Entry UI
+
+Foco: UI/UX da tela inicial, dark fantasy premium e integração limpa com socket.io.
+
+Implementado:
+- Tela inicial substituída por layout Dark Fantasy em 100% da viewport.
+- Fundo de batalha dark fantasy em alta resolução: public/assets/ui/login-bg-dark-fantasy.png.
+- Logotipo rúnico metálico: public/assets/ui/legend-of-indle-logo-rune.png.
+- Painel central de login com aparência de pedra rúnica e ferro forjado.
+- Inputs NOME DO PERSONAGEM e SENHA com molduras rúnicas, tipografia dourada/prateada e estado de foco.
+- Botão JOGAR maior, centralizado e com brilho sutil.
+- Botões RANKING e OPÇÕES como placas de pedra/ferro.
+- Removido texto antigo de build/GM/avisos da tela inicial.
+- Botão OPÇÕES ativa/desativa Fullscreen API.
+- Botão RANKING abre ranking acima da tela de login.
+- Enter nos campos de login aciona JOGAR.
+- CSS modular em public/css/auth-dark-fantasy.css.
+- Mantida integração com loginAccount e registerAccount.

@@ -177,8 +177,17 @@ class AccountManager {
 
   static login(login, password) {
     const data = readAll();
-    const account = data.accounts[normLogin(login)];
-    if (!account || !verify(password, account)) return { ok: false, reason: 'Login ou senha inválidos.' };
+    const typed = String(login || '').trim();
+    let account = data.accounts[normLogin(typed)];
+
+    // V91: a tela mostra "NOME DO PERSONAGEM", então aceitamos tanto login quanto nick.
+    // Isso evita o jogador ficar preso na tela de login ao digitar o nome do herói.
+    if (!account) {
+      const ownerLoginKey = data.nickIndex[normNick(typed)];
+      if (ownerLoginKey) account = data.accounts[ownerLoginKey];
+    }
+
+    if (!account || !verify(password, account)) return { ok: false, reason: 'Login/nick ou senha inválidos.' };
     account.lastLoginAt = Date.now();
     data.accounts[account.loginKey] = account;
     writeAll(data);

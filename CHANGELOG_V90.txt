@@ -1,0 +1,11 @@
+Legend Of Indle - V90 Ultimate Polish
+
+Implementado:
+- V90ProgressManager com recursos, maestrias, posturas, skins por camadas, cartas de alma, ecos de pesadelo, roadmap V44-V90 e tática automática.
+- Nova Central V90 no menu inferior.
+- UI V90 com abas e visual premium.
+- Integração dos bônus V90 no cálculo de poder, ataque, crítico, defesa, evasão e mitigação.
+- Recompensas V90 por abate e boss.
+- Persistência dos sistemas V30, V40 e V90 no SaveManager.
+- Estrutura preparada para skins futuras: cabelo, roupa, arma, asas, aura, camadas back/front.
+- package.json atualizado para 0.90.0.

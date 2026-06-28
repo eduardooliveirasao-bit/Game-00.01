@@ -1,0 +1,18 @@
+Legend Of Indle RPG V1 — V91 Login/Access Hotfix
+
+Correções:
+- Corrigido problema de acesso local: o servidor agora mostra http://localhost:3000 e http://127.0.0.1:3000 no terminal.
+- Mantido bind em 0.0.0.0 para compatibilidade com Render, mas explicado que 0.0.0.0 não deve ser digitado no navegador local.
+- Corrigido bug visual do login: auth-dark-fantasy-screen usava display:flex!important e podia sobrescrever .hidden, deixando a tela de login por cima mesmo após autenticar.
+- Login agora aceita LOGIN ou NICK/NOME DO PERSONAGEM.
+- Campo da tela inicial atualizado para LOGIN OU NOME DO PERSONAGEM.
+- Adicionado tratamento de porta ocupada EADDRINUSE com mensagem clara.
+
+Como abrir localmente:
+1. npm install
+2. npm start
+3. abrir http://localhost:3000
+
+Conta GM padrão:
+Login ou nick: GM ou GM-Eduardo
+Senha: GM123
