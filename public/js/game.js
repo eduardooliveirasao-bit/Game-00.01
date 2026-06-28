@@ -48,6 +48,7 @@
     bagTab: 'items',
     isAuthenticated: false,
     ranking: null,
+    combatVisual: { lastPlayerVisualAt: 0, lastMonsterVisualAt: 0, lastServerAttackAt: 0, manualBurst: 0, combo: 0, cinematic: true },
     anim: {
       playerAttackUntil: 0,
       playerHitUntil: 0,
@@ -60,12 +61,27 @@
     v30Tab: 'season',
     v90Tab: 'hub',
     v94Combo: { count: 0, until: 0 },
-    v94HeavyVfx: true
+    v94HeavyVfx: true,
+    v150: {
+      tab: 'battle',
+      quality: 'ultra',
+      arena: 'crystal',
+      companions: true,
+      minions: true,
+      camera: true,
+      lastCompanionAt: 0,
+      lastAutoSkillAt: 0,
+      lastLaneShiftAt: 0,
+      lanePlayer: 0,
+      laneMonster: 0,
+      phase: 0
+    }
   };
 
   var canvas = byId('game-canvas');
   var ctx = canvas.getContext('2d');
   var vfx = window.VFXManager ? new window.VFXManager(ctx, canvas) : null;
+  window.LegendClient = { socket: socket, state: state, canvas: canvas, ctx: ctx, vfx: vfx, formatNumber: formatNumber, byId: byId, version: '2.0.0' };
   var classSelect = byId('class-select');
   var classCards = byId('class-cards');
   var abilityBar = byId('ability-bar');
@@ -167,6 +183,22 @@
   var v94ComboMeter = byId('v94-combo-meter');
   var v94ComboCount = byId('v94-combo-count');
   var v94ComboLabel = byId('v94-combo-label');
+  var manualStrikeBtn = byId('manual-strike-btn');
+  var battleCameraBtn = byId('battle-camera-btn');
+  var menuV150 = byId('menu-v150');
+  var v150Modal = byId('v150-modal');
+  var v150Close = byId('v150-close');
+  var v150Content = byId('v150-content');
+
+  function updateComboMeter(count) {
+    if (!v94ComboMeter || !v94ComboCount) return;
+    count = count || 0;
+    v94ComboMeter.classList.remove('hidden');
+    v94ComboCount.textContent = 'x' + count;
+    if (v94ComboLabel) v94ComboLabel.textContent = count >= 20 ? 'FÚRIA VISUAL' : count >= 10 ? 'COMBO ACELERADO' : 'COMBO';
+    clearTimeout(updateComboMeter._timer);
+    updateComboMeter._timer = setTimeout(function(){ if (v94ComboMeter) v94ComboMeter.classList.add('hidden'); if (state.combatVisual) state.combatVisual.combo = 0; }, 1800);
+  }
 
   var audioCtx = null;
   function ensureAudio() {
@@ -735,6 +767,99 @@
     document.body.classList.toggle('v94-heavy-vfx', !!state.v94HeavyVfx);
   }
 
+
+  function v150Open() {
+    if (!v150Modal) return;
+    v150Modal.classList.remove('hidden');
+    renderV150();
+  }
+  function v150CloseModal() {
+    if (v150Modal) v150Modal.classList.add('hidden');
+  }
+  function v150Bind() {
+    if (menuV150 && !menuV150.__v150Bound) {
+      menuV150.__v150Bound = true;
+      menuV150.onclick = function(){
+        ensureAudio();
+        Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); });
+        menuV150.classList.add('active');
+        v150Open();
+      };
+    }
+    if (v150Close && !v150Close.__v150Bound) { v150Close.__v150Bound = true; v150Close.onclick = v150CloseModal; }
+    if (v150Modal) Array.prototype.forEach.call(v150Modal.querySelectorAll('[data-v150-tab]'), function(btn){
+      if (btn.__v150TabBound) return;
+      btn.__v150TabBound = true;
+      btn.onclick = function(){ ensureAudio(); state.v150.tab = btn.getAttribute('data-v150-tab'); renderV150(); };
+    });
+  }
+
+  function renderV150() {
+    if (!v150Content) return;
+    if (!state.v150) state.v150 = { tab: 'battle', quality: 'ultra', companions: true, minions: true, camera: true };
+    var tab = state.v150.tab || 'battle';
+    if (v150Modal) Array.prototype.forEach.call(v150Modal.querySelectorAll('[data-v150-tab]'), function(btn){
+      btn.classList.toggle('active', btn.getAttribute('data-v150-tab') === tab);
+    });
+
+    if (tab === 'battle') {
+      v150Content.innerHTML =
+        '<div class="v150-hero"><div><h3>⚔️ Battle Director 150</h3><p>Camada visual local por cima do combate: herói ataca sozinho, inimigo fica sempre visível, companheiros disparam projéteis e o alvo tem leitura clara.</p></div><div class="v150-power">ON<small>tempo real</small></div></div>' +
+        '<div class="v150-grid">' +
+          '<div class="v150-card"><h3>👁️ Visibilidade do inimigo</h3><p>Fallback procedural + barra no palco + target ring. Mesmo sem sprite carregado, o inimigo aparece.</p><button id="v150-spawn-dragon">Invocar visual de boss</button></div>' +
+          '<div class="v150-card"><h3>🔥 Ataque cinematográfico</h3><p>Dispara combo manual, shake, hit-stop, slashes e projéteis.</p><button id="v150-heavy-strike">Golpe V150</button></div>' +
+          '<div class="v150-card"><h3>🐾 Companheiros</h3><p>Pets/companheiros visuais no campo de batalha.</p><button id="v150-toggle-companions">' + (state.v150.companions === false ? 'Ligar' : 'Desligar') + ' companheiros</button></div>' +
+          '<div class="v150-card"><h3>👥 Pack de inimigos</h3><p>Sombras/minions orbitando o alvo para o combate parecer mais povoado.</p><button id="v150-toggle-minions">' + (state.v150.minions === false ? 'Ligar' : 'Desligar') + ' minions</button></div>' +
+        '</div>';
+      var dragon = byId('v150-spawn-dragon');
+      if (dragon) dragon.onclick = function(){ ensureAudio(); state.monster = state.monster || {}; state.monster.templateId = 'dragon'; state.monster.id='dragon'; state.monster.nome='Dragão Elemental Visual'; state.monster.nivel = (state.me && state.me.nivel || 1) + 8; state.monster.hp = 5000; state.monster.maxHp = 5000; state.monster.isBoss = true; updateEnemyHUD(); if(vfx) vfx.playDeathBurst(canvas.width*.72, canvas.height*.43, '#ff8f3d'); };
+      var heavy = byId('v150-heavy-strike');
+      if (heavy) heavy.onclick = function(){ ensureAudio(); visualAttackPulse('manual', true); if(vfx){ vfx.playAbility({ classId: state.me && state.me.classeId || 'guerreiro', color:'#fff0a6', from:{x:canvas.width*.30,y:canvas.height*.48}, to:{x:canvas.width*.72,y:canvas.height*.40} }); vfx.flashScreen('#fff0a6', 180, .18); } };
+      var comp = byId('v150-toggle-companions');
+      if (comp) comp.onclick = function(){ state.v150.companions = state.v150.companions === false; renderV150(); };
+      var minions = byId('v150-toggle-minions');
+      if (minions) minions.onclick = function(){ state.v150.minions = state.v150.minions === false; renderV150(); };
+    } else if (tab === 'visual') {
+      v150Content.innerHTML =
+        '<div class="v150-hero"><div><h3>🎨 Visual MMORPG</h3><p>Pacote visual consolidado: UI dark fantasy, card de loot, combo meter, fashion, forja, skillbook, paper doll e camadas futuras de skin.</p></div><div class="v150-power">' + (state.v150.quality || 'ultra').toUpperCase() + '<small>qualidade</small></div></div>' +
+        '<div class="v150-grid">' +
+          '<div class="v150-card"><h3>🎬 VFX pesado</h3><p>Dash, feixe, slash combo, rune, shockwave, partículas e flash.</p><button id="v150-vfx-test">Testar VFX</button></div>' +
+          '<div class="v150-card"><h3>🎁 Loot reveal</h3><p>Card visual quando o inimigo dropa item.</p><button id="v150-loot-test">Testar drop</button></div>' +
+          '<div class="v150-card"><h3>🎭 Fashion core</h3><p>Cabelo, roupa, arma, asa traseira/frontal e aura continuam preparados para PNGs próprios.</p><button id="v150-open-fashion">Abrir V92 Fashion</button></div>' +
+        '</div>';
+      var vfxTest = byId('v150-vfx-test');
+      if (vfxTest) vfxTest.onclick = function(){ ensureAudio(); if(vfx){ vfx.playAbility({ classId: state.me && state.me.classeId || 'mago', color:'#d783ff', from:{x:canvas.width*.32,y:canvas.height*.46}, to:{x:canvas.width*.72,y:canvas.height*.40} }); vfx.screenShake(22, 360); } };
+      var lootTest = byId('v150-loot-test');
+      if (lootTest) lootTest.onclick = function(){ ensureAudio(); if (typeof v94ShowRewardCard === 'function') v94ShowRewardCard({ nome:'Relíquia V150', icon:'🔥', raridade:'mítico', rarityColor:'#d783ff', powerScore:1500, sellValue:15000, asset:'assets/items/arma_mítico.png' }); };
+      var fashionBtn = byId('v150-open-fashion');
+      if (fashionBtn) fashionBtn.onclick = function(){ state.v92Tab='fashion'; v150CloseModal(); openV92(); };
+    } else if (tab === 'world') {
+      v150Content.innerHTML =
+        '<div class="v150-hero"><div><h3>🗺️ Mundo e Zonas</h3><p>Direção V96–V150 para transformar o jogo em experiência local mais próxima de MMORPG: zonas, spawns, boss rooms, mapa, teleporte e campanha.</p></div><div class="v150-power">6<small>zonas base</small></div></div>' +
+        '<div class="v150-zone-strip">' +
+        ['Floresta Cristalina','Cripta dos Ossos','Ruínas Celestes','Vulcão Elemental','Reino do Céu','Abismo Rúnico'].map(function(z,i){return '<div class="v150-zone"><b>Cap. '+(i+1)+'</b><span>'+z+'</span><small>Spawns, boss e rotas</small></div>';}).join('') +
+        '</div><div class="v150-card"><h3>Próximo passo de mundo</h3><p>Converter os dados de mapa/spawn que você enviou em zonas internas próprias do Legend Of Indle, sem depender de Render, com mapa local e progressão por capítulo.</p></div>';
+    } else if (tab === 'systems') {
+      v150Content.innerHTML =
+        '<div class="v150-hero"><div><h3>🧩 Sistemas Consolidados</h3><p>Resumo do que esta build carrega de V96 até V150.</p></div></div>' +
+        '<div class="v150-grid">' +
+          '<div class="v150-card"><h3>🎒 Inventário</h3><p>Slots, equipar, vender, gemas, lock, upgrade e forja.</p></div>' +
+          '<div class="v150-card"><h3>🧬 Atributos</h3><p>Core avançado, bônus cumulativos, montarias, fashion e meta.</p></div>' +
+          '<div class="v150-card"><h3>🐾 Pets</h3><p>Companheiros visuais e base para impacto no combate.</p></div>' +
+          '<div class="v150-card"><h3>🧪 Debug local</h3><p>Logs Socket.IO e estrutura pronta para executável/launcher.</p></div>' +
+          '<div class="v150-card"><h3>🎬 Animação</h3><p>Battle Director, camera, target ring, card drop, combo e fallback de inimigo.</p></div>' +
+          '<div class="v150-card"><h3>🏰 Futuro desktop</h3><p>Projeto preparado para migrar depois para executável local.</p></div>' +
+        '</div>';
+    } else {
+      var milestones = [];
+      for (var i = 96; i <= 150; i++) {
+        var theme = i < 105 ? 'Correções de combate e visibilidade' : i < 115 ? 'UI, bolsa, skillbook e forja' : i < 125 ? 'Mundo, mapas, spawns e zonas' : i < 135 ? 'Fashion, pets, montarias e efeitos' : i < 145 ? 'Meta systems e progressão local' : 'Polimento visual, launcher e build ultimate';
+        milestones.push('<div class="v150-milestone"><b>V' + i + '</b><span>' + theme + '</span></div>');
+      }
+      v150Content.innerHTML = '<div class="v150-hero"><div><h3>📜 Roadmap V96–V150</h3><p>Esta build consolida o salto até V150 em um pacote local com foco visual e técnico.</p></div><div class="v150-power">55<small>marcos</small></div></div><div class="v150-roadmap">' + milestones.join('') + '</div>';
+    }
+  }
+
   function addLog(text) {
     var el = byId('combat-log');
     if (!el) return;
@@ -1083,19 +1208,21 @@
       ctx.restore();
     }
 
-    var poseRig = { idle: idleBob, swing: attackSwing, hit: hitProg, cast: clsId === 'mago' ? Math.sin(now / 260) * 0.6 : 0, lean: clsId === 'arqueiro' ? -attackSwing * 0.12 : clsId === 'guerreiro' ? attackSwing * 0.06 : 0, time: now };
-
-    // Camadas futuras, todas usando o mesmo pivot/transform do corpo, agora com pseudo-rig para dar mais animação.
-    drawHeroSkinLayer(layers.back || layers.wingsBack, tr.x, tr.y, w, h, tr, { shadowColor: mods.aura, shadowBlur: 10, dead: state.me.isDead, rigPose: poseRig });
-    drawRiggedSprite(img, tr.x, tr.y, w, h, tr, poseRig, { shadowColor: mods.aura || '#000', shadowBlur: mods.aura ? 16 : 0, dead: state.me.isDead });
-    drawHeroSkinLayer(layers.outfit || layers.armor, tr.x, tr.y, w, h, tr, { dead: state.me.isDead, rigPose: poseRig });
-    drawHeroSkinLayer(layers.hair, tr.x, tr.y, w, h, tr, { dead: state.me.isDead, rigPose: poseRig });
-    drawHeroSkinLayer(layers.front || layers.wingsFront, tr.x, tr.y, w, h, tr, { shadowColor: mods.aura, shadowBlur: 14, dead: state.me.isDead, rigPose: poseRig });
+    // V95: volta a desenhar o corpo inteiro para nunca sumir/cortar visual.
+    // A animação agora vem do diretor de combate + VFXManager, mantendo o personagem visível.
+    drawHeroSkinLayer(layers.back || layers.wingsBack, tr.x, tr.y, w, h, tr, { shadowColor: mods.aura, shadowBlur: 10, dead: state.me.isDead });
+    if (vfx && vfx.drawCharacterImage) vfx.drawCharacterImage(img, tr.x, tr.y, w, h, tr, { shadowColor: mods.aura || '#000', shadowBlur: mods.aura ? 16 : 0, dead: state.me.isDead });
+    else {
+      ctx.save(); ctx.translate(tr.x, tr.y); ctx.rotate(tr.rot || 0); ctx.scale(tr.sx || 1, tr.sy || 1); if (tr.flash) ctx.filter = tr.flash === 'red' ? 'brightness(1.9) sepia(1) saturate(6) hue-rotate(-35deg)' : 'brightness(2.8)'; ctx.drawImage(img, -w / 2, -h, w, h); ctx.restore();
+    }
+    drawHeroSkinLayer(layers.outfit || layers.armor, tr.x, tr.y, w, h, tr, { dead: state.me.isDead });
+    drawHeroSkinLayer(layers.hair, tr.x, tr.y, w, h, tr, { dead: state.me.isDead });
+    drawHeroSkinLayer(layers.front || layers.wingsFront, tr.x, tr.y, w, h, tr, { shadowColor: mods.aura, shadowBlur: 14, dead: state.me.isDead });
 
     var weap = eq.arma, ring = eq.anel, neck = eq.colar, orn = eq.ornamento;
     var wxBase = tr.x + w * (clsId === 'arqueiro' ? 0.13 : 0.20) + attackSwing * 24;
     var wyBase = tr.y - h * (clsId === 'arqueiro' ? 0.48 : 0.46) - attackSwing * 8;
-    if (layers.weapon) drawHeroSkinLayer(layers.weapon, tr.x, tr.y, w, h, tr, { shadowColor: mods.weaponGlow || '#9fd8ff', shadowBlur: 16, rigPose: poseRig });
+    if (layers.weapon) drawHeroSkinLayer(layers.weapon, tr.x, tr.y, w, h, tr, { shadowColor: mods.weaponGlow || '#9fd8ff', shadowBlur: 16 });
     else if (weap) {
       var wr = clsId === 'guerreiro' ? (0.12 + attackSwing * 1.15) : clsId === 'arqueiro' ? (-0.55 + attackSwing * 0.20) : (0.08 + attackSwing * 0.25);
       var ws = clsId === 'arqueiro' ? 66 : 60;
@@ -1112,57 +1239,112 @@
     drawNameplate(state.me.nome + ' [Nv. ' + state.me.nivel + ']', tr.x, Math.max(22, tr.y - h - 10), state.me.isDead ? '#ffb3b3' : '#ffe69b', 'rgba(255,230,155,.4)');
   }
 
+  function drawMonsterFallback(monster, x, y, w, h, isDragon, now, action) {
+    var color = isDragon ? '#ff8f3d' : (monster && monster.templateId === 'skeleton' ? '#d8f0ff' : '#92ffb8');
+    var attackPulse = action === 'attack' ? Math.sin((1 - Math.max(0, (state.anim.monsterAttackUntil - now) / 500)) * Math.PI) : 0;
+    var hitPulse = action === 'hit' ? Math.sin((1 - Math.max(0, (state.anim.monsterHitUntil - now) / 430)) * Math.PI) : 0;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = isDragon ? 30 : 20;
+    ctx.fillStyle = isDragon ? 'rgba(140,42,26,.92)' : monster && monster.templateId === 'skeleton' ? 'rgba(180,205,230,.92)' : 'rgba(80,190,120,.92)';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.rotate((attackPulse - hitPulse) * -0.08);
+    ctx.scale(1 + attackPulse * .08, 1 - attackPulse * .04);
+    if (isDragon) {
+      ctx.beginPath(); ctx.ellipse(0, -h * .43, w * .32, h * .26, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-w * .18, -h * .55); ctx.lineTo(-w * .62, -h * .77); ctx.lineTo(-w * .42, -h * .36); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(w * .18, -h * .55); ctx.lineTo(w * .62, -h * .77); ctx.lineTo(w * .42, -h * .36); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(w * .24, -h * .68, w * .14, h * .10, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#fff3a2'; ctx.beginPath(); ctx.arc(w * .29, -h * .70, 4, 0, Math.PI*2); ctx.fill();
+    } else if (monster && monster.templateId === 'skeleton') {
+      ctx.beginPath(); ctx.arc(0, -h * .76, w * .16, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, -h * .60); ctx.lineTo(0, -h * .25); ctx.moveTo(-w*.25, -h*.45); ctx.lineTo(w*.25, -h*.45); ctx.moveTo(0,-h*.25); ctx.lineTo(-w*.18,0); ctx.moveTo(0,-h*.25); ctx.lineTo(w*.18,0); ctx.stroke();
+      ctx.strokeStyle = '#ffe69b'; ctx.beginPath(); ctx.moveTo(w*.20,-h*.55); ctx.lineTo(w*.42,-h*.20); ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.ellipse(0, -h * .35, w * .28, h * .30, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#eafff2'; ctx.beginPath(); ctx.arc(-w*.09, -h*.42, 5, 0, Math.PI*2); ctx.arc(w*.09, -h*.42, 5, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawTargetRing(x, y, radius, color, now) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = color || '#ffe69b';
+    ctx.shadowColor = color || '#ffe69b';
+    ctx.shadowBlur = 18;
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = .28 + Math.sin(now / 210) * .07;
+    ctx.beginPath(); ctx.ellipse(x, y + 10, radius, radius * .20, 0, 0, Math.PI * 2); ctx.stroke();
+    for (var i = 0; i < 4; i++) {
+      var a = now / 650 + i * Math.PI / 2;
+      ctx.beginPath();
+      ctx.arc(x + Math.cos(a) * radius * .78, y + 10 + Math.sin(a) * radius * .16, 4, 0, Math.PI * 2);
+      ctx.fillStyle = color || '#ffe69b'; ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawMonster(now) {
-    if (!state.monster) return;
-    var id = state.monster.templateId;
+    var monsterRef = getVisualMonster();
+    if (!monsterRef) return;
+    var id = monsterRef.templateId || monsterRef.id || 'slime';
     var action = now < state.anim.monsterHitUntil ? 'hit' : (now < state.anim.monsterAttackUntil ? 'attack' : 'idle');
-    // V43: monstros também usam 1 PNG inteiro com tweens fortes para evitar corte feio por segmentos.
-    var img = monsterImages[id] || getAnimatedImage('monster', id, action, now);
-    if (!img || !img.complete) return;
-    var sw = img.naturalWidth || img.width || 1;
-    var sh = img.naturalHeight || img.height || 1;
-    var isDragon = id === 'dragon';
+    var img = monsterImages[id] || (monsterRef.asset ? cachedImage(monsterRef.asset) : null);
+    var ready = !!(img && img.complete && (img.naturalWidth || img.width));
+    var isDragon = id === 'dragon' || monsterRef.isBoss;
     var baseX = canvas.width * 0.72;
     var baseY = canvas.height * 0.90 + Math.sin(now / 260) * 3;
-    var h = isDragon ? Math.min(328, canvas.height * 0.70) : Math.min(244, canvas.height * 0.56);
-    var w = h * (sw / sh);
-    var attackPulse = action === 'attack' ? Math.sin((1 - Math.max(0, (state.anim.monsterAttackUntil - now) / 500)) * Math.PI) : 0;
+    var attackPulse = action === 'attack' ? Math.sin((1 - Math.max(0, (state.anim.monsterAttackUntil - now) / 560)) * Math.PI) : 0;
     var hitProg = action === 'hit' ? 1 - Math.max(0, (state.anim.monsterHitUntil - now) / 430) : 0;
-    var base = { x: baseX - attackPulse * (isDragon ? 42 : 30), y: baseY - attackPulse * 8 };
+    var h = isDragon ? Math.min(340, canvas.height * 0.72) : Math.min(260, canvas.height * 0.58);
+    var w = ready ? h * ((img.naturalWidth || img.width || 1) / (img.naturalHeight || img.height || 1)) : (isDragon ? h * 1.15 : h * .86);
+    var base = { x: baseX - attackPulse * (isDragon ? 58 : 38), y: baseY - attackPulse * 12 };
     var tr = vfx ? vfx.getTransform('monster', base) : { x: base.x, y: base.y, rot: 0, sx: 1, sy: 1, flash: null };
-    tr.rot = (tr.rot || 0) - attackPulse * 0.045 + Math.sin(now / 520) * 0.012 + hitProg * 0.045;
-    tr.sx = (tr.sx || 1) + attackPulse * 0.035 + Math.sin(now / 360) * 0.012;
-    tr.sy = (tr.sy || 1) - attackPulse * 0.018 - Math.sin(now / 360) * 0.008;
+    tr.rot = (tr.rot || 0) - attackPulse * 0.055 + Math.sin(now / 520) * 0.012 + hitProg * 0.045;
+    tr.sx = (tr.sx || 1) + attackPulse * 0.045 + Math.sin(now / 360) * 0.012;
+    tr.sy = (tr.sy || 1) - attackPulse * 0.020 - Math.sin(now / 360) * 0.008;
+
+    var ringColor = isDragon ? '#ff8f3d' : id === 'skeleton' ? '#d8f0ff' : '#8effb8';
+    drawTargetRing(tr.x, baseY, isDragon ? 148 : 106, ringColor, now);
 
     ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,.56)';
-    ctx.beginPath(); ctx.ellipse(tr.x, baseY + 10, (isDragon ? 126 : 88) * (1 + attackPulse * 0.12), isDragon ? 32 : 23, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.58)';
+    ctx.beginPath(); ctx.ellipse(tr.x, baseY + 10, (isDragon ? 138 : 96) * (1 + attackPulse * 0.16), isDragon ? 36 : 25, 0, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 
-    if (isDragon || (state.monster.special && state.monster.special.active)) {
+    if (isDragon || (monsterRef.special && monsterRef.special.active)) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
-      var aura = isDragon ? 'rgba(255,133,72,.30)' : 'rgba(183,146,255,.25)';
-      var rg = ctx.createRadialGradient(tr.x, tr.y - h * 0.52, 20, tr.x, tr.y - h * 0.52, w * 0.64);
+      var aura = isDragon ? 'rgba(255,133,72,.34)' : 'rgba(183,146,255,.28)';
+      var rg = ctx.createRadialGradient(tr.x, tr.y - h * 0.52, 20, tr.x, tr.y - h * 0.52, Math.max(180, w * 0.72));
       rg.addColorStop(0, aura); rg.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = rg; ctx.fillRect(tr.x - w, tr.y - h - 70, w * 2, h * 1.5);
+      ctx.fillStyle = rg; ctx.fillRect(tr.x - w, tr.y - h - 80, w * 2, h * 1.6);
       ctx.restore();
     }
 
-    var monsterPose = { idle: Math.sin(now / 240) * 3, swing: attackPulse, hit: hitProg, lean: isDragon ? -attackPulse * 0.08 : attackPulse * 0.04, time: now, mode: id === 'slime' ? 'slime' : 'rig' };
-    drawRiggedSprite(img, tr.x, tr.y, w, h, tr, monsterPose, { shadowColor: isDragon ? '#ff8f3d' : '#9fd8ff', shadowBlur: isDragon ? 18 : 8, facing: 1 });
+    if (ready && vfx && vfx.drawCharacterImage) {
+      vfx.drawCharacterImage(img, tr.x, tr.y, w, h, tr, { shadowColor: ringColor, shadowBlur: isDragon ? 24 : 12, facing: 1 });
+    } else if (ready) {
+      ctx.save(); ctx.translate(tr.x, tr.y); ctx.rotate(tr.rot || 0); ctx.scale(tr.sx || 1, tr.sy || 1); if (tr.flash) ctx.filter = tr.flash === 'red' ? 'brightness(1.9) sepia(1) saturate(6) hue-rotate(-35deg)' : 'brightness(2.8)'; ctx.shadowColor = ringColor; ctx.shadowBlur = isDragon ? 22 : 10; ctx.drawImage(img, -w / 2, -h, w, h); ctx.restore();
+    } else {
+      drawMonsterFallback(monsterRef, tr.x, tr.y, w, h, isDragon, now, action);
+    }
 
     if (id === 'skeleton' && action === 'attack') {
       ctx.save(); ctx.strokeStyle = '#d8f0ff'; ctx.lineWidth = 5; ctx.shadowColor = '#d8f0ff'; ctx.shadowBlur = 16; ctx.beginPath(); ctx.arc(tr.x - 14, tr.y - h * 0.50, w * 0.18, -1.3, 0.45); ctx.stroke(); ctx.restore();
     }
-    if (id === 'dragon') {
+    if (isDragon) {
       ctx.save(); ctx.strokeStyle = 'rgba(255,176,96,.75)'; ctx.shadowColor = 'rgba(255,176,96,.75)'; ctx.shadowBlur = 18; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(tr.x + w * 0.12, tr.y - h * 0.56); ctx.lineTo(tr.x + w * 0.34 + Math.sin(now / 180) * 10, tr.y - h * 0.64); ctx.stroke(); ctx.restore();
     }
-    if (state.monster.special && state.monster.special.active) {
-      ctx.save(); ctx.strokeStyle = 'rgba(180,140,255,.85)'; ctx.lineWidth = 6; ctx.shadowColor = 'rgba(180,140,255,.65)'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.ellipse(tr.x, tr.y - h * 0.54, w * 0.31, h * 0.39, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    if (monsterRef.special && monsterRef.special.active) {
+      ctx.save(); ctx.strokeStyle = 'rgba(180,140,255,.85)'; ctx.lineWidth = 6; ctx.shadowColor = 'rgba(180,140,255,.65)'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.ellipse(tr.x, tr.y - h * 0.54, Math.max(60, w * 0.31), h * 0.39, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
     }
     if (action === 'hit') spawnParticles(tr.x, tr.y - h * 0.42, '#ff9090', 3);
-    drawNameplate(state.monster.nome + ' [Nv. ' + state.monster.nivel + ']', tr.x, Math.max(22, tr.y - h - 8), '#eaf0ff', 'rgba(255,255,255,.16)');
+    drawNameplate(monsterRef.nome + ' [Nv. ' + monsterRef.nivel + ']', tr.x, Math.max(22, tr.y - h - 8), '#eaf0ff', 'rgba(255,255,255,.16)');
   }
 
   function drawNameplate(text, x, y, fill, stroke) {
@@ -1225,7 +1407,237 @@
   }
   function drawParticles() { state.particles = state.particles.filter(function (p) { return p.life > 0; }); state.particles.forEach(function (p) { p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.life -= 0.04; ctx.save(); ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 2.4, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }); }
   function drawFloating() { state.floating = state.floating.filter(function (f) { return f.life > 0; }); state.floating.forEach(function (f) { f.y += f.vy; f.life -= 0.02; ctx.save(); ctx.globalAlpha = f.life; ctx.font = f.isCrit ? '900 30px Inter' : '900 20px Inter'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.78)'; ctx.fillStyle = f.color; ctx.strokeText(f.text, f.x, f.y); ctx.fillText(f.text, f.x, f.y); ctx.restore(); }); }
-  function render() { resizeCanvas(); var now = performance.now(); ctx.clearRect(0, 0, canvas.width, canvas.height); if (vfx) vfx.beginFrame(); else ctx.save(); if (now < state.anim.shakeUntil) { var amp = Math.max(1, (state.anim.shakeUntil - now) / 28); ctx.translate((Math.random() - 0.5) * amp, (Math.random() - 0.5) * amp); } drawBackground(); drawPlayer(now); drawMonster(now); drawEffects(); if (vfx) vfx.updateAndDraw(); drawParticles(); drawFloating(); if (vfx) vfx.endFrame(); else ctx.restore(); requestAnimationFrame(render); }
+  function visualAttackPulse(source, forcedCrit) {
+    if (!state.me || !state.me.classeId || !canvas.width) return;
+    var now = performance.now();
+    var clsId = state.me.classeId;
+    var color = forcedCrit ? '#ffe69b' : (clsId === 'mago' ? '#91d8ff' : clsId === 'arqueiro' ? '#a8ffca' : '#ffdf8a');
+    state.combatVisual.lastPlayerVisualAt = now;
+    state.combatVisual.combo = Math.min(999, (state.combatVisual.combo || 0) + 1);
+    state.anim.playerAttackUntil = now + (source === 'manual' ? 760 : 640);
+    state.anim.monsterHitUntil = now + 460;
+    state.anim.shakeUntil = now + (forcedCrit ? 180 : 90);
+    var fxX = canvas.width * 0.72 + (Math.random() - 0.5) * 90;
+    var fxY = canvas.height * 0.40 + (Math.random() - 0.5) * 70;
+    if (vfx) {
+      vfx.playPlayerAttack({
+        classId: clsId,
+        from: { x: canvas.width * 0.28, y: canvas.height * 0.90 },
+        to: { x: canvas.width * 0.54, y: canvas.height * 0.82 },
+        impact: { x: fxX, y: fxY },
+        color: color,
+        crit: !!forcedCrit
+      });
+      if (source === 'manual') vfx.flashScreen(color, 120, .10);
+    } else {
+      spawnImpactBurst(fxX, fxY, color, forcedCrit ? 1.4 : 1);
+    }
+    if (source === 'manual') pushFloating('GOLPE!', color, fxX, fxY, !!forcedCrit);
+    if (typeof updateComboMeter === 'function') updateComboMeter(state.combatVisual.combo || 0);
+  }
+
+  function monsterVisualPulse() {
+    if (!state.me || !canvas.width) return;
+    var now = performance.now();
+    state.combatVisual.lastMonsterVisualAt = now;
+    state.anim.monsterAttackUntil = now + 520;
+    state.anim.playerHitUntil = now + 360;
+    state.anim.shakeUntil = now + 105;
+    if (vfx) vfx.playMonsterAttack({
+      boss: !!(state.monster && state.monster.isBoss),
+      from: { x: canvas.width * 0.72, y: canvas.height * 0.90 },
+      to: { x: canvas.width * 0.47, y: canvas.height * 0.84 },
+      impact: { x: canvas.width * 0.28, y: canvas.height * 0.43 }
+    });
+  }
+
+  function updateBattleDirector(now) {
+    if (!state.me || !state.me.classeId || state.me.isDead) return;
+    if (!state.combatVisual) state.combatVisual = { lastPlayerVisualAt: 0, lastMonsterVisualAt: 0, lastServerAttackAt: 0, combo: 0, cinematic: true };
+    if (!state.v150) state.v150 = { quality:'ultra', companions:true, minions:true, camera:true, lastAutoSkillAt:0 };
+    var recentServer = now - (state.combatVisual.lastServerAttackAt || 0) < 320;
+    var interval = state.me.classeId === 'arqueiro' ? 640 : state.me.classeId === 'mago' ? 760 : 700;
+    if (!recentServer && now - (state.combatVisual.lastPlayerVisualAt || 0) > interval) {
+      visualAttackPulse('auto', Math.random() < 0.18);
+    }
+    if (now - (state.combatVisual.lastMonsterVisualAt || 0) > 2200) monsterVisualPulse();
+    if (vfx && now - (state.v150.lastAutoSkillAt || 0) > 5200) {
+      state.v150.lastAutoSkillAt = now;
+      var clsId = state.me.classeId;
+      var color = clsId === 'mago' ? '#d7ebff' : clsId === 'arqueiro' ? '#9dffbe' : '#ffe69b';
+      vfx.playAbility({
+        classId: clsId,
+        color: color,
+        from: { x: canvas.width * 0.32, y: canvas.height * 0.48 },
+        to: { x: canvas.width * 0.72, y: canvas.height * 0.40 }
+      });
+      pushFloating('SKILL AUTO', color, canvas.width * 0.72, canvas.height * 0.34, true);
+    }
+  }
+
+
+  function getVisualMonster() {
+    if (state.monster) return state.monster;
+    return {
+      templateId: 'slime',
+      id: 'training_dummy',
+      nome: 'Eco de Treinamento',
+      nivel: state.me && state.me.nivel ? state.me.nivel : 1,
+      hp: 1,
+      maxHp: 1,
+      isBoss: false,
+      asset: 'assets/monsters/slime.png'
+    };
+  }
+
+  function drawBattleStageOverlay(now) {
+    if (!state.me) return;
+    var monster = getVisualMonster();
+    var isBoss = !!monster.isBoss || monster.templateId === 'dragon';
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+
+    // Lanes de batalha no chão para dar leitura de movimento.
+    var grd = ctx.createLinearGradient(0, canvas.height * 0.74, canvas.width, canvas.height * 0.96);
+    grd.addColorStop(0, 'rgba(110,190,255,.04)');
+    grd.addColorStop(.5, isBoss ? 'rgba(255,142,70,.07)' : 'rgba(255,230,155,.06)');
+    grd.addColorStop(1, 'rgba(110,190,255,.04)');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.ellipse(canvas.width * 0.50, canvas.height * 0.88, canvas.width * 0.42, canvas.height * 0.12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Linha de alvo entre herói e inimigo.
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = isBoss ? 'rgba(255,140,70,.35)' : 'rgba(145,216,255,.28)';
+    ctx.shadowColor = isBoss ? '#ff8f3d' : '#91d8ff';
+    ctx.shadowBlur = 12;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 14]);
+    ctx.lineDashOffset = -now / 45;
+    ctx.beginPath();
+    ctx.moveTo(canvas.width * 0.34, canvas.height * 0.80);
+    ctx.quadraticCurveTo(canvas.width * 0.50, canvas.height * 0.68 + Math.sin(now/420)*8, canvas.width * 0.66, canvas.height * 0.80);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  function drawCompanionSquad(now) {
+    if (!state.me || !state.v150 || state.v150.companions === false) return;
+    var pets = [];
+    if (state.me.petCollection && state.me.petCollection.length) pets = state.me.petCollection.slice(0, 3);
+    if (!pets.length && window.PETS) {
+      pets = Object.keys(window.PETS).slice(0, 3).map(function(k){ return window.PETS[k]; });
+    }
+    if (!pets.length) return;
+    pets.forEach(function(pet, i) {
+      var px = canvas.width * (0.17 + i * 0.065);
+      var py = canvas.height * (0.82 + (i % 2) * 0.05) + Math.sin(now / 280 + i) * 6;
+      var img = pet.asset ? cachedImage(pet.asset) : null;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowColor = pet.cor || '#9fd8ff';
+      ctx.shadowBlur = 14;
+      ctx.globalAlpha = 0.88;
+      if (img && img.complete && (img.naturalWidth || img.width)) {
+        ctx.drawImage(img, px - 28, py - 56, 56, 56);
+      } else {
+        ctx.fillStyle = pet.cor || '#9fd8ff';
+        ctx.beginPath(); ctx.arc(px, py - 28, 18, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.strokeStyle = pet.cor || '#9fd8ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(px, py + 3, 24, 7, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+
+      // Ataques visuais dos companheiros.
+      if (state.monster && now - (state.v150.lastCompanionAt || 0) > 1450 + i * 160) {
+        if (vfx && vfx.projectile) vfx.projectile({
+          from: { x: px + 25, y: py - 42 },
+          to: { x: canvas.width * 0.72 + (Math.random() - .5) * 70, y: canvas.height * 0.43 + (Math.random() - .5) * 55 },
+          color: pet.cor || '#9fd8ff',
+          kind: 'bolt',
+          duration: 430,
+          size: 13
+        });
+        if (i === pets.length - 1) state.v150.lastCompanionAt = now;
+      }
+    });
+  }
+
+  function drawEnemyPack(now) {
+    var monster = getVisualMonster();
+    if (!state.v150 || state.v150.minions === false) return;
+    var isBoss = !!monster.isBoss || monster.templateId === 'dragon';
+    var count = isBoss ? 4 : 2;
+    for (var i = 0; i < count; i++) {
+      var ang = now / 700 + i * Math.PI * 2 / count;
+      var px = canvas.width * 0.72 + Math.cos(ang) * (isBoss ? 118 : 72);
+      var py = canvas.height * 0.78 + Math.sin(ang * 1.3) * 16 + i * 7;
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = isBoss ? 0.72 : 0.55;
+      ctx.fillStyle = isBoss ? 'rgba(255,112,66,.68)' : 'rgba(130,180,255,.52)';
+      ctx.strokeStyle = isBoss ? '#ff8f3d' : '#9fd8ff';
+      ctx.shadowColor = ctx.strokeStyle;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.ellipse(px, py, isBoss ? 18 : 13, isBoss ? 26 : 18, Math.sin(ang)*.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function drawBattleImpactHUD(now) {
+    if (!state.me) return;
+    var monster = getVisualMonster();
+    var hpPct = monster.maxHp ? Math.max(0, Math.min(1, (monster.hp || 0) / monster.maxHp)) : 1;
+    var x = canvas.width * 0.72;
+    var y = canvas.height * 0.20;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(5,8,22,.72)';
+    ctx.strokeStyle = monster.isBoss ? 'rgba(255,143,61,.65)' : 'rgba(145,216,255,.45)';
+    ctx.lineWidth = 1.5;
+    roundRect(x - 145, y - 18, 290, 34, 14, true, true);
+    ctx.fillStyle = 'rgba(80,10,20,.85)';
+    roundRect(x - 132, y - 2, 264, 9, 5, true, false);
+    ctx.fillStyle = monster.isBoss ? '#ff8f3d' : '#ff596d';
+    roundRect(x - 132, y - 2, 264 * hpPct, 9, 5, true, false);
+    ctx.fillStyle = '#eaf0ff';
+    ctx.font = '800 12px Inter, Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText((monster.nome || 'Inimigo') + '  Nv.' + (monster.nivel || 1), x, y - 5);
+    ctx.restore();
+  }
+
+
+  function render() {
+    resizeCanvas();
+    var now = performance.now();
+    updateBattleDirector(now);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (vfx) vfx.beginFrame(); else ctx.save();
+    if (now < state.anim.shakeUntil) {
+      var amp = Math.max(1, (state.anim.shakeUntil - now) / 28);
+      ctx.translate((Math.random() - 0.5) * amp, (Math.random() - 0.5) * amp);
+    }
+    drawBackground();
+    drawBattleStageOverlay(now);
+    drawEnemyPack(now);
+    drawCompanionSquad(now);
+    drawPlayer(now);
+    drawMonster(now);
+    drawBattleImpactHUD(now);
+    drawEffects();
+    if (vfx) vfx.updateAndDraw();
+    drawParticles();
+    drawFloating();
+    if (vfx) vfx.endFrame(); else ctx.restore();
+    requestAnimationFrame(render);
+  }
 
 
 
@@ -1683,6 +2095,8 @@
   });
 
   autoFarmBtn.onclick = function () { ensureAudio(); if (!state.me) return; socket.emit('toggleAutoFarm', { enabled: !state.me.autoFarm }); };
+  if (manualStrikeBtn) manualStrikeBtn.onclick = function () { ensureAudio(); visualAttackPulse('manual', true); playSound('skill'); };
+  if (battleCameraBtn) battleCameraBtn.onclick = function () { ensureAudio(); state.combatVisual.cinematic = !state.combatVisual.cinematic; battleCameraBtn.textContent = state.combatVisual.cinematic ? '🎥 Câmera: ON' : '🎥 Câmera: OFF'; battleCameraBtn.classList.toggle('camera-off', !state.combatVisual.cinematic); };
   menuBag.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuBag.classList.add('active'); openBag(); };
   bagClose.onclick = closeBag;
   if (menuRanking) menuRanking.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuRanking.classList.add('active'); openRanking(); };
@@ -1719,6 +2133,7 @@
   if (v90Modal) Array.prototype.forEach.call(v90Modal.querySelectorAll('[data-v90-tab]'), function(btn){ btn.onclick=function(){ state.v90Tab=btn.getAttribute('data-v90-tab'); renderV90(); }; });
   if (v92Modal) Array.prototype.forEach.call(v92Modal.querySelectorAll('[data-v92-tab]'), function(btn){ btn.onclick=function(){ state.v92Tab=btn.getAttribute('data-v92-tab'); renderV92(); }; });
   v94Bind();
+  v150Bind();
   if (v30Modal) Array.prototype.forEach.call(v30Modal.querySelectorAll('[data-v30-tab]'), function(btn){ btn.onclick=function(){ state.v30Tab=btn.getAttribute('data-v30-tab'); renderV30(); }; });
   if (ascensionModal) ascensionModal.addEventListener('click', function (e) { if (e.target === ascensionModal) closeAscension(); });
   if (v90Modal) v90Modal.addEventListener('click', function (e) { if (e.target === v90Modal) closeV90(); });
@@ -1780,6 +2195,7 @@
   socket.on('gameState', function (list) { (list || []).forEach(function (p) { state.players[p.id] = p; if (p.id === state.meId) state.me = p; }); updateHUD(); renderV30(); renderV90(); renderV92(); renderV92(); });
   socket.on('enemyUpdate', function (monster) { state.monster = monster; updateEnemyHUD(); });
   socket.on('combatTick', function (data) {
+    if (state.combatVisual) state.combatVisual.lastServerAttackAt = performance.now();
     if (data.monster) { state.monster = data.monster; updateEnemyHUD(); }
     (data.attacks || []).forEach(function (attack) {
       var clsId = state.me && state.me.classeId ? state.me.classeId : 'guerreiro';
@@ -1789,6 +2205,7 @@
       state.anim.shakeUntil = performance.now() + (attack.isCrit ? 180 : 90);
       var fxX = canvas.width * 0.72 + (Math.random() - 0.5) * 90;
       var fxY = canvas.height * 0.40 + (Math.random() - 0.5) * 70;
+      if (state.combatVisual) { state.combatVisual.lastPlayerVisualAt = performance.now(); state.combatVisual.combo = Math.min(999, (state.combatVisual.combo || 0) + 1); }
       if (vfx) {
         vfx.playPlayerAttack({
           classId: clsId,
@@ -1828,6 +2245,7 @@
         playSound('equip');
         return;
       }
+      if (state.combatVisual) state.combatVisual.lastMonsterVisualAt = performance.now();
       if (vfx) vfx.playMonsterAttack({
         boss: !!isBossAtk,
         from: { x: canvas.width * 0.72, y: canvas.height * 0.90 },

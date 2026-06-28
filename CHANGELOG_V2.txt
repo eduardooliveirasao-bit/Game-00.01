@@ -1,0 +1,15 @@
+Legend Of Indle RPG V2 — Ultimate MMORPG Reforjado
+
+- Migração do projeto para versão 2.0.0.
+- Novo V2GameDirector no servidor.
+- Novo cliente V2 em public/js/v2-client.js.
+- Novo painel 🌌 V2 no menu inferior.
+- Overlay visual Canvas independente com aura, partículas, companions, minions e minimapa.
+- Golpe V2 manual agora causa dano real via servidor.
+- Ultimate V2 com fúria, cooldown e burst visual.
+- Mundo V2 com 8 zonas, bônus, nodes, reputação e energia de portal.
+- Dungeons locais com recompensas e salvamento.
+- Campanha V2 com capítulos e recompensas permanentes.
+- Skins/aura V2 desbloqueáveis por recursos.
+- Reaproveitamento técnico dos pacotes enviados: Flex, SWF, AS, SQL, protocolo, handlers Python e res.zip de 13 partes.
+- Adicionados manifestos em docs/imported para o pacote Flex e o resource vault.

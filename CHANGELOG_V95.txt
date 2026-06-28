@@ -1,0 +1,28 @@
+Legend Of Indle RPG V1 — V95 COMBAT VISIBILITY + BATTLE DIRECTOR
+=================================================================
+
+Correções críticas:
+- Monstros voltam a aparecer sempre na batalha.
+- Removida a renderização segmentada dos monstros como padrão, porque podia cortar/sumir visualmente.
+- Adicionado fallback procedural: se uma imagem de monstro falhar, o jogo desenha um inimigo visível no Canvas.
+- Personagem volta a ser desenhado como sprite inteiro, evitando corte visual.
+
+Melhorias de combate:
+- Novo Battle Director visual no cliente.
+- Mesmo entre ticks do servidor, o herói executa ataques visuais automáticos.
+- Monstro também executa ataques visuais periódicos.
+- Botão novo: Golpe manual.
+- Botão novo: Câmera ON/OFF.
+- Target ring no inimigo para deixar claro em quem o jogador está batendo.
+- Combo meter integrado aos ataques visuais.
+
+Motivo da correção:
+- A V93/V94 tentou pseudo-rig segmentado para criar animação com PNG único.
+- Isso podia deixar o visual estranho ou invisível dependendo do tamanho/corte da imagem.
+- A V95 mantém animação forte com VFX/dash/shake/impacto, mas garante que corpo e inimigos fiquem visíveis.
+
+Validações:
+- node --check public/js/game.js
+- node --check public/js/vfx-manager.js
+- node --check server.js
+- /healthz local testado em PORT=3095

@@ -1,8 +1,8 @@
 {
-  "name": "legend-of-indle-rpg-v1",
-  "version": "0.94.0",
+  "name": "legend-of-indle-rpg-v2",
+  "version": "2.0.0",
   "private": true,
-  "description": "Legend Of Indle — V94 Visual Lab, UI reward cards, combo meter and local resource pipeline",
+  "description": "Legend Of Indle RPG V2 - Ultimate Local MMORPG Reforjado com visual Canvas, dungeons, campanha e resource vault",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

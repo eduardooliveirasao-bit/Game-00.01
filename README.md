@@ -1,3 +1,38 @@
+# Legend Of Indle RPG V2 — Ultimate Local MMORPG
+
+Build V2 reforjada com base em todo o material enviado: cliente Flex/SWF, ActionScript, SQL, protocolo, handlers Python, resource vault dividido em 13 partes e a evolução V1 até V150.
+
+## Rodar local
+
+```bash
+npm install
+npm start
+```
+
+Abra:
+
+```txt
+http://localhost:3000
+```
+
+Conta GM padrão:
+
+```txt
+Login: GM
+Senha: GM123
+Nick: GM-Eduardo
+```
+
+## Novidades principais
+
+- Botão `🌌 V2` no menu.
+- Golpe V2 manual com dano real no servidor.
+- Ultimate V2 com fúria.
+- Mundo, zonas, dungeons, campanha, skins e resource vault.
+- Visual Canvas com aura, companions, minions, minimapa e efeitos reforçados.
+
+---
+
 # Legend Of Indle RPG V1 — V7 Studio Final
 
 Versão polida baseada na V6, com correção de layout, persistência de progresso, recompensas offline, conquistas, inventário completo, venda/equipamento manual, efeitos de combate e boss especial.

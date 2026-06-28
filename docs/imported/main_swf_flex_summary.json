@@ -1,0 +1,544 @@
+{
+  "source": "Main.swf.flex.zip",
+  "total_files": 2401,
+  "total_uncompressed_bytes": 22175880,
+  "extensions": {
+    ".as": 1946,
+    ".swf": 418,
+    ".png": 28,
+    ".dat": 9
+  },
+  "sample_files": [
+    "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemEquip.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemExpendable.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemFarm.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemGenie.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemManager.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemMotion.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemPet.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemRide.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemSkill.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IIconItemUI.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/incubator/IncubatorInfo.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/incubator/IncubatorItem.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/incubator/IncubatorItemConfig.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/incubator/IncubatorManager.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/legend/LegendAttrKind.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/legend/LegendManager.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/lifeJob/LifeJobCode.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/CommandCodeLogin.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/LoginAnswer.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/LoginRequest.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/LogoutAnswer.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/LogoutRequest.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/ServerListAnswer.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/ServerListRequest.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/WelcomeNotify.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/info/ServerInfo.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/LoginClient.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/LoginEvent.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/lottery/GambleStakeType.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/lottery/LotterManager.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/mail/MailContentInfo.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/mail/MailListItemInfo.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/mail/MailManager.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/manual/ManualManger.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/manual/MonsterManualInfo.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/IMapListener.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/IMapTile.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/Map.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/MapBuilding.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/MapEntry.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/MapExit.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/MapGroundObject.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/MapInteractiveObject.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/MapItem.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/MapLayer.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/MapMaterial.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/MapObject.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/MapObjectSet.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/MapTrap.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/MapUtil.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/AcorrsLineGrid.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/Arrange.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/Astar.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/astarInterface/Igrid.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/astarInterface/Inode.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/Grid.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/Node.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/PathfindingMatrix.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/PathfindingMatrixInBit.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/PathfindingMatrixInByte.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/pixelAstar/FindPath.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/pixelAstar/MapPhysics.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/pixelAstar/MyPoint.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/tileAstar/Pathfinder.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/map/ScrollLayer.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/mate/MateManager.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/mate/MateRelationInfo.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/mate/MateRelationType.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/misc/MiscManager.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/module/BackgroundModule.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/module/ConfirmBoxModule.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/module/ConfirmSmallBoxModule.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/module/CreateRole/CreateRoleModule.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/module/CreateRole/CreateRoleSelectBox.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/module/GMControlBox.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/module/GoldBox.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/module/InfoBox.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/module/InputAreaModule.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/module/InputBoxModule.as",
+    "Main.swf.flex/src/com/sunweb/game/rpg/module/LoginModule.as"
+  ],
+  "top_largest": [
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/script/ConditionScript.as",
+      "size": 2787448
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/CountryUIMC.swf",
+      "size": 895398
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/EquAddSoulUIMC.swf",
+      "size": 348330
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/WheelAwardUIMC.swf",
+      "size": 347278
+    },
+    {
+      "name": "Main.swf.flex/src/mmorpg/CreateRoleUI.swf",
+      "size": 329870
+    },
+    {
+      "name": "Main.swf.flex/src/somcUI_fla/effect_777.swf",
+      "size": 302578
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/ProgressBoxUI.swf",
+      "size": 301884
+    },
+    {
+      "name": "Main.swf.flex/src/mmoprg/BgModuleUI.swf",
+      "size": 265235
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/ReGrowUIMC.swf",
+      "size": 260550
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/PlayerBookUIMC.swf",
+      "size": 248942
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/DrgTreasureUIMC.swf",
+      "size": 223766
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/netRole/LocalPlayer.as",
+      "size": 222176
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/AegisUIMC.swf",
+      "size": 222150
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/module/MainModule.as",
+      "size": 196417
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/StarAdventureUIMC.swf",
+      "size": 137001
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/FateTurntableUIMC.swf",
+      "size": 119461
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/NewShopBoxMC.swf",
+      "size": 110564
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/AreaCircleShape.swf",
+      "size": 108678
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/CloakBoxUIMC.swf",
+      "size": 105965
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/PlayingCardUIMC.swf",
+      "size": 103417
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/FateSkillUIMC.swf",
+      "size": 96576
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/WingSpiritUIMC.swf",
+      "size": 94612
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/FavorUIMC.swf",
+      "size": 90516
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/StirpBoxUIMC.swf",
+      "size": 84851
+    },
+    {
+      "name": "Main.swf.flex/src/mmorpg/RoleListUI.swf",
+      "size": 83451
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/SystemListUIMC.swf",
+      "size": 80436
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/playerUI/pet/PetBoxUI.as",
+      "size": 78520
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/playerUI/managers/PlayerUIManager.as",
+      "size": 78490
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/BoneUIMC.swf",
+      "size": 77043
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/BloodUIMC.swf",
+      "size": 76605
+    },
+    {
+      "name": "Main.swf.flex/src/somcUI_fla/Timeline_92.swf",
+      "size": 73208
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/ConstellationUIMC.swf",
+      "size": 72542
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/role/Player.as",
+      "size": 71274
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/CollegeUIMC.swf",
+      "size": 70007
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/SmallMapUIMC.swf",
+      "size": 69618
+    },
+    {
+      "name": "Main.swf.flex/src/somcUI_fla/Timeline_93.swf",
+      "size": 68684
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/worldZone/WorldClient.as",
+      "size": 65277
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/playerUI/playerInfo/PlayerFullInfoUI.as",
+      "size": 64631
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/RunningManUIMC.swf",
+      "size": 63798
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/SkillBookUIMC.swf",
+      "size": 62718
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/ExtractantUIMC.swf",
+      "size": 61563
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/PetBoxUIMC.swf",
+      "size": 61150
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/map/Map.as",
+      "size": 59474
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/RefineBoxUIMC.swf",
+      "size": 58894
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/IncubatorUIMC.swf",
+      "size": 58595
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/ArmoryUpgradeUIMC.swf",
+      "size": 58458
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/playerUI/GameInfoUI.as",
+      "size": 57393
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/WorldUIMC.swf",
+      "size": 57193
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/playerUI/bot/BotUI.as",
+      "size": 55944
+    },
+    {
+      "name": "Main.swf.flex/src/somcUI_fla/Timeline_94.swf",
+      "size": 55502
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/TowerBoxUIMC.swf",
+      "size": 54644
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/playerUI/PlayerBagUI.as",
+      "size": 53249
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/playerUI/map/SystemListUI.as",
+      "size": 52406
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/DragonBoxUIMC.swf",
+      "size": 52354
+    },
+    {
+      "name": "Main.swf.flex/src/playerUI/PlayerFullInfoUIMC.swf",
+      "size": 51144
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/role/Creature.as",
+      "size": 51039
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/playerUI/map/SmallMapUI.as",
+      "size": 51027
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/netRole/RemotePlayer.as",
+      "size": 48958
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/playerUI/incubator/IncubatorUI.as",
+      "size": 48350
+    },
+    {
+      "name": "Main.swf.flex/src/com/sunweb/game/rpg/playerUI/cloak/CloakBoxUI.as",
+      "size": 46649
+    }
+  ],
+  "samples_by_extension": {
+    ".as": [
+      "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemEquip.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemExpendable.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemFarm.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemGenie.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemManager.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemMotion.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemPet.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemRide.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IconItemSkill.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/iconItem/IIconItemUI.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/incubator/IncubatorInfo.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/incubator/IncubatorItem.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/incubator/IncubatorItemConfig.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/incubator/IncubatorManager.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/legend/LegendAttrKind.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/legend/LegendManager.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/lifeJob/LifeJobCode.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/CommandCodeLogin.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/LoginAnswer.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/LoginRequest.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/LogoutAnswer.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/LogoutRequest.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/ServerListAnswer.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/ServerListRequest.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/command/WelcomeNotify.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/info/ServerInfo.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/LoginClient.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/loginZone/LoginEvent.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/lottery/GambleStakeType.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/lottery/LotterManager.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/mail/MailContentInfo.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/mail/MailListItemInfo.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/mail/MailManager.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/manual/ManualManger.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/manual/MonsterManualInfo.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/IMapListener.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/IMapTile.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/Map.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/MapBuilding.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/MapEntry.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/MapExit.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/MapGroundObject.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/MapInteractiveObject.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/MapItem.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/MapLayer.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/MapMaterial.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/MapObject.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/MapObjectSet.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/MapTrap.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/MapUtil.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/AcorrsLineGrid.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/Arrange.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/Astar.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/astarInterface/Igrid.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/astarInterface/Inode.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/Grid.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/astar/Node.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/PathfindingMatrix.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/PathfindingMatrixInBit.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/PathfindingMatrixInByte.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/pixelAstar/FindPath.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/pixelAstar/MapPhysics.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/pixelAstar/MyPoint.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/pathfind/tileAstar/Pathfinder.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/map/ScrollLayer.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/mate/MateManager.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/mate/MateRelationInfo.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/mate/MateRelationType.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/misc/MiscManager.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/module/BackgroundModule.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/module/ConfirmBoxModule.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/module/ConfirmSmallBoxModule.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/module/CreateRole/CreateRoleModule.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/module/CreateRole/CreateRoleSelectBox.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/module/GMControlBox.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/module/GoldBox.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/module/InfoBox.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/module/InputAreaModule.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/module/InputBoxModule.as",
+      "Main.swf.flex/src/com/sunweb/game/rpg/module/LoginModule.as"
+    ],
+    ".swf": [
+      "Main.swf.flex/src/ControlClass/MJCheckBox.swf",
+      "Main.swf.flex/src/ControlClass/MJInput.swf",
+      "Main.swf.flex/src/ControlClass/MJList.swf",
+      "Main.swf.flex/src/ControlClass/TitleBox.swf",
+      "Main.swf.flex/src/cursor/CursorAttack.swf",
+      "Main.swf.flex/src/cursor/CursorDialog.swf",
+      "Main.swf.flex/src/cursor/CursorFarmRemove.swf",
+      "Main.swf.flex/src/cursor/CursorRepair.swf",
+      "Main.swf.flex/src/cursor/CursorSell.swf",
+      "Main.swf.flex/src/cursor/CursorSplit.swf",
+      "Main.swf.flex/src/cursor/CursorTargetToDo.swf",
+      "Main.swf.flex/src/cursor/CursorUnmove.swf",
+      "Main.swf.flex/src/efc/ItemRollPointEffect.swf",
+      "Main.swf.flex/src/fl/controls/Button.swf",
+      "Main.swf.flex/src/fl/controls/CheckBox.swf",
+      "Main.swf.flex/src/fl/controls/ComboBox.swf",
+      "Main.swf.flex/src/fl/controls/DataGrid.swf",
+      "Main.swf.flex/src/fl/controls/dataGridClasses/HeaderRenderer.swf",
+      "Main.swf.flex/src/fl/controls/List.swf",
+      "Main.swf.flex/src/fl/controls/listClasses/CellRenderer.swf",
+      "Main.swf.flex/src/fl/controls/ScrollBar.swf",
+      "Main.swf.flex/src/fl/controls/TextInput.swf",
+      "Main.swf.flex/src/fl/controls/UIScrollBar.swf",
+      "Main.swf.flex/src/fl/core/ComponentShim.swf",
+      "Main.swf.flex/src/gameFont/FontSettingMC.swf",
+      "Main.swf.flex/src/img/BoneOff.swf",
+      "Main.swf.flex/src/img/BoneOn.swf",
+      "Main.swf.flex/src/img/cardIconBlue.swf",
+      "Main.swf.flex/src/img/cardIconGreen.swf",
+      "Main.swf.flex/src/img/cardIconOrange.swf",
+      "Main.swf.flex/src/img/cardIconPurple.swf",
+      "Main.swf.flex/src/img/cardIconWhite.swf",
+      "Main.swf.flex/src/img/cardIconYellow.swf",
+      "Main.swf.flex/src/img/EmbedHoleIcon.swf",
+      "Main.swf.flex/src/img/EmptyHoleIcon.swf",
+      "Main.swf.flex/src/img/FarmCollectIcon.swf",
+      "Main.swf.flex/src/img/FarmCureIcon.swf",
+      "Main.swf.flex/src/img/HeadIcon_000.swf",
+      "Main.swf.flex/src/img/HeartOff.swf",
+      "Main.swf.flex/src/img/HeartOn.swf",
+      "Main.swf.flex/src/img/ItemRankIconBlue.swf",
+      "Main.swf.flex/src/img/ItemRankIconGreen.swf",
+      "Main.swf.flex/src/img/ItemRankIconHoliness.swf",
+      "Main.swf.flex/src/img/ItemRankIconOrange.swf",
+      "Main.swf.flex/src/img/ItemRankIconPurple.swf",
+      "Main.swf.flex/src/img/ItemRankIconYellow.swf",
+      "Main.swf.flex/src/img/LuckOff.swf",
+      "Main.swf.flex/src/img/LuckOn.swf",
+      "Main.swf.flex/src/img/MapDestination.swf",
+      "Main.swf.flex/src/img/MapSelfIcon.swf",
+      "Main.swf.flex/src/img/mapTeleportIcon.swf",
+      "Main.swf.flex/src/img/Moon.swf",
+      "Main.swf.flex/src/img/NpcMapIcon.swf",
+      "Main.swf.flex/src/img/NpcTaskIcon.swf",
+      "Main.swf.flex/src/img/RefineStarOff.swf",
+      "Main.swf.flex/src/img/RefineStarOn.swf",
+      "Main.swf.flex/src/img/SoulGuardStar.swf",
+      "Main.swf.flex/src/img/Star.swf",
+      "Main.swf.flex/src/img/Sun.swf",
+      "Main.swf.flex/src/jobIcon/Animal_Big.swf",
+      "Main.swf.flex/src/jobIcon/Druid_Big.swf",
+      "Main.swf.flex/src/jobIcon/Elf_Big.swf",
+      "Main.swf.flex/src/jobIcon/Fairy_Big.swf",
+      "Main.swf.flex/src/jobIcon/Killer_Big.swf",
+      "Main.swf.flex/src/jobIcon/Paladin_Big.swf",
+      "Main.swf.flex/src/jobIcon/Priest_Big.swf",
+      "Main.swf.flex/src/mapCommon/CreatureSelectionRing.swf",
+      "Main.swf.flex/src/mapCommon/CreatureShadowRing.swf",
+      "Main.swf.flex/src/mapCommon/LoadingMC.swf",
+      "Main.swf.flex/src/mapCommon/TalkBox.swf",
+      "Main.swf.flex/src/mcRes/AddLuckStarEffect.swf",
+      "Main.swf.flex/src/mcRes/AssembleLuckBox.swf",
+      "Main.swf.flex/src/mmoprg/BgModuleUI.swf",
+      "Main.swf.flex/src/mmorpg/ConfirmBoxUI.swf",
+      "Main.swf.flex/src/mmorpg/ConfirmSmallBoxUI.swf",
+      "Main.swf.flex/src/mmorpg/CreateRoleUI.swf",
+      "Main.swf.flex/src/mmorpg/GMControlUI.swf",
+      "Main.swf.flex/src/mmorpg/InfoBoxUI.swf",
+      "Main.swf.flex/src/mmorpg/InputAreaUIMC.swf",
+      "Main.swf.flex/src/mmorpg/InputBoxUI.swf"
+    ],
+    ".png": [
+      "Main.swf.flex/src/img/autoSkillBD.png",
+      "Main.swf.flex/src/img/SkillClickEff.png",
+      "Main.swf.flex/src/numberEffect/CollectFailed.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/CloseButtonSkin__embed_mxml________________assets_win_close_down_png_952139653.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/CloseButtonSkin__embed_mxml________________assets_win_close_over_png_926744517.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/CloseButtonSkin__embed_mxml________________assets_win_close_up_png_1567115323.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MacCloseButtonSkin__embed_mxml________________assets_mac_close_down_png_935133125.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MacCloseButtonSkin__embed_mxml________________assets_mac_close_over_png_817840069.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MacCloseButtonSkin__embed_mxml________________assets_mac_close_up_png_1924696123.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MacMaximizeButtonSkin__embed_mxml________________assets_mac_max_dis_png_388271355.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MacMaximizeButtonSkin__embed_mxml________________assets_mac_max_down_png_1397246075.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MacMaximizeButtonSkin__embed_mxml________________assets_mac_max_over_png_1300756421.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MacMaximizeButtonSkin__embed_mxml________________assets_mac_max_up_png_1290973243.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MacMinimizeButtonSkin__embed_mxml________________assets_mac_min_dis_png_2073881541.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MacMinimizeButtonSkin__embed_mxml________________assets_mac_min_down_png_1387794427.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MacMinimizeButtonSkin__embed_mxml________________assets_mac_min_over_png_1657292923.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MacMinimizeButtonSkin__embed_mxml________________assets_mac_min_up_png_1395793915.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MaximizeButtonSkin__embed_mxml________________assets_win_max_dis_png_1318648581.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MaximizeButtonSkin__embed_mxml________________assets_win_max_down_png_1564997509.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MaximizeButtonSkin__embed_mxml________________assets_win_max_over_png_1386760699.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MaximizeButtonSkin__embed_mxml________________assets_win_max_up_png_1127358459.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MinimizeButtonSkin__embed_mxml________________assets_win_min_dis_png_2393147.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MinimizeButtonSkin__embed_mxml________________assets_win_min_down_png_1917339707.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MinimizeButtonSkin__embed_mxml________________assets_win_min_over_png_1387808891.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/MinimizeButtonSkin__embed_mxml________________assets_win_min_up_png_1081258043.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/RestoreButtonSkin__embed_mxml________________assets_win_restore_down_png_1692624837.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/RestoreButtonSkin__embed_mxml________________assets_win_restore_over_png_973961275.png",
+      "Main.swf.flex/src/spark/skins/spark/windowChrome/RestoreButtonSkin__embed_mxml________________assets_win_restore_up_png_817827781.png"
+    ],
+    ".dat": [
+      "Main.swf.flex/src/mx/graphics/shaderClasses/ColorBurnShader_ShaderClass.dat",
+      "Main.swf.flex/src/mx/graphics/shaderClasses/ColorDodgeShader_ShaderClass.dat",
+      "Main.swf.flex/src/mx/graphics/shaderClasses/ColorShader_ShaderClass.dat",
+      "Main.swf.flex/src/mx/graphics/shaderClasses/ExclusionShader_ShaderClass.dat",
+      "Main.swf.flex/src/mx/graphics/shaderClasses/HueShader_ShaderClass.dat",
+      "Main.swf.flex/src/mx/graphics/shaderClasses/LuminosityMaskShader_ShaderClass.dat",
+      "Main.swf.flex/src/mx/graphics/shaderClasses/LuminosityShader_ShaderClass.dat",
+      "Main.swf.flex/src/mx/graphics/shaderClasses/SaturationShader_ShaderClass.dat",
+      "Main.swf.flex/src/mx/graphics/shaderClasses/SoftLightShader_ShaderClass.dat"
+    ],
+    ".xml": [],
+    ".json": []
+  }
+}

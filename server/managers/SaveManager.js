@@ -70,6 +70,7 @@ function sanitizePlayer(player) {
     fashion: player.fashion || null,
     world: player.world || null,
     attributeBreakdown: player.attributeBreakdown || null,
+    v2: player.v2 || null,
     updatedAt: Date.now()
   };
 }
@@ -142,7 +143,8 @@ class SaveManager {
       bag: save.bag || { capacity:56, slots:[] },
       fashion: save.fashion || { owned:['armadura_ferro_runa'], equipped:{ outfit:'armadura_ferro_runa' }, fragments:0, bonus:{} },
       world: save.world || { zoneId:'floresta_cristalina', unlocked:['floresta_cristalina'], routeHistory:[], enteredAt:Date.now(), clientConfig:{} },
-      attributeBreakdown: save.attributeBreakdown || null
+      attributeBreakdown: save.attributeBreakdown || null,
+      v2: save.v2 || null
     });
     player.id = keepSocketId;
     player.isDead = false;

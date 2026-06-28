@@ -1,0 +1,15 @@
+Legend Of Indle RPG V1 — V136
+
+Tema: Meta systems: progressão, atributos, coleção, debug e balanceamento
+
+Este marco foi consolidado na build V150 Ultimate Local MMORPG Lab.
+A build V150 inclui as melhorias práticas acumuladas:
+- batalha com inimigo sempre visível;
+- Battle Director visual;
+- companheiros no campo;
+- pack/minions visuais;
+- central V150;
+- UI dark fantasy reforçada;
+- roadmap V96–V150 dentro do jogo;
+- base local/desktop sem limitação do Render.
+

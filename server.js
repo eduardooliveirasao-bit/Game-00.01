@@ -20,6 +20,7 @@ const SlotInventoryManager = require('./server/managers/SlotInventoryManager');
 const FashionLayerManager = require('./server/managers/FashionLayerManager');
 const WorldFlowManager = require('./server/managers/WorldFlowManager');
 const SocketEventLogger = require('./server/debug/SocketEventLogger');
+const V2GameDirector = require('./server/managers/V2GameDirector');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE_MS = 1000;
@@ -36,7 +37,7 @@ app.use('/shared', express.static('shared'));
 app.get('/healthz', (req, res) => {
   res.status(200).json({
     ok: true,
-    service: 'Legend Of Indle RPG V1',
+    service: 'Legend Of Indle RPG V2',
     uptime: Math.floor(process.uptime()),
     online: Object.keys(players || {}).length,
     timestamp: Date.now()
@@ -128,7 +129,8 @@ function createPlayer(socket) {
   WorldFlowManager.normalize(player);
   AdvancedAttributeManager.normalize(player);
   AdvancedAttributeManager.calculate(player);
-  player.power = Math.max(LootManager.calculatePower(player), (player.attributeBreakdown && player.attributeBreakdown.power) || 0) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player);
+  V2GameDirector.normalize(player);
+  player.power = Math.max(LootManager.calculatePower(player), (player.attributeBreakdown && player.attributeBreakdown.power) || 0) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player) + V2GameDirector.powerBonus(player);
   return player;
 }
 
@@ -194,7 +196,8 @@ function publicPlayer(player) {
       socketLog: process.env.DEBUG_SOCKET === '1' ? SocketEventLogger.path() : null
     },
     visualLayers: Object.assign({}, V90ProgressManager.visualLayers(player), FashionLayerManager.layers(player)),
-    v90AuraColor: V90ProgressManager.auraColor(player)
+    v90AuraColor: V90ProgressManager.auraColor(player),
+    v2: V2GameDirector.publicState(player)
   };
 }
 
@@ -238,7 +241,8 @@ function syncPlayerPower(player) {
   WorldFlowManager.normalize(player);
   AdvancedAttributeManager.normalize(player);
   AdvancedAttributeManager.calculate(player);
-  player.power = Math.max(LootManager.calculatePower(player), (player.attributeBreakdown && player.attributeBreakdown.power) || 0) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player);
+  V2GameDirector.normalize(player);
+  player.power = Math.max(LootManager.calculatePower(player), (player.attributeBreakdown && player.attributeBreakdown.power) || 0) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player) + V2GameDirector.powerBonus(player);
 }
 
 function savePlayer(player, force = false) {
@@ -278,6 +282,7 @@ function rewardIfEnemyDied(player, combatEvent) {
   const seasonXpGained = V30ProgressManager.onKill(player, dead, loot);
   const v40Kill = V40ProgressManager.onKill(player, dead, loot);
   const v90Kill = V90ProgressManager.onKill(player, dead, loot);
+  const v2Kill = V2GameDirector.onKill(player, dead, loot);
   if (dead.isBoss || Math.random() < 0.06) FashionLayerManager.grantFragments(player, dead.isBoss ? 3 : 1);
   MetaProgressManager.progressMission(player, loot.item ? 'loot' : 'none', loot.item ? 1 : 0);
   const talentBonus = TalentManager.getBonuses(player);
@@ -316,7 +321,9 @@ function rewardIfEnemyDied(player, combatEvent) {
     seasonXpGained,
     v40Kill,
     v90Kill,
-    v90: V90ProgressManager.publicState(player)
+    v90: V90ProgressManager.publicState(player),
+    v2Kill,
+    v2: V2GameDirector.publicState(player)
   });
   io.emit('playerUpdated', publicPlayer(player));
 }
@@ -494,7 +501,7 @@ io.on('connection', (socket) => {
   players[socket.id] = player;
   SocketEventLogger.attach(socket, () => player);
 
-  socket.emit('init', { you: publicPlayer(player), players: publicPlayersList(), monster: monsterManager.getPublicMonster(), levelCap: LEVEL_CAP, shopItems: SHOP_ITEMS, authRequired: true });
+  socket.emit('init', { you: publicPlayer(player), players: publicPlayersList(), monster: monsterManager.getPublicMonster(), levelCap: LEVEL_CAP, shopItems: SHOP_ITEMS, authRequired: true, v2: V2GameDirector.publicState(player) });
   socket.broadcast.emit('playerJoined', publicPlayer(player));
   io.emit('onlineCount', Object.keys(players).length);
   emitEnemyUpdate();
@@ -683,7 +690,8 @@ io.on('connection', (socket) => {
   WorldFlowManager.normalize(player);
   AdvancedAttributeManager.normalize(player);
   AdvancedAttributeManager.calculate(player);
-  player.power = Math.max(LootManager.calculatePower(player), (player.attributeBreakdown && player.attributeBreakdown.power) || 0) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player);
+  V2GameDirector.normalize(player);
+  player.power = Math.max(LootManager.calculatePower(player), (player.attributeBreakdown && player.attributeBreakdown.power) || 0) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player) + V90ProgressManager.powerBonus(player) + V2GameDirector.powerBonus(player);
     updateAchievements(player);
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
@@ -1261,6 +1269,92 @@ io.on('connection', (socket) => {
     socket.emit('v90Action', { type:'tactic', result, player:publicPlayer(player) });
   });
 
+
+  socket.on('v2RequestState', () => {
+    socket.emit('v2State', { ok: true, player: publicPlayer(player), v2: V2GameDirector.publicState(player) });
+  });
+
+  socket.on('v2EnterZone', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V2GameDirector.enterZone(player, data.zoneId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player); savePlayer(player, true);
+    socket.emit('v2Action', { type: 'enterZone', result, player: publicPlayer(player), v2: V2GameDirector.publicState(player) });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
+  socket.on('v2ManualStrike', () => {
+    if (!requireAuth(socket, player)) return;
+    const now = Date.now();
+    const event = V2GameDirector.manualStrike(player, monsterManager, CombatManager, now);
+    if (!event.ok) return socket.emit(event.restanteMs ? 'cooldownRejected' : 'errorMsg', event.restanteMs ? { restanteMs: event.restanteMs } : event.reason);
+    player.stats = player.stats || {};
+    player.stats.damageDealt = (player.stats.damageDealt || 0) + (event.damage || 0);
+    V90ProgressManager.onDamageDealt(player, event.damage || 0, { crit: event.isCrit, type: 'v2Manual' });
+    io.emit('abilityUsed', { playerId: player.id, classeId: player.classeId, habilidadeId: event.habilidadeId, habilidadeNome: event.habilidadeNome, visual: event.visual, icon: event.icon, cooldown: event.cooldown, damage: event.damage, isCrit: event.isCrit });
+    io.emit('combatTick', { attacks: [event], monsterAttacks: [], monster: monsterManager.getPublicMonster(), serverTime: now, v2: V2GameDirector.publicState(player) });
+    socket.emit('v2Combat', { type: 'manual', event, player: publicPlayer(player), v2: V2GameDirector.publicState(player) });
+    rewardIfEnemyDied(player, event);
+    updateAchievements(player);
+    syncPlayerPower(player); savePlayer(player);
+    io.emit('playerUpdated', publicPlayer(player));
+    emitEnemyUpdate();
+  });
+
+  socket.on('v2UltimateBurst', () => {
+    if (!requireAuth(socket, player)) return;
+    const now = Date.now();
+    const event = V2GameDirector.ultimateBurst(player, monsterManager, CombatManager, now);
+    if (!event.ok) return socket.emit(event.restanteMs ? 'cooldownRejected' : 'errorMsg', event.restanteMs ? { restanteMs: event.restanteMs } : event.reason);
+    player.stats = player.stats || {};
+    player.stats.damageDealt = (player.stats.damageDealt || 0) + (event.damage || 0);
+    V90ProgressManager.onDamageDealt(player, event.damage || 0, { crit: event.isCrit, type: 'v2Ultimate' });
+    io.emit('abilityUsed', { playerId: player.id, classeId: player.classeId, habilidadeId: event.habilidadeId, habilidadeNome: event.habilidadeNome, visual: event.visual, icon: event.icon, cooldown: event.cooldown, damage: event.damage, isCrit: event.isCrit });
+    io.emit('combatTick', { attacks: [event], monsterAttacks: [], monster: monsterManager.getPublicMonster(), serverTime: now, v2: V2GameDirector.publicState(player) });
+    socket.emit('v2Combat', { type: 'ultimate', event, player: publicPlayer(player), v2: V2GameDirector.publicState(player) });
+    rewardIfEnemyDied(player, event);
+    updateAchievements(player);
+    syncPlayerPower(player); savePlayer(player);
+    io.emit('playerUpdated', publicPlayer(player));
+    emitEnemyUpdate();
+  });
+
+  socket.on('v2RunDungeon', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V2GameDirector.runDungeon(player, data.dungeonId, LevelManager);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player); updateAchievements(player); savePlayer(player, true);
+    socket.emit('v2Action', { type: 'dungeon', result, player: publicPlayer(player), v2: V2GameDirector.publicState(player) });
+    io.emit('playerUpdated', publicPlayer(player));
+    io.emit('rankingUpdate', buildRanking());
+  });
+
+  socket.on('v2ClaimChapter', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V2GameDirector.claimChapter(player, data.chapterId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player); updateAchievements(player); savePlayer(player, true);
+    socket.emit('v2Action', { type: 'chapter', result, player: publicPlayer(player), v2: V2GameDirector.publicState(player) });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
+  socket.on('v2UnlockSkin', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V2GameDirector.unlockSkin(player, data.skinId);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player); savePlayer(player, true);
+    socket.emit('v2Action', { type: result.type || 'skin', result, player: publicPlayer(player), v2: V2GameDirector.publicState(player) });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
+  socket.on('v2SetVisual', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V2GameDirector.setVisual(player, data);
+    syncPlayerPower(player); savePlayer(player, true);
+    socket.emit('v2Action', { type: 'visual', result, player: publicPlayer(player), v2: V2GameDirector.publicState(player) });
+    io.emit('playerUpdated', publicPlayer(player));
+  });
+
   socket.on('disconnect', () => {
     savePlayer(player, true);
     delete players[socket.id];
@@ -1314,6 +1408,7 @@ setInterval(() => {
   io.emit('gameState', publicPlayersList());
   io.emit('onlineCount', Object.keys(players).length);
   io.emit('rankingUpdate', buildRanking());
+  if (attacks.length || monsterAttacks.length) io.emit('v2State', { ok:true, players:Object.values(players).map(publicPlayer), monster:monsterManager.getPublicMonster(), definitions:V2GameDirector.definitions() });
   if (attacks.length || monsterAttacks.length) io.emit('combatTick', { attacks, monsterAttacks, monster: monsterManager.getPublicMonster(), serverTime: now });
   emitEnemyUpdate();
 }, TICK_RATE_MS);

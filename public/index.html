@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Legend Of Indle RPG V1</title>
+  <title>Legend Of Indle RPG V2</title>
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/auth-dark-fantasy.css" />
 </head>
@@ -13,8 +13,8 @@
       <div id="game-brand">
         <span class="brand-gem">◆</span>
         <div>
-          <strong>Legend Of Indle RPG V1</strong>
-          <small>MMORPG Idle Fantasy</small>
+          <strong>Legend Of Indle RPG V2</strong>
+          <small>Ultimate Local MMORPG</small>
         </div>
       </div>
 
@@ -115,7 +115,7 @@
 
     <section id="class-select">
       <div class="select-card">
-        <p class="eyebrow">Legend Of Indle RPG V1</p>
+        <p class="eyebrow">Legend Of Indle RPG V2</p>
         <h1>Escolha seu Herói</h1>
         <p class="select-desc">Escolha entre Guerreiro, Mago Arcanjo e Arqueira. Progressão salva, bolsa clicável, conquistas, habilidades com imagem, mana, boss especial e loot exclusivo.</p>
         <div id="class-cards"></div>
@@ -190,7 +190,11 @@
 
     <footer id="ability-shell">
       <div id="ability-bar"></div>
-      <button id="auto-farm-btn" class="auto-on">Farm automático: ON</button>
+      <div id="battle-control-strip">
+        <button id="manual-strike-btn">⚡ Golpe manual</button>
+        <button id="battle-camera-btn">🎥 Câmera: ON</button>
+        <button id="auto-farm-btn" class="auto-on">Farm automático: ON</button>
+      </div>
     </footer>
 
     <nav id="bottom-menu">
@@ -206,6 +210,7 @@
       <button id="menu-v90">👑 V90</button>
       <button id="menu-v92">🧬 V92</button>
       <button id="menu-v94">🎬 V94</button>
+      <button id="menu-v150">🔥 V150</button>
       <button>🪽 Asas</button>
       <button id="menu-mount">🐺 Montaria</button>
       <button id="menu-ranking">🏆 Ranking</button>
@@ -511,6 +516,29 @@ CHANGELOG_V94.txt</pre>
       </div>
     </section>
 
+
+    <section id="v150-modal" class="modal hidden">
+      <div class="modal-card compact-modal v150-modal-card">
+        <div class="modal-header">
+          <div>
+            <h2>🔥 V150 — Ultimate Local MMORPG Lab</h2>
+            <p>Central consolidada V96–V150: visual, batalha, mundo, companheiros, UI e preparação para executável.</p>
+          </div>
+          <button id="v150-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body v150-body">
+          <div class="v150-tabs">
+            <button data-v150-tab="battle" class="active">⚔️ Batalha</button>
+            <button data-v150-tab="visual">🎨 Visual</button>
+            <button data-v150-tab="world">🗺️ Mundo</button>
+            <button data-v150-tab="systems">🧩 Sistemas</button>
+            <button data-v150-tab="roadmap">📜 V96–V150</button>
+          </div>
+          <div id="v150-content" class="v150-content"></div>
+        </div>
+      </div>
+    </section>
+
     <div id="fatal-error" class="hidden"></div>
   </div>
 
@@ -518,5 +546,6 @@ CHANGELOG_V94.txt</pre>
   <script src="shared/classes.js"></script>
   <script src="js/vfx-manager.js"></script>
   <script src="js/game.js"></script>
+  <script src="js/v2-client.js"></script>
 </body>
 </html>
