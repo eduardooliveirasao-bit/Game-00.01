@@ -37,14 +37,16 @@
 
       <div class="hud-pill">⚔️ <span id="hud-power-value">0</span> Poder</div>
       <div class="hud-pill">🪙 <span id="hud-gold-value">0</span></div>
+      <div class="hud-pill gem-pill">💎 <span id="hud-gems-value">0</span></div>
       <div class="hud-pill online-pill">Online: <span id="hud-online-count">0</span></div>
+      <div id="hud-save-status" class="save-status">Salvando...</div>
     </header>
 
     <section id="class-select">
       <div class="select-card">
         <p class="eyebrow">Legend Of Indle RPG V1</p>
         <h1>Escolha seu Herói</h1>
-        <p class="select-desc">Escolha entre Guerreiro, Mago Arcanjo e Arqueira. Agora com bolsa clicável, equipar manual, habilidades com imagem, barra de mana e boss com mecânica especial.</p>
+        <p class="select-desc">Escolha entre Guerreiro, Mago Arcanjo e Arqueira. Progressão salva, bolsa clicável, conquistas, habilidades com imagem, mana, boss especial e loot exclusivo.</p>
         <div id="class-cards"></div>
       </div>
     </section>
@@ -76,6 +78,8 @@
           <div><span>Mana</span><strong id="hero-mana-side">0</strong></div>
           <div><span>Ouro</span><strong id="hero-gold-side">0</strong></div>
           <div><span>Bolsa</span><strong id="hero-bag-count">0</strong></div>
+          <div><span>Gemas</span><strong id="hero-gems-side">0</strong></div>
+          <div><span>Boss</span><strong id="hero-boss-side">0</strong></div>
         </div>
 
         <div class="mini-title">Equipamentos</div>
@@ -101,6 +105,9 @@
 
         <div class="mini-title">Loot recente</div>
         <div id="loot-list" class="loot-list"></div>
+
+        <div class="mini-title">Conquistas</div>
+        <div id="achievement-list" class="achievement-list"></div>
 
         <div class="mini-title">Combate</div>
         <div id="combat-log"></div>
@@ -132,7 +139,7 @@
         </div>
         <div class="modal-body">
           <div class="bag-column">
-            <div class="bag-title-row"><div class="bag-title">Itens na bolsa</div><button id="sell-all-btn">Vender tudo</button></div>
+            <div class="bag-title-row"><div class="bag-title">Itens na bolsa</div><div class="bag-actions"><button id="equip-best-btn">Equipar melhor</button><button id="sell-all-btn">Vender tudo</button></div></div>
             <div id="bag-list" class="bag-list"></div>
           </div>
           <div class="bag-column detail">

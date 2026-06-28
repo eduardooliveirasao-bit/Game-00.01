@@ -205,6 +205,33 @@ class LootManager {
     player.power = this.calculatePower(player);
     return { ok: true, sold, gold };
   }
+
+  static equipBestFromBag(player) {
+    player.inventario = player.inventario || [];
+    player.equipados = player.equipados || { arma: null, anel: null, colar: null, ornamento: null };
+    const equippedItems = [];
+    const slots = ['arma', 'anel', 'colar', 'ornamento'];
+    for (const slot of slots) {
+      const candidates = player.inventario
+        .filter((item) => item.slot === slot && item.classeId === player.classeId && ((player.nivel || 1) >= (item.requiredLevel || 1)))
+        .map((item) => this.enrichItem(item))
+        .sort((a, b) => this.scoreItem(b) - this.scoreItem(a));
+      if (!candidates.length) continue;
+      const best = candidates[0];
+      const current = player.equipados[slot] ? this.enrichItem(player.equipados[slot]) : null;
+      if (!current || this.scoreItem(best) > this.scoreItem(current)) {
+        const idx = player.inventario.findIndex((item) => item.id === best.id);
+        if (idx >= 0) player.inventario.splice(idx, 1);
+        if (current) player.inventario.push(current);
+        player.equipados[slot] = best;
+        equippedItems.push(best);
+      }
+    }
+    player.equipadosList = this.getEquippedList(player);
+    player.power = this.calculatePower(player);
+    return { ok: true, equippedItems };
+  }
+
 }
 
 module.exports = LootManager;

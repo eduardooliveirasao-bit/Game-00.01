@@ -1,0 +1,152 @@
+{
+  "b9fc10b69e0d5606ab37bc05cb1f6627": {
+    "saveId": "b9fc10b69e0d5606ab37bc05cb1f6627",
+    "nome": "Elyon, o Arcano Azul",
+    "classeId": "mago",
+    "nivel": 3,
+    "level": 3,
+    "xp": 180,
+    "hp": 0,
+    "maxHp": 210,
+    "mana": 241,
+    "maxMana": 373,
+    "ouro": 545,
+    "gemas": 1,
+    "kills": 9,
+    "horda": 10,
+    "autoFarm": false,
+    "inventario": [
+      {
+        "id": "mago_colar_1_1782655071207_2652eb997271e",
+        "baseId": "mago_colar_1",
+        "classeId": "mago",
+        "nome": "Colar da Luz Serena",
+        "slot": "colar",
+        "raridade": "comum",
+        "cor": "#5da9ff",
+        "icon": "📿",
+        "requiredLevel": 1,
+        "exclusivoBoss": false,
+        "stats": {
+          "ataque": 9,
+          "defesa": 10,
+          "critico": 2,
+          "hp": 66,
+          "mana": 32
+        },
+        "rarityColor": "#d9dde7",
+        "powerScore": 153,
+        "sellValue": 53
+      },
+      {
+        "id": "mago_colar_2_1782655068171_e04cd4be651208",
+        "baseId": "mago_colar_2",
+        "classeId": "mago",
+        "nome": "Colar da Estrela Guia",
+        "slot": "colar",
+        "raridade": "raro",
+        "cor": "#5da9ff",
+        "icon": "📿",
+        "requiredLevel": 9,
+        "exclusivoBoss": false,
+        "stats": {
+          "ataque": 9,
+          "defesa": 12,
+          "critico": 2,
+          "hp": 85,
+          "mana": 36
+        },
+        "rarityColor": "#55c7ff",
+        "powerScore": 195,
+        "sellValue": 83
+      },
+      {
+        "id": "mago_arma_2_1782655061088_2ac824d98c96d8",
+        "baseId": "mago_arma_2",
+        "classeId": "mago",
+        "nome": "Cajado Prismático",
+        "slot": "arma",
+        "raridade": "raro",
+        "cor": "#5da9ff",
+        "icon": "⚔️",
+        "requiredLevel": 9,
+        "exclusivoBoss": false,
+        "stats": {
+          "ataque": 31,
+          "defesa": 5,
+          "critico": 4,
+          "hp": 25,
+          "mana": 28
+        },
+        "rarityColor": "#55c7ff",
+        "powerScore": 278,
+        "sellValue": 119
+      },
+      {
+        "id": "mago_ornamento_2_1782655047970_5c6633084c4e3",
+        "baseId": "mago_ornamento_2",
+        "classeId": "mago",
+        "nome": "Relicário Azul",
+        "slot": "ornamento",
+        "raridade": "raro",
+        "cor": "#5da9ff",
+        "icon": "✨",
+        "requiredLevel": 9,
+        "exclusivoBoss": false,
+        "stats": {
+          "ataque": 6,
+          "defesa": 17,
+          "critico": 2,
+          "hp": 64,
+          "mana": 26
+        },
+        "rarityColor": "#55c7ff",
+        "powerScore": 183,
+        "sellValue": 78
+      }
+    ],
+    "equipados": {
+      "arma": null,
+      "anel": null,
+      "colar": {
+        "id": "mago_colar_1_1782655033852_d9948ca799c95",
+        "baseId": "mago_colar_1",
+        "classeId": "mago",
+        "nome": "Colar da Luz Serena",
+        "slot": "colar",
+        "raridade": "comum",
+        "cor": "#5da9ff",
+        "icon": "📿",
+        "requiredLevel": 1,
+        "exclusivoBoss": false,
+        "stats": {
+          "ataque": 4,
+          "defesa": 6,
+          "critico": 1,
+          "hp": 50,
+          "mana": 21
+        },
+        "rarityColor": "#d9dde7",
+        "powerScore": 88,
+        "sellValue": 30
+      },
+      "ornamento": null
+    },
+    "achievements": [
+      "primeiro_sangue"
+    ],
+    "bestiary": {
+      "slime": 5,
+      "skeleton": 4
+    },
+    "stats": {
+      "damageDealt": 3152,
+      "damageTaken": 551,
+      "goldEarned": 465,
+      "bossKills": 0,
+      "deaths": 2,
+      "itemsSold": 0
+    },
+    "updatedAt": 1782655089388
+  }
+}

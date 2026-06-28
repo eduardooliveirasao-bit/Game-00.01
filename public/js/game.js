@@ -60,6 +60,7 @@
   var bagList = byId('bag-list');
   var bagDetail = byId('bag-detail');
   var sellAllBtn = byId('sell-all-btn');
+  var equipBestBtn = byId('equip-best-btn');
   var equipmentGrid = byId('equipment-grid');
 
   var audioCtx = null;
@@ -176,6 +177,7 @@
     byId('hud-mana-text').textContent = p.mana + ' / ' + p.maxMana;
     byId('hud-power-value').textContent = formatNumber(p.power);
     byId('hud-gold-value').textContent = formatNumber(p.ouro);
+    if (byId('hud-gems-value')) byId('hud-gems-value').textContent = formatNumber(p.gemas || 0);
     byId('hero-name-side').textContent = p.nome;
     byId('hero-class-side').textContent = classe ? classe.nome : 'Sem classe';
     byId('hero-level-side').textContent = p.nivel;
@@ -184,6 +186,8 @@
     byId('hero-mana-side').textContent = p.mana + ' / ' + p.maxMana;
     byId('hero-gold-side').textContent = formatNumber(p.ouro);
     byId('hero-bag-count').textContent = (p.inventario || []).length;
+    if (byId('hero-gems-side')) byId('hero-gems-side').textContent = formatNumber(p.gemas || 0);
+    if (byId('hero-boss-side')) byId('hero-boss-side').textContent = formatNumber((p.stats && p.stats.bossKills) || 0);
 
     var portrait = byId('hero-portrait');
     portrait.style.backgroundImage = classe ? 'url("' + classe.asset.portrait + '")' : 'none';
@@ -194,7 +198,7 @@
     byId('stage-subtitle').textContent = isDead ? 'Herói derrotado' : (p.autoFarm ? 'Auto batalha ativa' : 'Auto batalha desativada');
     byId('hero-status-line').textContent = isDead ? 'Ressurreição automática em instantes' : 'Herói em combate';
 
-    renderEquipment(); renderBag(); updateLoot();
+    renderEquipment(); renderBag(); updateLoot(); renderAchievements();
   }
 
   function renderEquipment() {
@@ -314,6 +318,16 @@
     }).join('');
   }
 
+  function renderAchievements() {
+    var el = byId('achievement-list');
+    if (!el || !state.me) return;
+    var list = state.me.achievements || [];
+    if (!list.length) { el.innerHTML = '<div class="achievement-item locked">Nenhuma conquista desbloqueada ainda.</div>'; return; }
+    el.innerHTML = list.slice(-6).reverse().map(function (id) {
+      return '<div class="achievement-item">🏆 ' + escapeHtml(id.replace(/_/g, ' ')) + '</div>';
+    }).join('');
+  }
+
   function pushFloating(text, color, x, y, isCrit) { state.floating.push({ text: text, x: x, y: y, color: color || '#fff', life: 1, vy: isCrit ? -1.05 : -0.75, isCrit: !!isCrit }); }
   function spawnParticles(x, y, color, count) {
     for (var i = 0; i < count; i++) state.particles.push({ x: x, y: y, vx: (Math.random() - 0.5) * 4, vy: -Math.random() * 3 - 0.8, life: 1, color: color });
@@ -341,8 +355,8 @@
     var dead = !!state.me.isDead;
     if (attack) x += 28 * Math.sin((state.anim.playerAttackUntil - now) / 280 * Math.PI);
     if (hit) x -= 18 + Math.random() * 10;
-    var h = Math.min(330, Math.max(220, canvas.height * 0.78));
-    var w = state.me.classeId === 'mago' ? h * 1.05 : h * 0.78;
+    var h = Math.min(285, Math.max(190, canvas.height * 0.68));
+    var w = state.me.classeId === 'mago' ? h * 1.02 : h * 0.76;
     ctx.save();
     if (dead) { ctx.globalAlpha = 0.55; ctx.filter = 'grayscale(1)'; }
     if (img && img.complete) ctx.drawImage(img, x - w / 2, y - h, w, h);
@@ -362,8 +376,8 @@
     var attack = now < state.anim.monsterAttackUntil;
     if (attack) x -= 28 * Math.sin((state.anim.monsterAttackUntil - now) / 290 * Math.PI);
     if (hit) x += (Math.random() - 0.5) * 20;
-    var h = isDragon ? Math.min(330, canvas.height * 0.82) : Math.min(250, canvas.height * 0.62);
-    var w = isDragon ? h * 1.18 : h * 0.95;
+    var h = isDragon ? Math.min(300, canvas.height * 0.72) : Math.min(220, canvas.height * 0.55);
+    var w = isDragon ? h * 1.18 : h * 0.96;
     if (img && img.complete) ctx.drawImage(img, x - w / 2, y - h, w, h);
     if (state.monster.special && state.monster.special.active) {
       ctx.save(); ctx.strokeStyle = 'rgba(180,140,255,.85)'; ctx.lineWidth = 6; ctx.shadowColor = 'rgba(180,140,255,.65)'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.ellipse(x, y - h / 2, w * 0.34, h * 0.43, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
@@ -402,10 +416,11 @@
   bagClose.onclick = closeBag;
   bagModal.addEventListener('click', function (e) { if (e.target === bagModal) closeBag(); });
   sellAllBtn.onclick = function () { ensureAudio(); socket.emit('sellAllItems'); };
+  if (equipBestBtn) equipBestBtn.onclick = function () { ensureAudio(); socket.emit('equipBestItems'); };
   equipmentGrid.addEventListener('click', function (e) { var slot = e.target && e.target.getAttribute('data-unequip'); if (slot) { ensureAudio(); socket.emit('unequipItem', { slot: slot }); } });
 
   socket.on('connect_error', function (err) { fatal('Falha ao conectar: ' + err.message); });
-  socket.on('init', function (data) { state.meId = data.you.id; state.me = data.you; state.monster = data.monster; state.players = {}; (data.players || []).forEach(function (p) { state.players[p.id] = p; }); if (!state.me.classeId) { mountClassSelect(); classSelect.classList.remove('hidden'); } else { classSelect.classList.add('hidden'); mountAbilities(state.me.classeId); } updateHUD(); updateEnemyHUD(); });
+  socket.on('init', function (data) { state.meId = data.you.id; state.me = data.you; state.monster = data.monster; state.players = {}; (data.players || []).forEach(function (p) { state.players[p.id] = p; }); var savedId = localStorage.getItem('legend_of_indle_save_id'); if (savedId) socket.emit('loadSave', { saveId: savedId }); else if (data.you.saveId) { localStorage.setItem('legend_of_indle_save_id', data.you.saveId); if (byId('hud-save-status')) byId('hud-save-status').textContent = 'Save criado'; } if (!state.me.classeId) { mountClassSelect(); classSelect.classList.remove('hidden'); } else { classSelect.classList.add('hidden'); mountAbilities(state.me.classeId); } updateHUD(); updateEnemyHUD(); });
   socket.on('playerJoined', function (p) { state.players[p.id] = p; }); socket.on('playerLeft', function (d) { delete state.players[d.id]; }); socket.on('onlineCount', function (n) { byId('hud-online-count').textContent = n; });
   socket.on('playerUpdated', function (player) { state.players[player.id] = player; if (player.id === state.meId) { state.me = player; if (player.classeId) { classSelect.classList.add('hidden'); mountAbilities(player.classeId); } } updateHUD(); });
   socket.on('gameState', function (list) { (list || []).forEach(function (p) { state.players[p.id] = p; if (p.id === state.meId) state.me = p; }); updateHUD(); });
@@ -416,12 +431,16 @@
   });
   socket.on('enemyDied', function (data) { addLog('⚔️ ' + data.killerName + ' derrotou ' + data.deadMonster.nome + ' e ganhou +' + data.xpReward + ' XP e +' + data.goldGained + ' ouro.'); if (data.loot) { state.lootRecente.unshift(data.loot); state.lootRecente = state.lootRecente.slice(0, 8); addLog((data.loot.exclusivoBoss ? '🐉 Loot exclusivo: ' : '🎁 Loot obtido: ') + data.loot.icon + ' ' + data.loot.nome + ' [' + data.loot.raridade + ']'); playSound(data.loot.exclusivoBoss ? 'boss' : 'loot'); } if (data.progress && data.progress.leveledUp) addLog('✨ Level up! Agora você está no Nv. ' + data.progress.currentLevel + '.'); if (data.player && data.player.id === state.meId) state.me = data.player; if (data.nextMonster) { state.monster = data.nextMonster; updateEnemyHUD(); } updateHUD(); });
   socket.on('abilityUsed', function (evt) { spawnEffect(evt.visual && evt.visual.tipo, evt.visual && evt.visual.cor ? evt.visual.cor : '#fff'); if (evt.playerId === state.meId) startCooldownVisual(evt.habilidadeId, evt.cooldown); });
-  socket.on('inventoryAction', function (info) { if (info.type === 'equip') { addLog('🧰 Item equipado: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'unequip') { addLog('🎒 Item retornou para a bolsa: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'sell') { addLog('🪙 Item vendido por +' + info.gold + ' ouro: ' + info.item.nome + '.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'sellAll') { addLog('🪙 ' + info.sold + ' itens vendidos por +' + info.gold + ' ouro.'); state.selectedItemId = null; playSound('loot'); } });
+  socket.on('inventoryAction', function (info) { if (info.type === 'equip') { addLog('🧰 Item equipado: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'unequip') { addLog('🎒 Item retornou para a bolsa: ' + info.item.icon + ' ' + info.item.nome + '.'); playSound('equip'); } if (info.type === 'sell') { addLog('🪙 Item vendido por +' + info.gold + ' ouro: ' + info.item.nome + '.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'sellAll') { addLog('🪙 ' + info.sold + ' itens vendidos por +' + info.gold + ' ouro.'); state.selectedItemId = null; playSound('loot'); } if (info.type === 'equipBest') { addLog('⚡ Melhor equipamento aplicado: ' + ((info.equippedItems || []).length) + ' item(ns).'); playSound('equip'); } });
   socket.on('playerDied', function (data) { if (data.playerId === state.meId) { addLog('💀 Você foi derrotado por ' + data.monsterName + '. Ressurreição automática em 5s.'); state.anim.playerHitUntil = performance.now() + 900; playSound('death'); } });
   socket.on('playerRevived', function (data) { if (data.player && data.player.id === state.meId) { state.me = data.player; addLog('✨ Você ressuscitou e voltou ao combate.'); playSound('loot'); updateHUD(); } });
+  socket.on('saveLoaded', function (info) { if (info.ok && info.player) { state.me = info.player; localStorage.setItem('legend_of_indle_save_id', info.saveId); if (byId('hud-save-status')) byId('hud-save-status').textContent = 'Save carregado'; addLog('💾 Progresso carregado.'); if (info.offlineRewards) addLog('🌙 Recompensa offline: +' + info.offlineRewards.xp + ' XP, +' + info.offlineRewards.gold + ' ouro e ' + info.offlineRewards.kills + ' abates.'); updateHUD(); } else { if (info.saveId) localStorage.setItem('legend_of_indle_save_id', info.saveId); if (byId('hud-save-status')) byId('hud-save-status').textContent = 'Novo save'; } });
+  socket.on('saveStatus', function (info) { if (info.ok && byId('hud-save-status')) byId('hud-save-status').textContent = 'Salvo'; });
+  socket.on('achievementsUnlocked', function (list) { (list || []).forEach(function (a) { addLog('🏆 Conquista: ' + a.nome + ' +' + (a.reward.ouro || 0) + ' ouro +' + (a.reward.gemas || 0) + ' gemas.'); playSound('loot'); }); });
   socket.on('cooldownRejected', function (info) { addLog('⏳ Habilidade em recarga: ' + Math.ceil(info.restanteMs / 1000) + 's.'); });
   socket.on('errorMsg', function (msg) { addLog('⚠️ ' + msg); });
 
+  setInterval(function () { if (state.me && state.me.saveId) socket.emit('saveNow'); }, 20000);
   mountClassSelect();
   requestAnimationFrame(render);
 })();

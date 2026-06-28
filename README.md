@@ -1,39 +1,24 @@
-# Legend Of Indle RPG V1 — V6
+# Legend Of Indle RPG V1 — V7 Studio Final
 
-Versão com correção estrutural do layout, inventário mais completo, sons, animações e mecânica de morte/ressurreição.
+Versão polida baseada na V6, com correção de layout, persistência de progresso, recompensas offline, conquistas, inventário completo, venda/equipamento manual, efeitos de combate e boss especial.
 
-## Principais melhorias
+## Principais sistemas
 
-- Correção real do bug visual superior:
-  - o painel do inimigo saiu da sobreposição absoluta e virou uma linha própria no layout;
-  - o palco não fica mais por baixo da barra do monstro;
-  - sprites do herói e do monstro escalam conforme a altura do canvas.
-- Inventário clicável com tela de bolsa.
-- Equipar e desequipar manualmente.
-- Vender item individualmente.
-- Vender todos os itens da bolsa.
-- Comparação visual entre item selecionado e item equipado no mesmo slot.
-- Cores de raridade:
-  - comum
-  - raro
-  - épico
-  - lendário
-  - mítico
-  - boss
-- Sons gerados via Web Audio API:
-  - skill
-  - hit
-  - loot
-  - boss
-  - morte
-  - equipamento
-- Barra de mana.
-- Risco de morte do personagem.
-- Ressurreição automática.
-- Dragão Elemental com Escudo Elemental.
-- Loot exclusivo de boss.
-- Animações de idle, ataque e hit para jogador e monstros.
-- Efeitos de skill e partículas de impacto.
+- Layout reestruturado em linhas fixas para evitar sobreposição do painel superior.
+- Personagens e monstros com escala dinâmica no canvas.
+- Animações de idle, ataque, hit, partículas e dano flutuante.
+- Farm automático ON/OFF.
+- HP, Mana, XP, Ouro, Gemas e Poder.
+- Sistema de morte e ressurreição automática.
+- Save local persistente por `saveId` com armazenamento em `data/saves.json`.
+- Recompensa offline ao retornar ao jogo.
+- Conquistas com recompensas em ouro e gemas.
+- Inventário clicável com comparação visual.
+- Equipar manual, desequipar, vender item, vender tudo e equipar melhores itens.
+- Raridades: comum, raro, épico, lendário, mítico e boss.
+- Loot exclusivo do Dragão Elemental.
+- Boss com Escudo Elemental em fases do combate.
+- Sons sintéticos locais para hit, skill, boss, loot e equipamento.
 
 ## Rodar
 
@@ -42,8 +27,13 @@ npm install
 npm start
 ```
 
-Acesse:
+Abra:
 
 ```txt
 http://localhost:3000
 ```
+
+## Observações
+
+A pasta `node_modules` não está no ZIP. Rode `npm install`.
+O progresso é salvo em `data/saves.json` e o navegador guarda o `saveId` no `localStorage`.
