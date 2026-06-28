@@ -5,6 +5,7 @@ const PetManager = require('./PetManager');
 const TalentManager = require('./TalentManager');
 const MetaProgressManager = require('./MetaProgressManager');
 const V30ProgressManager = require('./V30ProgressManager');
+const V40ProgressManager = require('./V40ProgressManager');
 
 class CombatManager {
   static getClass(player) {
@@ -29,11 +30,12 @@ class CombatManager {
     const petBonus = PetManager.getBonuses(player);
     const talentBonus = TalentManager.getBonuses(player);
     const v30Bonus = V30ProgressManager.getBonuses(player);
+    const v40Bonus = V40ProgressManager.getBonuses(player);
     const meta = MetaProgressManager.publicMeta(player);
     const metaAtk = ((meta.ascension&&meta.ascension.bonuses&&meta.ascension.bonuses.ataquePct)||0)+((meta.ascension&&meta.ascension.artifactBonuses&&meta.ascension.artifactBonuses.ataquePct)||0)+((meta.codex&&meta.codex.bonuses&&meta.codex.bonuses.ataquePct)||0);
-    const base = (stats.baseDano + gearDamage + player.nivel * stats.multiplicadorNivel) * (1 + (petBonus.ataquePct || 0) + (petBonus.danoPct || 0) + (talentBonus.ataquePct || 0) + (v30Bonus.ataquePct || 0) + metaAtk);
+    const base = (stats.baseDano + gearDamage + player.nivel * stats.multiplicadorNivel) * (1 + (petBonus.ataquePct || 0) + (petBonus.danoPct || 0) + (talentBonus.ataquePct || 0) + (v30Bonus.ataquePct || 0) + (v40Bonus.ataquePct || 0) + metaAtk);
     const multiplier = ability ? ability.danoMultiplicador : 1;
-    const critChance = Math.min(95, (stats.critico || 0) + gearCrit + (petBonus.critico || 0) + (talentBonus.critico || 0) + (v30Bonus.critico || 0) + ((ability && ability.bonusCritico) || 0));
+    const critChance = Math.min(95, (stats.critico || 0) + gearCrit + (petBonus.critico || 0) + (talentBonus.critico || 0) + (v30Bonus.critico || 0) + (v40Bonus.critico || 0) + ((ability && ability.bonusCritico) || 0));
     const isCrit = Math.random() * 100 < critChance;
     const variance = 0.92 + Math.random() * 0.18;
     const critMul = isCrit ? 1.75 : 1;
@@ -111,7 +113,7 @@ class CombatManager {
 
   static grantKillRewards(player, combatEvent) {
     if (!combatEvent || !combatEvent.result || !combatEvent.result.died) return null;
-    { const meta = MetaProgressManager.publicMeta(player); const zoneXp=(meta.zone&&meta.zone.bonus&&meta.zone.bonus.xpPct)||0; const metaXp=((meta.ascension&&meta.ascension.bonuses&&meta.ascension.bonuses.xpPct)||0)+((meta.ascension&&meta.ascension.artifactBonuses&&meta.ascension.artifactBonuses.xpPct)||0); return LevelManager.addXP(player, Math.floor(combatEvent.result.xpReward * (1 + (TalentManager.getBonuses(player).xpPct || 0) + (V30ProgressManager.getBonuses(player).xpPct || 0) + zoneXp + metaXp))); }
+    { const meta = MetaProgressManager.publicMeta(player); const zoneXp=(meta.zone&&meta.zone.bonus&&meta.zone.bonus.xpPct)||0; const metaXp=((meta.ascension&&meta.ascension.bonuses&&meta.ascension.bonuses.xpPct)||0)+((meta.ascension&&meta.ascension.artifactBonuses&&meta.ascension.artifactBonuses.xpPct)||0); return LevelManager.addXP(player, Math.floor(combatEvent.result.xpReward * (1 + (TalentManager.getBonuses(player).xpPct || 0) + (V30ProgressManager.getBonuses(player).xpPct || 0) + (V40ProgressManager.getBonuses(player).xpPct || 0) + zoneXp + metaXp))); }
   }
 }
 

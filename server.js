@@ -13,6 +13,7 @@ const TalentManager = require('./server/managers/TalentManager');
 const ExpeditionManager = require('./server/managers/ExpeditionManager');
 const MetaProgressManager = require('./server/managers/MetaProgressManager');
 const V30ProgressManager = require('./server/managers/V30ProgressManager');
+const V40ProgressManager = require('./server/managers/V40ProgressManager');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE_MS = 1000;
@@ -102,12 +103,14 @@ function createPlayer(socket) {
     ascension: null,
     season: null,
     extraTalentPoints: 0,
-    v30: null
+    v30: null,
+    v40: null
   };
   LevelManager.syncProgressFields(player);
   MetaProgressManager.normalize(player);
   V30ProgressManager.normalize(player);
-  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player);
+  V40ProgressManager.normalize(player);
+  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player);
   return player;
 }
 
@@ -162,7 +165,8 @@ function publicPlayer(player) {
     talents: TalentManager.publicTalents(player),
     expedition: ExpeditionManager.publicExpedition(player),
     meta: MetaProgressManager.publicMeta(player),
-    endgame: V30ProgressManager.publicState(player)
+    endgame: V30ProgressManager.publicState(player),
+    v40: V40ProgressManager.publicState(player)
   };
 }
 
@@ -199,7 +203,8 @@ function syncPlayerPower(player) {
   LevelManager.syncProgressFields(player);
   MetaProgressManager.normalize(player);
   V30ProgressManager.normalize(player);
-  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player);
+  V40ProgressManager.normalize(player);
+  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player);
 }
 
 function savePlayer(player, force = false) {
@@ -237,6 +242,7 @@ function rewardIfEnemyDied(player, combatEvent) {
   const progress = CombatManager.grantKillRewards(player, combatEvent);
   const loot = LootManager.grantKillLoot(player, dead);
   const seasonXpGained = V30ProgressManager.onKill(player, dead, loot);
+  const v40Kill = V40ProgressManager.onKill(player, dead, loot);
   MetaProgressManager.progressMission(player, loot.item ? 'loot' : 'none', loot.item ? 1 : 0);
   const talentBonus = TalentManager.getBonuses(player);
   const meta = MetaProgressManager.publicMeta(player);
@@ -269,7 +275,8 @@ function rewardIfEnemyDied(player, combatEvent) {
     player: publicPlayer(player),
     meta: MetaProgressManager.publicMeta(player),
     endgame: V30ProgressManager.publicState(player),
-    seasonXpGained
+    seasonXpGained,
+    v40Kill
   });
   io.emit('playerUpdated', publicPlayer(player));
 }
@@ -282,8 +289,8 @@ function monsterStrike(player, now) {
   const v30Bonus = V30ProgressManager.getBonuses(player);
   const metaBonus = MetaProgressManager.getArtifactBonuses(player);
   const codexBonus = MetaProgressManager.getCodexBonuses(player);
-  const defense = (GAME_CLASSES[player.classeId]?.baseStats?.defesa || 0) + LootManager.getEquippedList(player).reduce((s, item) => s + ((item.stats && item.stats.defesa) || 0), 0) + (talentBonus.defesa || 0) + (v30Bonus.defesa || 0) + (metaBonus.defesa || 0) + (codexBonus.defesa || 0);
-  const dodgeChance = Math.min(42, (talentBonus.evasion || 0) + (v30Bonus.evasion || 0) + ((LootManager.getCharacterAttributes(player).evasion || 0) * 0.12));
+  const defense = (GAME_CLASSES[player.classeId]?.baseStats?.defesa || 0) + LootManager.getEquippedList(player).reduce((s, item) => s + ((item.stats && item.stats.defesa) || 0), 0) + (talentBonus.defesa || 0) + (v30Bonus.defesa || 0) + (v40Bonus.defesa || 0) + (metaBonus.defesa || 0) + (codexBonus.defesa || 0);
+  const dodgeChance = Math.min(42, (talentBonus.evasion || 0) + (v30Bonus.evasion || 0) + (v40Bonus.evasion || 0) + ((LootManager.getCharacterAttributes(player).evasion || 0) * 0.12));
   if (Math.random() * 100 < dodgeChance) {
     return { playerId: player.id, playerName: player.nome, damage: 0, dodged: true, died: false, hp: player.hp, maxHp: player.maxHp };
   }
@@ -532,7 +539,8 @@ io.on('connection', (socket) => {
     player.mana = player.maxMana;
     MetaProgressManager.normalize(player);
   V30ProgressManager.normalize(player);
-  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player);
+  V40ProgressManager.normalize(player);
+  player.power = LootManager.calculatePower(player) + PetManager.powerBonus(player) + V40ProgressManager.powerBonus(player);
     updateAchievements(player);
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
@@ -937,6 +945,87 @@ io.on('connection', (socket) => {
     savePlayer(player, true);
     io.emit('playerUpdated', publicPlayer(player));
     socket.emit('v30Action', { type:'reroll', result, player:publicPlayer(player) });
+  });
+
+
+  socket.on('v40AttackRaid', () => {
+    if (!requireAuth(socket, player)) return;
+    const result = V40ProgressManager.attackRaid(player);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v40Action', { type:'raid', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v40ContributeGuild', () => {
+    if (!requireAuth(socket, player)) return;
+    const result = V40ProgressManager.contributeGuild(player);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v40Action', { type:'guild', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v40UpgradeRune', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V40ProgressManager.upgradeRune(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v40Action', { type:'rune', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v40ClaimContract', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V40ProgressManager.claimContract(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v40Action', { type:'contract', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v40RunArena', () => {
+    if (!requireAuth(socket, player)) return;
+    const result = V40ProgressManager.runArena(player);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v40Action', { type:'arena', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v40CraftAlchemy', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V40ProgressManager.craftAlchemy(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v40Action', { type:'alchemy', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v40EquipCosmetic', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V40ProgressManager.equipCosmetic(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v40Action', { type:'cosmetic', result, player:publicPlayer(player) });
+  });
+
+  socket.on('v40ClaimMilestone', (data = {}) => {
+    if (!requireAuth(socket, player)) return;
+    const result = V40ProgressManager.claimMilestone(player, data.id);
+    if (!result.ok) return socket.emit('errorMsg', result.reason);
+    syncPlayerPower(player);
+    savePlayer(player, true);
+    io.emit('playerUpdated', publicPlayer(player));
+    socket.emit('v40Action', { type:'milestone', result, player:publicPlayer(player) });
   });
 
   socket.on('disconnect', () => {

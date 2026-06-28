@@ -97,3 +97,8 @@ docs/RENDER_DEPLOY.md
 - Expedições Idle paralelas.
 - Bônus de XP/Ouro/Drop por talentos.
 - Persistência de talentos e expedições.
+
+
+## V40 Meta Expansion
+
+Inclui Raid Mundial, Ordem Indle, Runas Eternas, Arena Espelho, Contratos, Alquimia, Vínculo de Pets, Cosméticos e Central V40.

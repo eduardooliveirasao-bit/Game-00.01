@@ -127,6 +127,10 @@
   var v30Modal = byId('v30-modal');
   var v30Close = byId('v30-close');
   var v30Content = byId('v30-content');
+  var menuV40 = byId('menu-v40');
+  var v40Modal = byId('v40-modal');
+  var v40Close = byId('v40-close');
+  var v40Content = byId('v40-content');
 
   var audioCtx = null;
   function ensureAudio() {
@@ -1118,6 +1122,50 @@
     }
   }
 
+
+
+  function openV40() { if (!v40Modal) return; v40Modal.classList.remove('hidden'); renderV40(); }
+  function closeV40() { if (v40Modal) v40Modal.classList.add('hidden'); }
+
+  function renderV40() {
+    if (!v40Content || !state.me) return;
+    var v = state.me.v40 || {};
+    var tab = state.v40Tab || 'hub';
+    var tabs = v40Modal ? v40Modal.querySelectorAll('[data-v40-tab]') : [];
+    Array.prototype.forEach.call(tabs, function(btn){ btn.classList.toggle('active', btn.getAttribute('data-v40-tab') === tab); });
+    if (!v.version) { v40Content.innerHTML = '<div class="v30-card">Carregando V40...</div>'; return; }
+    function costText(c){ return 'Essência ' + formatNumber(c.essence||0) + (c.ouro ? ' · Ouro ' + formatNumber(c.ouro) : '') + (c.gemas ? ' · 💎 ' + c.gemas : ''); }
+    if (tab === 'hub') {
+      v40Content.innerHTML = '<div class="v30-hero"><h3>🌠 Central V40</h3><p>Essência: <b>' + formatNumber(v.essence||0) + '</b> · Honra: <b>' + formatNumber(v.honor||0) + '</b> · Poder V40: <b>' + formatNumber(v.powerBonus||0) + '</b></p><p>Bônus ativos: ' + bonusLine(v.bonuses) + '</p></div><div class="v30-grid">' + (v.milestones||[]).map(function(m){ var r=m.reward||{}; return '<div class="v30-card ' + (m.claimed?'claimed':m.ready?'ready':'') + '"><h3>🏁 ' + escapeHtml(m.nome) + '<span>' + (m.claimed?'Coletado':m.ready?'Pronto':'Bloqueado') + '</span></h3><p>Recompensa: Ouro ' + formatNumber(r.ouro||0) + ' · Gemas ' + formatNumber(r.gemas||0) + ' · Essência ' + formatNumber(r.essence||0) + (r.cosmetic?' · Visual '+r.cosmetic:'') + '</p><button data-v40-milestone="' + m.id + '" ' + (!m.ready || m.claimed ? 'disabled' : '') + '>Coletar marco</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v40Content.querySelectorAll('[data-v40-milestone]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v40ClaimMilestone', { id:btn.getAttribute('data-v40-milestone') }); }; });
+    } else if (tab === 'raid') {
+      var hp = v.raid.bossHp || 1; var dmg = v.raid.damage || 0; var pct = Math.min(100, Math.floor((dmg/hp)*100));
+      v40Content.innerHTML = '<div class="v30-hero"><h3>🐲 Raid Mundial — Soberano Elemental</h3><p>Energia: <b>' + (v.raid.energy||0) + '/5</b> · Nível do boss: <b>' + (v.raid.level||1) + '</b> · Melhor dano: <b>' + formatNumber(v.raid.bestDamage||0) + '</b></p><div class="talent-bar"><i style="width:' + pct + '%"></i></div><p>Dano acumulado: ' + formatNumber(dmg) + ' / ' + formatNumber(hp) + '</p><button id="v40-raid-btn" ' + ((v.raid.energy||0)<=0?'disabled':'') + '>Atacar Raid</button></div>';
+      var rb=byId('v40-raid-btn'); if(rb) rb.onclick=function(){ ensureAudio(); socket.emit('v40AttackRaid'); };
+    } else if (tab === 'guild') {
+      var g=v.guild||{}; var c=g.nextCost||{};
+      v40Content.innerHTML = '<div class="v30-hero"><h3>🏰 ' + escapeHtml(g.name||'Ordem Indle') + '</h3><p>Nível da Ordem: <b>' + (g.level||1) + '</b> · Contribuição: <b>' + (g.contribution||0) + '</b></p><p>A Ordem é seu sistema de guilda solo inicial: cada contribuição sobe a estrutura e soma bônus permanentes.</p><button id="v40-guild-btn">Contribuir: ' + formatNumber(c.ouro||0) + ' ouro ' + (c.gemas?'+ '+c.gemas+' 💎':'') + '</button></div>';
+      var gb=byId('v40-guild-btn'); if(gb) gb.onclick=function(){ ensureAudio(); socket.emit('v40ContributeGuild'); };
+    } else if (tab === 'runes') {
+      v40Content.innerHTML = '<div class="v30-hero"><h3>🔮 Runas Eternas</h3><p>Use essência obtida em combate, raid e contratos para evoluir runas permanentes.</p></div><div class="v30-grid">' + ((v.runes&&v.runes.defs)||[]).map(function(d){ var lv=(v.runes.levels&&v.runes.levels[d.id])||0; var c=d.nextCost||{}; return '<div class="v30-card"><h3>' + d.icon + ' ' + d.nome + '<span>' + lv + '/' + d.max + '</span></h3><p>' + d.desc + '</p><small>' + bonusLine(d.bonusPerLevel) + '</small><button data-v40-rune="' + d.id + '" ' + (lv>=d.max?'disabled':'') + '>Evoluir: ' + costText(c) + '</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v40Content.querySelectorAll('[data-v40-rune]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v40UpgradeRune', { id:btn.getAttribute('data-v40-rune') }); }; });
+    } else if (tab === 'arena') {
+      var a=v.arena||{};
+      v40Content.innerHTML = '<div class="v30-hero"><h3>⚔️ Arena Espelho</h3><p>Rating: <b>' + (a.rating||1000) + '</b> · Vitórias: <b>' + (a.wins||0) + '</b> · Derrotas: <b>' + (a.losses||0) + '</b> · Tickets: <b>' + (a.tickets||0) + '/5</b></p><p>Dispute contra um espelho de poder variável e ganhe honra, essência e gemas.</p><button id="v40-arena-btn" ' + ((a.tickets||0)<=0?'disabled':'') + '>Lutar na Arena</button></div>';
+      var ab=byId('v40-arena-btn'); if(ab) ab.onclick=function(){ ensureAudio(); socket.emit('v40RunArena'); };
+    } else if (tab === 'contracts') {
+      v40Content.innerHTML = '<div class="v30-hero"><h3>📜 Contratos de Caça V40</h3><p>Contratos renovam diariamente e recompensam o farm de monstros específicos.</p></div><div class="v30-grid">' + ((v.contracts&&v.contracts.defs)||[]).map(function(c){ var p=(v.contracts.progress&&v.contracts.progress[c.id])||0; var claimed=(v.contracts.claimed||[]).indexOf(c.id)>=0; var ready=p>=c.need; var r=c.reward||{}; return '<div class="v30-card ' + (claimed?'claimed':ready?'ready':'') + '"><h3>' + c.icon + ' ' + c.nome + '<span>' + Math.min(p,c.need) + '/' + c.need + '</span></h3><p>Ouro ' + formatNumber(r.ouro||0) + ' · Gemas ' + formatNumber(r.gemas||0) + ' · Essência ' + formatNumber(r.essence||0) + ' · Honra ' + formatNumber(r.honor||0) + '</p><button data-v40-contract="' + c.id + '" ' + (!ready || claimed ? 'disabled' : '') + '>Coletar</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v40Content.querySelectorAll('[data-v40-contract]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v40ClaimContract', { id:btn.getAttribute('data-v40-contract') }); }; });
+    } else if (tab === 'alchemy') {
+      v40Content.innerHTML = '<div class="v30-hero"><h3>⚗️ Alquimia</h3><p>Buffs ativos: ' + ((v.buffs||[]).map(function(b){return (b.icon||'🧪')+' '+escapeHtml(b.nome||b.id);}).join(' · ') || 'nenhum') + '</p></div><div class="v30-grid">' + (v.alchemy||[]).map(function(a){ return '<div class="v30-card"><h3>' + a.icon + ' ' + a.nome + '</h3><p>' + a.desc + '</p><small>Custo: ' + costText(a.cost||{}) + '</small><button data-v40-alchemy="' + a.id + '">Criar e usar</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v40Content.querySelectorAll('[data-v40-alchemy]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v40CraftAlchemy', { id:btn.getAttribute('data-v40-alchemy') }); }; });
+    } else if (tab === 'cosmetics') {
+      var un=(v.cosmetics&&v.cosmetics.unlocked)||[];
+      v40Content.innerHTML = '<div class="v30-hero"><h3>🎨 Visual e Auras</h3><p>Visual equipado: <b>' + ((v.cosmetics&&v.cosmetics.equipped)||'classic') + '</b>. Cosméticos dão pequenos bônus e mudam o estilo visual.</p></div><div class="v30-grid">' + ((v.cosmetics&&v.cosmetics.all)||[]).map(function(c){ var has=un.indexOf(c.id)>=0; return '<div class="v30-card ' + (has?'ready':'') + '"><h3>' + c.icon + ' ' + c.nome + '</h3><p>' + c.desc + '</p><small>' + bonusLine(c.bonus) + '</small><button data-v40-cosmetic="' + c.id + '" ' + (!has?'disabled':'') + '>' + ((v.cosmetics&&v.cosmetics.equipped)===c.id?'Equipado':'Equipar') + '</button></div>'; }).join('') + '</div>';
+      Array.prototype.forEach.call(v40Content.querySelectorAll('[data-v40-cosmetic]'), function(btn){ btn.onclick=function(){ ensureAudio(); socket.emit('v40EquipCosmetic', { id:btn.getAttribute('data-v40-cosmetic') }); }; });
+    }
+  }
+
   if (loginBtn) loginBtn.onclick = function () {
     ensureAudio();
     setAuthError('');
@@ -1163,7 +1211,10 @@
   if (menuAscension) menuAscension.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuAscension.classList.add('active'); openAscension(); };
   if (ascensionClose) ascensionClose.onclick = closeAscension;
   if (menuV30) menuV30.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuV30.classList.add('active'); openV30(); };
+  if (menuV40) menuV40.onclick = function () { ensureAudio(); Array.prototype.forEach.call(byId('bottom-menu').querySelectorAll('button'), function (b) { b.classList.remove('active'); }); menuV40.classList.add('active'); openV40(); };
   if (v30Close) v30Close.onclick = closeV30;
+  if (v40Close) v40Close.onclick = closeV40;
+  if (v40Modal) Array.prototype.forEach.call(v40Modal.querySelectorAll('[data-v40-tab]'), function(btn){ btn.onclick=function(){ state.v40Tab=btn.getAttribute('data-v40-tab'); renderV40(); }; });
   if (v30Modal) Array.prototype.forEach.call(v30Modal.querySelectorAll('[data-v30-tab]'), function(btn){ btn.onclick=function(){ state.v30Tab=btn.getAttribute('data-v30-tab'); renderV30(); }; });
   if (ascensionModal) ascensionModal.addEventListener('click', function (e) { if (e.target === ascensionModal) closeAscension(); });
 
